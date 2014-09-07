@@ -8,11 +8,16 @@ import subprocess
 
 
 def parse_file(source_file):
-    json_ast = subprocess.Popen(
-        ['node', './node_modules/esprima/bin/esparse.js', '--loc', source_file],
-        stdout=subprocess.PIPE).stdout
-    return json.load(json_ast)
+    return json.load(subprocess.Popen(
+        ['node', 'node_modules/esprima/bin/esparse.js', '--loc', source_file],
+        stdout=subprocess.PIPE).stdout)
 
+def generate(expression):
+    process = subprocess.Popen(
+        ['node', 'node_modules/escodegen/bin/esgenerate.js', '/dev/stdin'],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    json.dump(expression, process.stdin)
+    return process.stdout.read()
 
 def objects_in_tree(tree):
     iterable = tree.values() if hasattr(tree, 'values') else tree
@@ -219,3 +224,4 @@ for row in data:
     print "".join(word.ljust(col_width) for word in row)
 
 print babel_message_for_expression(expr)
+print generate(expr)
