@@ -1,16 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
+import copy
 import json
 from pprint import pprint
+import re
 import subprocess
 
+from genshi_message import components_for_genshi_message
+
+blank_re = re.compile('^[\s\xa0]*$')
+def is_present(string):
+    return string and not re.match(blank_re, string)
 
 def parse_file(source_file):
     return json.load(subprocess.Popen(
-        ['node', 'node_modules/esprima/bin/esparse.js', '--loc', source_file],
+        ['node', 'node_modules/esprima/bin/esparse.js', source_file],
         stdout=subprocess.PIPE).stdout)
+
+# : string with javascript expression statement -> expression
+def parse_fragment(javascript):
+    process = subprocess.Popen(
+        ['node', 'node_modules/esprima/bin/esparse.js', '/dev/stdin'],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    process.stdin.write(javascript)
+    return json.load(process.stdout)['body'][0]['expression']
 
 def generate(expression):
     process = subprocess.Popen(
@@ -18,6 +33,7 @@ def generate(expression):
         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     json.dump(expression, process.stdin)
     return process.stdout.read()
+
 
 def objects_in_tree(tree):
     iterable = tree.values() if hasattr(tree, 'values') else tree
@@ -30,7 +46,7 @@ def objects_in_tree(tree):
 
 
 def matches(obj, pat):
-    if isinstance(pat, dict):
+    if isinstance(pat, dict) and isinstance(obj, dict):
         return all(matches(obj[k], v) if obj.has_key(k) else False
             for k, v in pat.items())
     elif isinstance(pat, type(lambda x:x)):
@@ -49,6 +65,9 @@ def string_literals_in_tree(tree):
             yield o
 def is_string_literal(expression):
     return matches(expression, string_literal_pattern)
+
+def literal_expression_for_jsonifyable(jsonifyable):
+    return parse_fragment(json.dumps(jsonifyable))
 
 message_pattern = {
     'type': 'CallExpression',
@@ -166,6 +185,7 @@ def is_interesting(expression):
         or (is_inherently_interesting(expression)
             and any(is_interesting(child) for child in immediate_subexpressions(expression))))
 
+
 def tree_with_property(expression, property, depth=0):
     yield "    "*depth + str(expression.get(property))
     if is_interesting(expression):
@@ -199,29 +219,100 @@ def babel_message_for_expression(expression):
 def is_numberable(expression):
     return expression['type'] == 'CallExpression'
 
-def destructively_number_expression(expression, count=0):
+def visit_numbers_upon_expressions(expression, visitor, count=0):
     if is_numberable(expression):
-        expression['number'] = count
+        visitor(expression, count)
         count = count + 1
     if is_interesting(expression):
         for subexpr in immediate_subexpressions(expression):
-            count = destructively_number_expression(subexpr, count)
+            count = visit_numbers_upon_expressions(subexpr, visitor, count)
     return count
 
+def copies_arguments(f):
+    def g(*args, **kwargs):
+        return f(*[copy.deepcopy(x) for x in args],
+                **{k: copy.deepcopy(v) for k, v in kwargs.items()})
+    return g
 
-output = Struct({'babel':[], 'type': []})
+# : expression -> (expression with numbers w/o children, expressions by number)
+@copies_arguments
+def understand(expression):
+    expressions_by_number = {}
 
-program = parse_file('/Users/david/code/app-ido-i3/var/out/green-1/js/org-intake.js')
-expr = list(message_expressions_in_tree(program))[-1]['arguments'][0]
-destructively_number_expression(expr)
-output.type = list(tree_with_property(expr, 'number'))
-output.babel = expanded_babel_message_for_expression(expr).split('\n')
+    def visitor(subexpr, count):
+        subexpr['number'] = count
+        expressions_by_number[count] = subexpr
+    visit_numbers_upon_expressions(expression, visitor)
 
-data = list(zip(*output.__dict__.values()))
-padding = 2
-col_width = max(len(word) for row in data for word in row) + padding
-for row in data:
-    print "".join(word.ljust(col_width) for word in row)
+    for k, v in expressions_by_number.items():
+        if is_interesting(v):
+            expressions_by_number[k] = without_children(v)
 
-print babel_message_for_expression(expr)
-print generate(expr)
+    return expression, expressions_by_number
+
+@copies_arguments
+def without_children(expression):
+    assert is_dom_node(expression)
+    expression['arguments'] = expression['arguments'][:1]
+    return expression
+
+@copies_arguments
+def with_added_child(expression, child):
+    assert is_dom_node(expression)
+    expression['arguments'].append(child)
+    return expression
+
+
+def debug(expr):
+    output = Struct({'babel':[], 'type': []})
+    output.type = list(tree_with_property(expr, 'number'))
+    output.babel = expanded_babel_message_for_expression(expr).split('\n')
+
+    data = list(zip(*output.__dict__.values()))
+    padding = 2
+    col_width = max(len(word) for row in data for word in row) + padding
+    for row in data:
+        print "".join(word.ljust(col_width) for word in row)
+
+translated = """
+[1:There's a hole in my bucket]
+[2:Dear [3:] Liza [4:]:]
+[5:]
+[6:There's a hole in my bucket]
+[7:Dear Liza do-day]
+"""
+
+@copies_arguments
+def filled_out(root, expressions_by_number, children_by_number):
+    if is_dom_node(root):
+        for x in children_by_number[root['number']]:
+            root = with_added_child(root,
+                filled_out(x, expressions_by_number, children_by_number))
+    return root
+
+def children_by_number(tokens, expressions_by_number):
+    children_by_number = defaultdict(list)
+    numbers_seen = {0}
+    context = 0
+    for number, text in tokens:
+        node = expressions_by_number[number]
+        if not number in numbers_seen:
+            children_by_number[context].append(node)
+            numbers_seen.add(number)
+        context = number
+        if is_present(text):
+            children_by_number[context].append(
+                literal_expression_for_jsonifyable(text))
+    return children_by_number
+
+if __name__ == '__main__':
+    program = parse_file('/Users/david/code/app-ido-i3/var/out/green-1/js/org-intake.js')
+    expr = list(message_expressions_in_tree(program))[-1]['arguments'][0]
+    expr, expressions_by_number = understand(expr)
+    orig_message = babel_message_for_expression(expr)
+    print "------"
+    children_by_number = children_by_number(components_for_genshi_message(translated), expressions_by_number)
+    recon = filled_out(expressions_by_number[0], expressions_by_number, children_by_number)
+    # debug(recon)
+    print generate(recon)
+    print generate(expr)
