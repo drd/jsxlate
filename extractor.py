@@ -19,13 +19,16 @@ def parse_file(source_file):
         ['node', 'node_modules/esprima/bin/esparse.js', source_file],
         stdout=subprocess.PIPE).stdout)
 
-# : string with javascript expression statement -> expression
-def parse_fragment(javascript):
+def parse_program(javascript):
     process = subprocess.Popen(
         ['node', 'node_modules/esprima/bin/esparse.js', '/dev/stdin'],
         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     process.stdin.write(javascript)
-    return json.load(process.stdout)['body'][0]['expression']
+    return json.load(process.stdout)        
+
+# : string with javascript expression statement -> expression
+def parse_fragment(javascript):
+    return parse_program(javascript)['body'][0]['expression']
 
 def generate(expression):
     process = subprocess.Popen(
@@ -280,7 +283,7 @@ translated = """
 [2:Dear [3:] Liza [4:]:]
 [5:]
 [6:There's a hole in my bucket]
-[7:Dear Liza do-day]
+[7:Dear Liza a hole]
 """
 
 @copies_arguments
@@ -311,6 +314,22 @@ def expression_translated_by_message(expression, message):
     children_by_number = number_children(components_for_genshi_message(message), expressions_by_number)
     return filled_out(expressions_by_number[0], expressions_by_number, children_by_number)
 
+
+def extract(fileobj, keywords, comment_tags, options):
+    """
+    Pybabel entrypoint for extracting strings from a given file.
+    Return a sequence of 4-tuples (lineno, funcname, messages, comments).
+    """
+    program = parse_program(fileobj.read())
+    for message_expression in message_expressions_in_tree(program):
+        inner_expression = message_expression['arguments'][0]
+        message = babel_message_for_expression(understand(inner_expression)[0])
+        yield (message_expression['loc']['start']['line'],
+            '',
+            message,
+            '')
+
+
 if __name__ == '__main__':
     program = parse_file('/Users/david/code/app-ido-i3/var/out/green-1/js/org-intake.js')
     expr = list(message_expressions_in_tree(program))[-1]['arguments'][0]
@@ -318,8 +337,10 @@ if __name__ == '__main__':
     orig_message = babel_message_for_expression(understand(expr)[0])
     print orig_message
     ident = expression_translated_by_message(expr, orig_message)
+    print "--------"
 
     recon = expression_translated_by_message(expr, translated)
     print generate(recon)
+    print "--------"
     print generate(expr)
     print "Does the identity hold?", generate(ident) == generate(expr)
