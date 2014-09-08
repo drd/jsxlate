@@ -291,30 +291,35 @@ def filled_out(root, expressions_by_number, children_by_number):
                 for child in children_by_number[root['number']]])
     return root
 
-def children_by_number(tokens, expressions_by_number):
-    children_by_number = defaultdict(list)
+def number_children(tokens, expressions_by_number):
+    result = defaultdict(list)
     numbers_seen = {0}
     context = 0
     for number, text in tokens:
         node = expressions_by_number[number]
         if not number in numbers_seen:
-            children_by_number[context].append(node)
+            result[context].append(node)
             numbers_seen.add(number)
         context = number
         if is_present(text):
-            children_by_number[context].append(
+            result[context].append(
                 literal_expression_for_jsonifyable(text))
-    return children_by_number
+    return result
+
+def expression_translated_by_message(expression, message):
+    expr, expressions_by_number = understand(expression)
+    children_by_number = number_children(components_for_genshi_message(message), expressions_by_number)
+    return filled_out(expressions_by_number[0], expressions_by_number, children_by_number)
 
 if __name__ == '__main__':
     program = parse_file('/Users/david/code/app-ido-i3/var/out/green-1/js/org-intake.js')
     expr = list(message_expressions_in_tree(program))[-1]['arguments'][0]
-    expr, expressions_by_number = understand(expr)
-    orig_message = babel_message_for_expression(expr)
-    print "------"
-    children_by_number = children_by_number(components_for_genshi_message(orig_message), expressions_by_number)
-    recon = filled_out(expressions_by_number[0], expressions_by_number, children_by_number)
-    # debug(recon)
+
+    orig_message = babel_message_for_expression(understand(expr)[0])
+    print orig_message
+    ident = expression_translated_by_message(expr, orig_message)
+
+    recon = expression_translated_by_message(expr, translated)
     print generate(recon)
     print generate(expr)
-    print "Are they equal?", generate(recon) == generate(expr)
+    print "Does the identity hold?", generate(ident) == generate(expr)
