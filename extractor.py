@@ -257,9 +257,10 @@ def without_children(expression):
     return expression
 
 @copies_arguments
-def with_added_child(expression, child):
+def with_added_children(expression, children):
     assert is_dom_node(expression)
-    expression['arguments'].append(child)
+    for c in children:
+        expression['arguments'].append(c)
     return expression
 
 
@@ -285,9 +286,9 @@ translated = """
 @copies_arguments
 def filled_out(root, expressions_by_number, children_by_number):
     if is_dom_node(root):
-        for x in children_by_number[root['number']]:
-            root = with_added_child(root,
-                filled_out(x, expressions_by_number, children_by_number))
+        root = with_added_children(root, [
+            filled_out(child, expressions_by_number, children_by_number)
+                for child in children_by_number[root['number']]])
     return root
 
 def children_by_number(tokens, expressions_by_number):
@@ -311,8 +312,9 @@ if __name__ == '__main__':
     expr, expressions_by_number = understand(expr)
     orig_message = babel_message_for_expression(expr)
     print "------"
-    children_by_number = children_by_number(components_for_genshi_message(translated), expressions_by_number)
+    children_by_number = children_by_number(components_for_genshi_message(orig_message), expressions_by_number)
     recon = filled_out(expressions_by_number[0], expressions_by_number, children_by_number)
     # debug(recon)
     print generate(recon)
     print generate(expr)
+    print "Are they equal?", generate(recon) == generate(expr)
