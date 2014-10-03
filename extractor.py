@@ -2,13 +2,62 @@
 # -*- coding: utf-8 -*-
 
 from collections import defaultdict, namedtuple
-import copy
+from copy import deepcopy
 import json
 from pprint import pprint
 import re
 import subprocess
 
 from genshi_message import components_for_genshi_message
+
+
+def copies_arguments(f):
+    def g(*args, **kwargs):
+        return f(*[deepcopy(x) for x in args],
+                **{k: deepcopy(v) for k, v in kwargs.items()})
+    return g
+
+
+# A tree is an list of nodes and an adjacency list, where the adjacency list is
+# a list of tuples (a,b) where a and b are indices into the list of nodes,  and
+# where (a,b1) comes before (a,b2) in the adjacency when b1 comes before b2
+# amongst a's children.
+Tree = namedtuple("Tree", "nodes adjacency")
+
+def tree_from_materialized_expression(expr):
+    tree = Tree([],[])
+    return tree_by_adding_materialized_expression_to_tree(expr, tree)
+
+@copies_arguments
+def tree_by_adding_materialized_expression_to_tree(expr, tree, parent_index=None):
+    nodes, adj = tree
+    my_index = len(nodes)
+    nodes.append(without_children(expr) if is_interesting(expr) else expr)
+    if parent_index is not None: adj.append((parent_index, my_index))
+    for child in immediate_subexpressions(expr):
+        tree = tree_by_adding_materialized_expression_to_tree(child, tree, my_index)
+    return tree
+
+def materialized_expression_from_tree(tree):
+    return expression_by_materializing_expression_with_tree(root(tree), tree)
+
+def expression_by_materializing_expression_with_tree(expr, tree):
+    expr = deepcopy(expr)
+    children = children_of_node_in_tree(expr, tree)
+    for c in children:
+        mc = expression_by_materializing_expression_with_tree(c, tree)
+        expr['arguments'].append(mc) # 1
+    return expr
+    # 1: The only interesting expressions currently have their children under
+    #    'arguments'. This would need to be more flexible if that changes.
+
+def root(tree):
+    return tree[0]
+
+def children_of_node_in_tree(node, tree):
+    index = tree.nodes.index(node)
+    return [tree.nodes[c] for p, c in tree.adjacency if p == index]
+
 
 blank_re = re.compile('^[\s\xa0]*$')
 def is_present(string):
@@ -38,6 +87,28 @@ def generate(expression):
     return process.stdout.read()
 
 
+def destructively_assign_parent_types_to_ast(ast):
+    iterable = tree.values() if hasattr(tree, 'values') else tree
+    if not hasattr(iterable, '__iter__'): return
+    for child in iterable:
+        try:
+            child['parent_type'] = ast['type']
+        except KeyError, AttributeError:
+            pass
+        elif not isinstance(child, basestring):
+            destructively_assign_parent_types_to_ast(child)
+
+
+def top_level_objects_in_tree_that_match(tree, pattern):
+    iterable = tree.values() if hasattr(tree, 'values') else tree
+    if not hasattr(iterable, '__iter__'): return
+    for child in iterable:
+        if matches(child, pattern):
+            yield child
+        elif not isinstance(child, basestring):
+            for x in objects_in_tree(child): yield x
+
+
 def objects_in_tree(tree):
     iterable = tree.values() if hasattr(tree, 'values') else tree
     if not hasattr(iterable, '__iter__'): return
@@ -57,6 +128,26 @@ def matches(obj, pat):
     else:
         return obj == pat
 
+
+expression_types = [
+    'ArrayExpression', 'ArrowExpression', 'AssignmentExpression',
+    'BinaryExpression', 'CallExpression', 'ComprehensionExpression',
+    'ConditionalExpression', 'FunctionExpression', 'GeneratorExpression',
+    'GraphExpression', 'GraphIndexExpression', 'Identifier', 'LetExpression',
+    'Literal', 'LogicalExpression', 'MemberExpression', 'NewExpression',
+    'ObjectExpression', 'SequenceExpression', 'ThisExpression',
+    'UnaryExpression', 'UpdateExpression', 'YieldExpression',
+]
+top_level_expression_pattern = {
+    'type': lambda v: v in expression_types,
+    'parent_type': lambda v: v not in expression_types
+}
+def top_level_expressions_in_ast(ast):
+    for o in objects_in_tree(ast):
+        if matches(o, top_level_expression_pattern):
+            yield o
+def is_top_level_expression(ast):
+    return matches(ast, top_level_expression_pattern)
 
 string_literal_pattern = {
     'type': 'Literal',
@@ -231,11 +322,6 @@ def visit_numbers_upon_expressions(expression, visitor, count=0):
             count = visit_numbers_upon_expressions(subexpr, visitor, count)
     return count
 
-def copies_arguments(f):
-    def g(*args, **kwargs):
-        return f(*[copy.deepcopy(x) for x in args],
-                **{k: copy.deepcopy(v) for k, v in kwargs.items()})
-    return g
 
 # : expression -> (expression with numbers w/o children, expressions by number)
 @copies_arguments
@@ -281,8 +367,8 @@ def debug(expr):
 translated = """
 [1:There's a hole in my bucket]
 [2:Dear [3:] Liza [4:]:]
-[5:]
 [6:There's a hole in my bucket]
+[5:]
 [7:Dear Liza a hole]
 """
 
@@ -330,17 +416,22 @@ def extract(fileobj, keywords, comment_tags, options):
             '')
 
 
+
 if __name__ == '__main__':
-    program = parse_file('/Users/david/code/app-ido-i3/var/out/green-1/js/org-intake.js')
+    program = parse_file('org-intake.js')
+
+    pprint(set(x['value'] for x in string_literals_in_tree(program)))
+
     expr = list(message_expressions_in_tree(program))[-1]['arguments'][0]
 
     orig_message = babel_message_for_expression(understand(expr)[0])
     print orig_message
     ident = expression_translated_by_message(expr, orig_message)
     print "--------"
-
+    print "Original expression:"
     recon = expression_translated_by_message(expr, translated)
-    print generate(recon)
-    print "--------"
     print generate(expr)
+    print "--------"
+    print "Translated by '%s':" % translated
+    print generate(recon)
     print "Does the identity hold?", generate(ident) == generate(expr)
