@@ -359,6 +359,9 @@ if __name__ == '__main__':
     print "----"
     pprint([generate(materialized_expression_from_tree(t)) for t in trees])
 
+    for e in expression:
+        assert e == materialized_expression_from_tree(tree_from_materialized_expression(e))
+
 
     # pprint(set(x['value'] for x in string_literals_in_ast(program)))
 
