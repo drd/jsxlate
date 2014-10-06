@@ -32,10 +32,13 @@ def tree_from_materialized_expression(expr):
 def tree_by_adding_materialized_expression_to_tree(expr, tree, parent_index=None):
     nodes, adj = tree
     my_index = len(nodes)
-    nodes.append(without_children(expr) if is_interesting(expr) else expr)
     if parent_index is not None: adj.append((parent_index, my_index))
-    for child in immediate_subexpressions(expr):
-        tree = tree_by_adding_materialized_expression_to_tree(child, tree, my_index)
+    if is_interesting(expr):
+        nodes.append(without_children(expr))
+        for child in immediate_subexpressions(expr):
+            tree = tree_by_adding_materialized_expression_to_tree(child, tree, my_index)
+    else:
+        nodes.append(expr)
     return tree
 
 def materialized_expression_from_tree(tree):
@@ -354,12 +357,12 @@ if __name__ == '__main__':
     expressions = list(top_level_expressions_in_ast(program))
     trees = [tree_from_materialized_expression(e) for e in expressions]
     roots = map(root, trees)
-    pprint([generate(r) for r in roots])
-    print len(roots)
-    print "----"
+    # pprint([generate(r) for r in roots])
+    # print len(roots)
+    # print "----"
     pprint([generate(materialized_expression_from_tree(t)) for t in trees])
 
-    for e in expression:
+    for e in expressions:
         assert e == materialized_expression_from_tree(tree_from_materialized_expression(e))
 
 
