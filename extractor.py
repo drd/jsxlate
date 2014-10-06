@@ -52,21 +52,23 @@ def expression_by_materializing_expression_with_tree(expr, tree):
     #    'arguments'. This would need to be more flexible if that changes.
 
 def root(tree):
-    return tree[0]
+    return tree.nodes[0]
 
 def children_of_node_in_tree(node, tree):
     index = tree.nodes.index(node)
     return [tree.nodes[c] for p, c in tree.adjacency if p == index]
 
 
-blank_re = re.compile('^[\s\xa0]*$')
-def is_present(string):
-    return string and not re.match(blank_re, string)
+# PARSING/GENERATING:
 
 def parse_file(source_file):
-    return json.load(subprocess.Popen(
+    output = subprocess.Popen(
         ['node', 'node_modules/esprima/bin/esparse.js', source_file],
-        stdout=subprocess.PIPE).stdout)
+        stdout=subprocess.PIPE).stdout.read()
+    try:
+        return json.loads(output)
+    except ValueError:
+        raise ValueError("Error from esprima when parsing %s:\n%s" % (source_file, output))
 
 def parse_program(javascript):
     process = subprocess.Popen(
@@ -87,36 +89,27 @@ def generate(expression):
     return process.stdout.read()
 
 
+# AST PROCESSING:
+
 def destructively_assign_parent_types_to_ast(ast):
-    iterable = tree.values() if hasattr(tree, 'values') else tree
+    iterable = ast.values() if hasattr(ast, 'values') else ast
     if not hasattr(iterable, '__iter__'): return
     for child in iterable:
         try:
             child['parent_type'] = ast['type']
-        except KeyError, AttributeError:
+        except (KeyError, AttributeError, TypeError):
             pass
-        elif not isinstance(child, basestring):
+        if not isinstance(child, basestring):
             destructively_assign_parent_types_to_ast(child)
 
-
-def top_level_objects_in_tree_that_match(tree, pattern):
-    iterable = tree.values() if hasattr(tree, 'values') else tree
-    if not hasattr(iterable, '__iter__'): return
-    for child in iterable:
-        if matches(child, pattern):
-            yield child
-        elif not isinstance(child, basestring):
-            for x in objects_in_tree(child): yield x
-
-
-def objects_in_tree(tree):
-    iterable = tree.values() if hasattr(tree, 'values') else tree
+def objects_in_ast(ast):
+    iterable = ast.values() if hasattr(ast, 'values') else ast
     if not hasattr(iterable, '__iter__'): return
     for child in iterable:
         if isinstance(child, dict):
             yield child
         if not isinstance(child, basestring):
-            for x in objects_in_tree(child): yield x
+            for x in objects_in_ast(child): yield x
 
 
 def matches(obj, pat):
@@ -130,6 +123,7 @@ def matches(obj, pat):
 
 
 expression_types = [
+    'Property', # an honorary expression type
     'ArrayExpression', 'ArrowExpression', 'AssignmentExpression',
     'BinaryExpression', 'CallExpression', 'ComprehensionExpression',
     'ConditionalExpression', 'FunctionExpression', 'GeneratorExpression',
@@ -143,7 +137,7 @@ top_level_expression_pattern = {
     'parent_type': lambda v: v not in expression_types
 }
 def top_level_expressions_in_ast(ast):
-    for o in objects_in_tree(ast):
+    for o in objects_in_ast(ast):
         if matches(o, top_level_expression_pattern):
             yield o
 def is_top_level_expression(ast):
@@ -153,8 +147,8 @@ string_literal_pattern = {
     'type': 'Literal',
     'value': lambda v: isinstance(v, basestring)
 }
-def string_literals_in_tree(tree):
-    for o in objects_in_tree(tree):
+def string_literals_in_ast(ast):
+    for o in objects_in_ast(ast):
         if matches(o, string_literal_pattern):
             yield o
 def is_string_literal(expression):
@@ -170,8 +164,8 @@ message_pattern = {
         'name': 'i18n'
     }
 }
-def message_expressions_in_tree(tree):
-    for o in objects_in_tree(tree):
+def message_expressions_in_ast(ast):
+    for o in objects_in_ast(ast):
         if matches(o, message_pattern):
             if not len(o['arguments']) == 1:
                 raise ValueError("i18n function must have exactly one argument: line %(line)s column %(column)s" % o['loc']['start'])
@@ -205,64 +199,14 @@ class Struct(object):
     def __init__(self, entries):
         self.__dict__.update(entries)
 
-
-# def immediate_subexpressions(expression):
-#     e = Struct(expression)
-#     type = e.type
-#     if type in ('ThisExpression', 'FunctionExpression', 'ArrowExpression', 'GraphExpression', 'GraphIndexExpression', 'Literal', 'Identifier'):
-#         return []
-#     elif type == 'ArrayExpression':
-#         return e.elements
-#     elif type == 'ObjectExpression':
-#         return [property['value'] for property in e.properties]
-#     elif type == 'SequenceExpression':
-#         return e.expressions
-#     elif type in ('UnaryExpression', 'UpdateExpression'):
-#         return [e.argument]
-#     elif type in ('BinaryExpression', 'AssignmentExpression', 'LogicalExpression'):
-#         return [e.left, e.right]
-#     elif type == 'ConditionalExpression':
-#         return [e.test, e.alternate, e.consequent]
-#     elif type in ('NewExpression', 'CallExpression'):
-#         return [e.callee] + e.arguments
-#     elif type == 'MemberExpression':
-#         return [e.object, e.property] if e.computed else [e.object]
-#     elif type == 'YieldExpression':
-#         return [e.argument] if e.argument else []
-#     elif type in ('ComprehensionExpression', 'GeneratorExpression'):
-#         return [e.body] + [block.right for block in e.blocks] + ([e.filter] if e.filter else [])
-#     elif type == 'LetExpression':
-#         return sum([[head.init] if head.init else [] for head in e.head], [e.body])
-
-
 def immediate_subexpressions(expression):
-    e = Struct(expression)
-    type = e.type
-    if type in ('ThisExpression', 'FunctionExpression', 'ArrowExpression', 'GraphExpression', 'GraphIndexExpression', 'Literal', 'Identifier'):
-        return []
-    elif type == 'ArrayExpression':
-        return []
-    elif type == 'ObjectExpression':
-        return []
-    elif type == 'SequenceExpression':
-        return []
-    elif type in ('UnaryExpression', 'UpdateExpression'):
-        return []
-    elif type in ('BinaryExpression', 'AssignmentExpression', 'LogicalExpression'):
-        return []
-    elif type == 'ConditionalExpression':
-        return []
-    elif type in ('NewExpression', 'CallExpression'):
-        return e.arguments[1:]
-    elif type == 'MemberExpression':
-        return []
-    elif type == 'YieldExpression':
-        return []
-    elif type in ('ComprehensionExpression', 'GeneratorExpression'):
-        return []
-    elif type == 'LetExpression':
+    if expression['type'] in ('NewExpression', 'CallExpression'):
+        return expression['arguments'][1:]
+    else:
         return []
 
+
+# INTERESTINGNESS
 
 def contains_string_literals(expression):
     return any(is_string_literal(e) for e in objects_in_tree(expression))
@@ -279,24 +223,6 @@ def is_interesting(expression):
         or (is_inherently_interesting(expression)
             and any(is_interesting(child) for child in immediate_subexpressions(expression))))
 
-
-def tree_with_property(expression, property, depth=0):
-    yield "    "*depth + str(expression.get(property))
-    if is_interesting(expression):
-        for subexpr in immediate_subexpressions(expression):
-            for x in tree_with_property(subexpr, property, depth+1): yield x
-
-def expanded_babel_message_for_expression(expression, depth=1):
-    if is_string_literal(expression):
-        return expression['value'][:20]
-    elif not is_interesting(expression):
-        return "[%s:]" % expression.get('number')
-    else:
-        indent = "\n" + "    "*depth
-        subs = [expanded_babel_message_for_expression(subexpr, depth+1) for subexpr in immediate_subexpressions(expression)]
-        first_indent = indent if len(subs) else ""
-        braces = "[]" if is_interesting(expression) else "<>"
-        return "%s%s:%s%s%s" % (braces[0], expression.get('number'), first_indent, indent.join(subs), braces[1])
 
 def babel_message_for_expression(expression):
     if is_string_literal(expression):
@@ -341,9 +267,9 @@ def understand(expression):
 
 @copies_arguments
 def without_children(expression):
-    assert is_dom_node(expression)
-    expression['arguments'] = expression['arguments'][:1]
-    return expression
+    if is_dom_node(expression):
+        expression['arguments'] = expression['arguments'][:1]
+    return expression    
 
 @copies_arguments
 def with_added_children(expression, children):
@@ -379,6 +305,11 @@ def filled_out(root, expressions_by_number, children_by_number):
             filled_out(child, expressions_by_number, children_by_number)
                 for child in children_by_number[root['number']]])
     return root
+
+
+blank_re = re.compile('^[\s\xa0]*$')
+def is_present(string):
+    return string and not re.match(blank_re, string)
 
 def number_children(tokens, expressions_by_number):
     result = defaultdict(list)
@@ -418,20 +349,29 @@ def extract(fileobj, keywords, comment_tags, options):
 
 
 if __name__ == '__main__':
-    program = parse_file('org-intake.js')
+    program = parse_file('test.js')
+    destructively_assign_parent_types_to_ast(program)
+    expressions = list(top_level_expressions_in_ast(program))
+    trees = [tree_from_materialized_expression(e) for e in expressions]
+    roots = map(root, trees)
+    pprint([generate(r) for r in roots])
+    print len(roots)
+    print "----"
+    pprint([generate(materialized_expression_from_tree(t)) for t in trees])
 
-    pprint(set(x['value'] for x in string_literals_in_tree(program)))
 
-    expr = list(message_expressions_in_tree(program))[-1]['arguments'][0]
+    # pprint(set(x['value'] for x in string_literals_in_ast(program)))
 
-    orig_message = babel_message_for_expression(understand(expr)[0])
-    print orig_message
-    ident = expression_translated_by_message(expr, orig_message)
-    print "--------"
-    print "Original expression:"
-    recon = expression_translated_by_message(expr, translated)
-    print generate(expr)
-    print "--------"
-    print "Translated by '%s':" % translated
-    print generate(recon)
-    print "Does the identity hold?", generate(ident) == generate(expr)
+    # expr = list(message_expressions_in_ast(program))[-1]['arguments'][0]
+
+    # orig_message = babel_message_for_expression(understand(expr)[0])
+    # print orig_message
+    # ident = expression_translated_by_message(expr, orig_message)
+    # print "--------"
+    # print "Original expression:"
+    # recon = expression_translated_by_message(expr, translated)
+    # print generate(expr)
+    # print "--------"
+    # print "Translated by '%s':" % translated
+    # print generate(recon)
+    # print "Does the identity hold?", generate(ident) == generate(expr)
