@@ -354,12 +354,6 @@ function keypathsForMessageNodesInAst(ast) {
     return keypaths.map(kp => kp.concat(['arguments', 0]));
 }
 
-function extractMessages(ast) {
-    return keypathsForMessageNodesInAst(ast).map(keypath =>
-        generate(sanitize(ast.getIn(keypath))));
-}
-
-
 function translateMessages(ast, translations) {
     // Substitute at a single keypath based on translations:
     function substitute(ast, keypath) {
@@ -404,3 +398,17 @@ var translations = {
 }
 console.log("translated:", generate(translateMessages(fullSrc, translations)));
 
+
+// ==================================
+// EXPORTS
+// ==================================
+
+function extractMessages(src) {
+    var ast = parse(src);
+    return keypathsForMessageNodesInAst(ast).map(keypath =>
+        generate(sanitize(ast.getIn(keypath)))).toJS();
+}
+
+module.exports = {
+    extractMessages: extractMessages
+}
