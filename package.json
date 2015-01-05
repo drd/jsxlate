@@ -1,0 +1,14 @@
+{
+  "name": "jsx-translator",
+  "version": "0.0.1",
+  "description": "Extracts messages from JSX files and substituse translations back in.",
+  "main": "jsx-translator.js",
+  "author": "David McCabe",
+  "license": "ISC",
+  "dependencies": {
+    "escodegen": "git://github.com/davidmccabe/escodegen",
+    "esprima-fb": "^8001.2001.0-dev-harmony-fb",
+    "immutable": "^3.4.1"
+  },
+  "devDependencies": {}
+}
