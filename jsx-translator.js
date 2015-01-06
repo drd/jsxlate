@@ -354,7 +354,7 @@ function keypathsForMessageNodesInAst(ast) {
     return keypaths.map(kp => kp.concat(['arguments', 0]));
 }
 
-function translateMessages(ast, translations) {
+function translateMessagesInAst(ast, translations) {
     // Substitute at a single keypath based on translations:
     function substitute(ast, keypath) {
         var message = ast.getIn(keypath);
@@ -370,45 +370,20 @@ function translateMessages(ast, translations) {
 }
 
 
-
-var original = parseFragment(
-    '<Hello world="!" foo="bar" i18n-label="Hello">{__("number", 1+1)}<a href="example.com" target="_blank" i18n-label="link">blah {__("letter", a)}</a></Hello>'
-);
-var translated = parseFragment(
-    '<Hello world="?" foo="bår" i18n-label="Hello">{number}<a href="example.fr" target="_blank">blá <i>{letter}</i></a><b>Nebraska!</b></Hello>'
-);
-console.log(
-    "Definitions:",
-    namedExpressionDefinitions(original).toJS()
-);
-console.log(
-    "Sanitized:",
-    generate(sanitize(original))
-);
-console.log(
-    "Reconstituted:",
-    generate(reconstitute(translated, original))
-);
-
-var fullSrc = parse("function render() { return <a>{i18n(<b>And the winner is: {__('name', winners.map(x => i18n(<b>Name: {__('blah', x)}</b>)))}</b>)}</a> }");
-
-var translations = {
-    '<b>And the winner is: {name}</b>': '<b><i href="FIXME">{name}</i> is the name of the winner!</b>',
-    '<b>Name: {blah}</b>': '<b>Nomme: {blah}</b>'
-}
-console.log("translated:", generate(translateMessages(fullSrc, translations)));
-
-
 // ==================================
 // EXPORTS
 // ==================================
 
-function extractMessages(src) {
-    var ast = parse(src);
-    return keypathsForMessageNodesInAst(ast).map(keypath =>
-        generate(sanitize(ast.getIn(keypath)))).toJS();
-}
 
 module.exports = {
-    extractMessages: extractMessages
+    extractMessages: function extractMessages(src) {
+        var ast = parse(src);
+        return keypathsForMessageNodesInAst(ast).map(keypath =>
+            generate(sanitize(ast.getIn(keypath)))).toJS();
+    },
+
+    translateMessages: function translateMessages(src, translations) {
+        var ast = parse(src);
+        return generate(translateMessagesInAst(ast, translations));
+    }
 }

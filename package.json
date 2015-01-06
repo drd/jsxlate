@@ -4,15 +4,17 @@
   "description": "Extracts messages from JSX files and substituse translations back in.",
   "main": "jsx-translator.js",
   "bin": {
-    "extract-messages": "./bin/extract-messages"
-  }
+    "extract-messages": "./bin/extract-messages",
+    "translate": "./bin/translate"
+  },
   "author": "David McCabe",
   "license": "ISC",
   "dependencies": {
     "6to5": "^2.5.0",
     "escodegen": "git://github.com/davidmccabe/escodegen",
     "esprima-fb": "^8001.2001.0-dev-harmony-fb",
-    "immutable": "^3.4.1"
+    "immutable": "^3.4.1",
+    "rw": "^0.1.4"
   },
   "devDependencies": {}
 }
