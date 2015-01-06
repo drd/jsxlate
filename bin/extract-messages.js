@@ -3,7 +3,8 @@
 function showHelpAndExit() {
     console.log("Usage: extract-messages [FILES]");
     console.log("Prints a JSON document with messages in FILES mapped to themselves.");    
-    console.log("Does not merge with existing translations.");
+    console.log("Does not merge with existing translations;");
+    console.log("use json(1) --merge for that.");
     process.exit();
 }
 
@@ -28,4 +29,4 @@ files.forEach(function (filename) {
         messages[message] = message;
     })
 });
-console.log(messages);
+console.log(JSON.stringify(messages, null, 2));
