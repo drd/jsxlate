@@ -431,6 +431,7 @@ function translateMessagesInAst(ast, translations) {
     function substitute(ast, keypath) {
         var message = ast.getIn(keypath);
         var translation = translations[generate(sanitize(message))];
+        if(!translation) { throw new Error("Translation missing for message: " + generate(message)); }
         return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
     }
     // Note that the message is pulled from the partially reduced AST; in this
