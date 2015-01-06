@@ -1,5 +1,66 @@
 "use strict";
 
+/*****************************************************************************
+This program extracts translateable messages from JSX files,
+sanitizes them for showing to translators, reconstitutes the sanitized
+translations based on the original input, and generates JSX files
+with the messages replaced with translated ones. Messages can be
+not just strings but JSX elements.
+
+Most of the code here is functions on ASTs, which may be of a whole program
+or only a single expression. Some of the functions only operate on ASTs
+representing particular kinds of expressions, while others work on any AST.
+
+There are four important processes:
+* Sanitizing a message for presenting to the translator
+* Reconstituting the sanitized parts of a translated message
+* Finding messages within a file
+* Translating a whole file
+
+Sanitizing:
+We want translators to see some markup, so that they can make necessary
+changes, but other sorts of markup are confusing and irrelevant to them,
+and dangerous for them to edit. And they certainly shouldn't see JavaScript
+expressions inside curly-braces. Therefore:
+Sanitization replaces JSX expressions in curly-braces with their names.
+Sanitization removes attributes not listed in allowedAttributesByComponentName.
+
+This process imposes a requirement on messages: Anything hidden must be named.
+JSX expressions are named using the __ function, which takes two arguments
+and returns its second argument. The first argument is the name of the
+expression, and will be shown to the translator. For instance, this JSX
+
+i18n(<p>Hello, {__('name', someExpression)}!</p>)
+
+will produce this message:
+
+<p>Hello, {name}!</p>
+
+The expression has been replaced with its name.
+
+Similarly, when we elide unsafe attributes from an element, we need to know
+which element in the translation to re-attach those attributes to. Since
+translators can add and remove elements, the only general way to know where to
+put the attributes is to name that element:
+
+i18n(<a href="example.com" target="_blank" i18n-name="my-link">Example</a>)
+                                           ^^^^^^^^^^^^^^^^^^^
+This produces the message:
+
+<a href="example.com" i18n-name="my-link">Example</a>
+
+Now the translator can rearrange at will:
+
+<i>Click me: <a href="example.fr" i18n-name="my-link">Example</a></i>
+
+Under reconstitution, the elided attribute is put back in:
+
+<i>Click me: <a href="example.fr" target="_blank">Example</a></i>
+
+
+
+/*****************************************************************************
+
 /*
 NOTES:
 
@@ -7,8 +68,16 @@ assertion:
 list (with rep) of capitalized component names must be the same in original and translated
 
 TODO:
+- Catch all errors and rethrow with the message added to the message.
 - spread attribute
 - namespace names and member names
+- Remove surrounding quote or element where possible
+- If an expression is just an identifier, then the identifier can be the name by default.
+- Various heuristics for omitting i18n-name.
+- An <i18n> element, which would allow multiple children in the translation so that
+  <a>Click here</a>
+  could be translated to
+  <a>Click here</a> or <a>here!</a>
 */
 
 var esprima = require('esprima-fb');
@@ -91,8 +160,9 @@ function attributeNames(jsxElementAst) {
 }
 
 function attributeWithName(jsxElementAst, name) {
-    return jsxElementAst.getIn(['openingElement', 'attributes']).filter(attrib =>
-        attributeName(attrib) === name).first().getIn(['value', 'value']);
+    return jsxElementAst.getIn(['openingElement', 'attributes'])
+        .filter(attrib => attributeName(attrib) === name)
+        .first().getIn(['value', 'value']);
 }
 
 
@@ -312,6 +382,7 @@ var identifierPattern = I.fromJS({
     type: "Identifier"
 });
 
+// This would be a great place for laziness.
 function allKeypathsInAst(ast) {
     var keypaths = [];
     function f(node, keypath) {
@@ -329,7 +400,8 @@ function allKeypathsInAst(ast) {
 
 /*
     Return the keypath for each message in the given ast,
-    and (important) returns them with ancestors coming before descendents.
+    and (important) return them with ancestors coming before descendents
+    and earlier messages in the source coming before later messages.
 */
 function keypathsForMessageNodesInAst(ast) {
     var keypaths = allKeypathsInAst(ast)
@@ -344,7 +416,7 @@ function keypathsForMessageNodesInAst(ast) {
         var firstArg = messageMarker.getIn(['arguments', 0]);
         if (! matches(firstArg, stringLiteralPattern)
             && ! matches(firstArg, jsxElementPattern)) {
-            throw new Error("Message should be a string literal or JSX expression, but was instead: " + generate(firstArg));
+            throw new Error("Message should be a string literal or JSX element, but was instead: " + generate(firstArg));
         }
     });
 
@@ -361,12 +433,17 @@ function translateMessagesInAst(ast, translations) {
         var translation = translations[generate(sanitize(message))];
         return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
     }
-    var keypaths = keypathsForMessageNodesInAst(ast);
-    return keypaths.reduceRight(substitute, ast); // *
+    // Note that the message is pulled from the partially reduced AST; in this
+    // way, already-translated inner messages are used when processing outer
+    // messages, so they don't get clobbered.
 
-    // * We must substitute inner messages before outer messages,
-    //   or else the substitution of the outer message will clobber
-    //   the substituted inner message. Hence the reduceRight.
+    // Perform this substitution for all message keypaths, starting
+    // at the bottom of the document, and processing inner nested messages
+    // before outer messages. This ensures that no operation will invalidate
+    // the keypath of another operation, either by changing array indices
+    // or relocating an inner message within an outer one:
+    var keypaths = keypathsForMessageNodesInAst(ast);
+    return keypaths.reduceRight(substitute, ast);
 }
 
 
