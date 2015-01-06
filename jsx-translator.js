@@ -49,7 +49,7 @@ This produces the message:
 
 <a href="example.com" i18n-name="my-link">Example</a>
 
-Now the translator can rearrange at will:
+Note that target="_blank" is missing. Now the translator can rearrange at will:
 
 <i>Click me: <a href="example.fr" i18n-name="my-link">Example</a></i>
 
@@ -68,7 +68,6 @@ assertion:
 list (with rep) of capitalized component names must be the same in original and translated
 
 TODO:
-- Catch all errors and rethrow with the message added to the message.
 - spread attribute
 - namespace names and member names
 - Remove surrounding quote or element where possible
@@ -429,10 +428,18 @@ function keypathsForMessageNodesInAst(ast) {
 function translateMessagesInAst(ast, translations) {
     // Substitute at a single keypath based on translations:
     function substitute(ast, keypath) {
-        var message = ast.getIn(keypath);
-        var translation = translations[generate(sanitize(message))];
-        if(!translation) { throw new Error("Translation missing for message: " + generate(message)); }
-        return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
+        try {
+            var message = ast.getIn(keypath);
+            var translation = translations[generate(sanitize(message))];
+            if(!translation) { throw new Error("Translation missing for message: " + generate(message)); }
+            return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
+        } catch(e) {
+            e.message = "When processing the message... \n\n" +
+                generate(message) + "\n\n" +
+                "...the following error was encountered: \n\n" +
+                e.message;
+            throw e;
+        }
     }
     // Note that the message is pulled from the partially reduced AST; in this
     // way, already-translated inner messages are used when processing outer
