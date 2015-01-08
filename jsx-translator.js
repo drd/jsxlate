@@ -79,6 +79,8 @@ TODO:
   <a>Click here</a> or <a>here!</a>
 */
 
+Error.stackTraceLimit = Infinity;
+
 var esprima = require('esprima-fb');
 var escodegen = require('escodegen');
 var I = require('immutable');
@@ -172,10 +174,21 @@ function attributeWithName(jsxElementAst, name) {
 function sanitize(ast) {
     return {
         'Literal': identity,
+        'CallExpression': sanitizeCallExpression,
         'XJSElement': sanitizeJsxElement,
         'XJSExpressionContainer': sanitizeJsxExpressionContainer,
         'XJSEmptyExpression': identity,
     }[ast.get('type')](ast);
+}
+
+function sanitizeCallExpression (ast) {
+    // The only valid call expression is the outer message marker,
+    // so verify that's what we're dealing with and return it unchanged if so.
+    if (matches(ast, stringMarkerPattern)) {
+        return ast;
+    } else {
+        throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
+    }
 }
 
 function sanitizeJsxElement (ast) {
@@ -360,13 +373,25 @@ var namedExpressionPattern = I.fromJS({
     }
 });
 
-var messageMarkerPattern = I.fromJS({
+var stringMarkerPattern = I.fromJS({
     type: "CallExpression",
     callee: {
         type: "Identifier",
         name: "i18n"
     }
 });
+
+var elementMarkerPattern = I.fromJS({
+    type: "XJSElement",
+    openingElement: {
+        type: "XJSOpeningElement",
+        selfClosing: false,
+        name: {
+            type: "XJSIdentifier",
+            name: "I18N"
+        }
+    }    
+})
 
 var stringLiteralPattern = I.fromJS({
     type: "Literal",
@@ -404,25 +429,23 @@ function allKeypathsInAst(ast) {
 */
 function keypathsForMessageNodesInAst(ast) {
     var keypaths = allKeypathsInAst(ast)
-        .filter(keypath => matches(ast.getIn(keypath), messageMarkerPattern));
+        .filter(keypath => matches(ast.getIn(keypath), stringMarkerPattern)
+                        || matches(ast.getIn(keypath), elementMarkerPattern));
 
-    // Ensure each marker has exactly one argument, either a string or JSX element:
+    // Validate arguments of string markers:
     keypaths.forEach(keypath => {
-        var messageMarker = ast.getIn(keypath);
-        if (!messageMarker.get('arguments').size == 1) {
-            throw new Error("Message marker must have exactly one argument: " + generate(messageMarker));
-        }
-        var firstArg = messageMarker.getIn(['arguments', 0]);
-        if (! matches(firstArg, stringLiteralPattern)
-            && ! matches(firstArg, jsxElementPattern)) {
-            throw new Error("Message should be a string literal or JSX element, but was instead: " + generate(firstArg));
+        var messageMarker = ast.getIn(keypath);        
+        if (matches(messageMarker, stringMarkerPattern)) {
+            if ( !messageMarker.get('arguments').size == 1 ) {
+                throw new Error("Message marker must have exactly one argument: " + generate(messageMarker));
+            }
+            if ( !matches(messageMarker.getIn(['arguments', 0]), stringLiteralPattern) ) {
+                throw new Error("Message should be a string literal, but was instead: " + generate(messageMarker));
+            }
         }
     });
 
-    // We got ourselves the keypaths of message *markers* so that we could
-    // error-check the arguments list, but we actually return the keypaths
-    // of the messages themselves within the markers:
-    return keypaths.map(kp => kp.concat(['arguments', 0]));
+    return keypaths;
 }
 
 function translateMessagesInAst(ast, translations) {
@@ -430,8 +453,10 @@ function translateMessagesInAst(ast, translations) {
     function substitute(ast, keypath) {
         try {
             var message = ast.getIn(keypath);
-            var translation = translations[generate(sanitize(message))];
+            var translation = translations[generateMessage(sanitize(message))];
             if(!translation) { throw new Error("Translation missing for message: " + generate(message)); }
+            console.log("what is my translation?", translation);
+            translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
         } catch(e) {
             e.message = "When processing the message... \n\n" +
@@ -455,16 +480,48 @@ function translateMessagesInAst(ast, translations) {
 }
 
 
+function generateMessage(ast) {
+    if (matches(ast, stringMarkerPattern)) {
+        return ast.getIn(['arguments', 0, 'value']);
+    }
+    else if (matches(ast, elementMarkerPattern)) {
+        return ast.get('children').map(generateJsxChild).join('');
+    }
+    else {
+        throw new Error("Internal error: message is not string literal or JSX element: " + generate(ast));
+    }
+}
+
+function generateJsxChild (ast) {
+    if (matches(ast, stringLiteralPattern)) {
+        return ast.get('value')
+    } else {
+        return generate(ast);
+    }
+}
+
+function prepareTranslationForParsing (translationString, originalAst) {
+    if (matches(originalAst, stringMarkerPattern)) {
+        return JSON.stringify(translationString);
+    }
+    else if (matches(originalAst, elementMarkerPattern)) {
+        return "<I18N>" + translationString + "</I18N>";
+    }
+    else {
+        throw new Error("Internal error: message is not string literal or JSX element: " + generate(ast));
+    }
+}
+
+
 // ==================================
 // EXPORTS
 // ==================================
-
 
 module.exports = {
     extractMessages: function extractMessages(src) {
         var ast = parse(src);
         return keypathsForMessageNodesInAst(ast).map(keypath =>
-            generate(sanitize(ast.getIn(keypath)))).toJS();
+            generateMessage(sanitize(ast.getIn(keypath)))).toJS();
     },
 
     translateMessages: function translateMessages(src, translations) {
