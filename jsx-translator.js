@@ -11,7 +11,7 @@ Most of the code here is functions on ASTs, which may be of a whole program
 or only a single expression. Some of the functions only operate on ASTs
 representing particular kinds of expressions, while others work on any AST.
 
-There are four important processes:
+There are five important processes:
 * Sanitizing a message for presenting to the translator
 * Reconstituting the sanitized parts of a translated message
 * Printing and unprinting JSX elements and string literals

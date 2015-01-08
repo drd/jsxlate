@@ -1,7 +1,7 @@
 {
   "name": "jsx-translator",
   "version": "0.0.1",
-  "description": "Extracts messages from JSX files and substituse translations back in.",
+  "description": "Extracts messages from JSX files and substitutes translations back in.",
   "main": "jsx-translator.js",
   "bin": {
     "extract-messages": "./bin/extract-messages",
