@@ -18,7 +18,9 @@ There are five important processes:
 * Finding messages within a file
 * Translating a whole file
 
+
 Sanitizing:
+
 We want translators to see some markup, so that they can make necessary
 changes, but other sorts of markup are confusing and irrelevant to them,
 and dangerous for them to edit. And they certainly shouldn't see JavaScript
@@ -59,6 +61,31 @@ Under reconstitution, the elided attribute is put back in:
 <i>Click me: <a href="example.fr" target="_blank">Example</a></i>
 
 
+Reconstituting:
+
+Reconstituting is the process of putting back what was taken away during
+sanitization. The process starts with the translator's translation and pulls
+out details from the original; thus, the translator's version determines the
+structure of the markup, while the original only determines the values of
+expressions and elided attributes. During reconstitution, checks can be
+performed to make sure that the translator hasn't deviated too much from
+the original.
+
+
+Printing and unprinting:
+
+Most of the process works on ASTs, but we need to turn those ASTs into strings
+to show the translator, and parse the translation back into an AST. However,
+the strings we want to show the translator are not exactly the generated code
+of any single AST node, so we have to do a small extra step when generating
+and parsing.
+
+For string messages, we want to show them unquoted, and so we must also requote
+them before parsing.
+
+For JSX messages, we don't want to show the outer <I18N> tag, so we generate
+each of the message's children and concatenate them. During parsing, we
+surround the string with <I18N> tags and then parse it.
 
 /*****************************************************************************
 
