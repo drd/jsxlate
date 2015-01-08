@@ -10,6 +10,19 @@ not just strings but JSX elements.
 Most of the code here is functions on ASTs, which may be of a whole program
 or only a single expression. Some of the functions only operate on ASTs
 representing particular kinds of expressions, while others work on any AST.
+The AST format is documented here:
+https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API
+The JSX extensions are not documented; they just come from esprima-fb.
+
+There are two forms of messages: string literals and JSX elements.
+
+String literals are marked with a special identity function:
+    i18n("Hello, world!")
+
+JSX elements are marked with a special React component:
+    <I18N>Hello, <em>world!</em></I18N>
+
+
 
 There are five important processes:
 * Sanitizing a message for presenting to the translator
@@ -33,11 +46,11 @@ JSX expressions are named using the __ function, which takes two arguments
 and returns its second argument. The first argument is the name of the
 expression, and will be shown to the translator. For instance, this JSX
 
-i18n(<p>Hello, {__('name', someExpression)}!</p>)
+<I18N>Hello, {__('name', someExpression)}!</I18N>
 
 will produce this message:
 
-<p>Hello, {name}!</p>
+Hello, {name}!
 
 The expression has been replaced with its name.
 
@@ -46,8 +59,8 @@ which element in the translation to re-attach those attributes to. Since
 translators can add and remove elements, the only general way to know where to
 put the attributes is to name that element:
 
-i18n(<a href="example.com" target="_blank" i18n-name="my-link">Example</a>)
-                                           ^^^^^^^^^^^^^^^^^^^
+<I18N><a href="example.com" target="_blank" i18n-name="my-link">Example</a></I18N>
+                                            ^^^^^^^^^^^^^^^^^^^
 This produces the message:
 
 <a href="example.com" i18n-name="my-link">Example</a>
@@ -58,7 +71,7 @@ Note that target="_blank" is missing. Now the translator can rearrange at will:
 
 Under reconstitution, the elided attribute is put back in:
 
-<i>Click me: <a href="example.fr" target="_blank">Example</a></i>
+<I18N><i>Click me: <a href="example.fr" target="_blank">Example</a></i></I18N>
 
 
 Reconstituting:
@@ -87,6 +100,25 @@ For JSX messages, we don't want to show the outer <I18N> tag, so we generate
 each of the message's children and concatenate them. During parsing, we
 surround the string with <I18N> tags and then parse it.
 
+
+Finding messages:
+
+Messages nested inside other messages will be found and processed correctly.
+For example, the following...
+
+<I18N>
+    Energy reharmonization is priced as follows:
+    {__("priceList", crystals.map(crystal => <p><I18N>
+        {__("crystalName", crystal.name)}: ${__("crystalPrice", crystal.price)}
+    </I18N></p>)))}
+</I18N>
+
+...will result in two messages:
+
+    Energy reharmonization is priced as follows: {priceList}
+
+    {crystalName}: ${crystalPrice}
+
 /*****************************************************************************
 
 /*
@@ -99,6 +131,8 @@ TODO:
 - spread attribute
 - namespace names and member names
 - If an expression is just an identifier, then the identifier can be the name by default.
+- Let expression names be non-identifiers.
+- Mark named expressions with an element?
 - Various heuristics for omitting i18n-name.
 */
 
@@ -228,9 +262,7 @@ function sanitizeJsxElement (ast) {
         throw new Error("Element needs an i18n-name attribute: " + generateOpening(ast));
     }
 
-    result = result.update('children', children => children.map(sanitize));
-
-    return result;
+    return result.update('children', children => children.map(sanitize));
 }
 
 function sanitizeJsxExpressionContainer (ast) {
