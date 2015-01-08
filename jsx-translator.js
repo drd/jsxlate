@@ -14,6 +14,7 @@ representing particular kinds of expressions, while others work on any AST.
 There are four important processes:
 * Sanitizing a message for presenting to the translator
 * Reconstituting the sanitized parts of a translated message
+* Printing and unprinting JSX elements and string literals
 * Finding messages within a file
 * Translating a whole file
 
@@ -70,13 +71,8 @@ list (with rep) of capitalized component names must be the same in original and 
 TODO:
 - spread attribute
 - namespace names and member names
-- Remove surrounding quote or element where possible
 - If an expression is just an identifier, then the identifier can be the name by default.
 - Various heuristics for omitting i18n-name.
-- An <i18n> element, which would allow multiple children in the translation so that
-  <a>Click here</a>
-  could be translated to
-  <a>Click here</a> or <a>here!</a>
 */
 
 Error.stackTraceLimit = Infinity;
@@ -479,6 +475,11 @@ function translateMessagesInAst(ast, translations) {
     return keypaths.reduceRight(substitute, ast);
 }
 
+
+
+// ==================================
+// PRINTING AND UNPRINTING
+// ==================================
 
 function generateMessage(ast) {
     if (matches(ast, stringMarkerPattern)) {
