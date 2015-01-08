@@ -141,7 +141,7 @@ function makeLiteralExpressionAst(value) {
 
 function attributeIsSafe(componentName, attributeAst) {
     return (!!~(allowedAttributesByComponentName[componentName] || []).indexOf(attributeName(attributeAst))
-        || attributeName(attributeAst) === 'i18n-label');
+        || attributeName(attributeAst) === 'i18n-name');
 }
 
 function componentName(ast) {
@@ -197,8 +197,8 @@ function sanitizeJsxElement (ast) {
             attrib => attributeIsSafe(name, attrib)));
 
     if(! I.is(originalAttributes, result.getIn(attributesKP))
-        && ! attributeNames(ast).contains('i18n-label')) {
-        throw new Error("Element needs an i18n-label attribute: " + generateOpening(ast));
+        && ! attributeNames(ast).contains('i18n-name')) {
+        throw new Error("Element needs an i18n-name attribute: " + generateOpening(ast));
     }
 
     result = result.update('children', children => children.map(sanitize));
@@ -252,11 +252,11 @@ function reconstituteJsxElement(translatedAst, originalAst) {
     var name = componentName(originalAst);
 
     var result = translatedAst;
-    if(attributeNames(translatedAst).contains('i18n-label')) {
-        var name = attributeWithName(translatedAst, 'i18n-label');
+    if(attributeNames(translatedAst).contains('i18n-name')) {
+        var name = attributeWithName(translatedAst, 'i18n-name');
         var definitions = namedExpressionDefinitions(originalAst); // FIXME move out
         if(!definitions.get(name)) {
-            throw new Error("Translation contains i18n-label '" + name + "', which is not in the original.")
+            throw new Error("Translation contains i18n-name '" + name + "', which is not in the original.")
         }
         result = result.updateIn(['openingElement', 'attributes'], attributes =>
             mergeAttributes(name, attributes, definitions.get(name)));
@@ -312,8 +312,8 @@ function namedExpressionDefinitionsInJsxElement(ast) {
     if (hiddenAttributes.size == 0) {
         attributeDefinition = I.List();
     } else {
-        var name = attributeWithName(ast, 'i18n-label');
-        if (!name) throw new Error("Element needs an i18n-label attribute: " + generateOpening(ast));
+        var name = attributeWithName(ast, 'i18n-name');
+        if (!name) throw new Error("Element needs an i18n-name attribute: " + generateOpening(ast));
         attributeDefinition = I.List([I.List([name, hiddenAttributes])]);
     }
 
