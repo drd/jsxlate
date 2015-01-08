@@ -14,21 +14,43 @@ The AST format is documented here:
 https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API
 The JSX extensions are not documented; they just come from esprima-fb.
 
-There are two forms of messages: string literals and JSX elements.
-
-String literals are marked with a special identity function:
-    i18n("Hello, world!")
-
-JSX elements are marked with a special React component:
-    <I18N>Hello, <em>world!</em></I18N>
-
 
 There are five important processes:
+* Finding messages within a file
 * Sanitizing a message for presenting to the translator
 * Reconstituting the sanitized parts of a translated message
 * Printing and unprinting JSX elements and string literals
-* Finding messages within a file
 * Translating a whole file
+
+
+Finding messages:
+
+There are two forms of messages: string literals and JSX elements.
+String literals are marked with a special identity function:
+    i18n("Hello, world!")
+JSX elements are marked with a special React component:
+    <I18N>Hello, <em>world!</em></I18N>
+
+Messages nested inside other messages will be found and processed correctly,
+provided that the inner message is within a named expression.
+For example, the following...
+
+<I18N>
+    Energy reharmonization is priced as follows:
+    {__("priceList", crystals.map(crystal => <p><I18N>
+        {__("crystalName", crystal.name)}: ${__("crystalPrice", crystal.price)}
+    </I18N></p>))}
+</I18N>
+
+...will result in two messages:
+
+    Energy reharmonization is priced as follows: {priceList}
+
+    {crystalName}: ${crystalPrice}
+
+However, you are forbidden from directly nesting I18N tags:
+
+<I18N>Hello, <I18N>world!</I18N></I18N>
 
 
 Sanitizing:
@@ -99,29 +121,6 @@ For JSX messages, we don't want to show the outer <I18N> tag, so we generate
 each of the message's children and concatenate them. During parsing, we
 surround the string with <I18N> tags and then parse it.
 
-
-Finding messages:
-
-Messages nested inside other messages will be found and processed correctly,
-provided that the inner message is within a named expression.
-For example, the following...
-
-<I18N>
-    Energy reharmonization is priced as follows:
-    {__("priceList", crystals.map(crystal => <p><I18N>
-        {__("crystalName", crystal.name)}: ${__("crystalPrice", crystal.price)}
-    </I18N></p>))}
-</I18N>
-
-...will result in two messages:
-
-    Energy reharmonization is priced as follows: {priceList}
-
-    {crystalName}: ${crystalPrice}
-
-However, you are forbidden from directly nesting I18N tags:
-
-<I18N>Hello, <I18N>world!</I18N></I18N>
 
 /*****************************************************************************
 
