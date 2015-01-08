@@ -23,7 +23,6 @@ JSX elements are marked with a special React component:
     <I18N>Hello, <em>world!</em></I18N>
 
 
-
 There are five important processes:
 * Sanitizing a message for presenting to the translator
 * Reconstituting the sanitized parts of a translated message
@@ -103,14 +102,15 @@ surround the string with <I18N> tags and then parse it.
 
 Finding messages:
 
-Messages nested inside other messages will be found and processed correctly.
+Messages nested inside other messages will be found and processed correctly,
+provided that the inner message is within a named expression.
 For example, the following...
 
 <I18N>
     Energy reharmonization is priced as follows:
     {__("priceList", crystals.map(crystal => <p><I18N>
         {__("crystalName", crystal.name)}: ${__("crystalPrice", crystal.price)}
-    </I18N></p>)))}
+    </I18N></p>))}
 </I18N>
 
 ...will result in two messages:
@@ -118,6 +118,10 @@ For example, the following...
     Energy reharmonization is priced as follows: {priceList}
 
     {crystalName}: ${crystalPrice}
+
+However, you are forbidden from directly nesting I18N tags:
+
+<I18N>Hello, <I18N>world!</I18N></I18N>
 
 /*****************************************************************************
 
@@ -134,6 +138,9 @@ TODO:
 - Let expression names be non-identifiers.
 - Mark named expressions with an element?
 - Various heuristics for omitting i18n-name.
+- bin scripts should return error codes.
+- strip leading whitespace?
+- Enforce non-direct-nesting of I18N tags.
 */
 
 Error.stackTraceLimit = Infinity;
