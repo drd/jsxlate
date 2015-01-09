@@ -122,6 +122,12 @@ each of the message's children and concatenate them. During parsing, we
 surround the string with <I18N> tags and then parse it.
 
 
+Translating a message:
+
+To translate a whole file, we first find the keypath of every message in the
+file. (A keypath is a sequence of keys and array indices that can be used to
+select a node out of the AST.)
+
 /*****************************************************************************
 
 /*
@@ -137,7 +143,7 @@ TODO:
 - Let expression names be non-identifiers.
 - Mark named expressions with an element?
 - Various heuristics for omitting i18n-name.
-- bin scripts should return error codes.
+- bin scripts shouldn't obscure Errors that aren't errors in the input.
 - strip leading whitespace?
 - Enforce non-direct-nesting of I18N tags.
 */
@@ -181,13 +187,20 @@ function duplicatedValues(list) {
     return I.Set(dupes);
 }
 
+function addMessageToError(message, error) {
+    error.message = "On line "+ message.getIn(['loc', 'start', 'line']) +", when processing the message... \n\n" +
+        generate(message) + "\n\n" +
+        "...the following error occured: \n\n" +
+        error.message;    
+}
+
 
 // ==================================
 // AST UTILITIES
 // ==================================
 
 function parse(src) {
-    return I.fromJS(esprima.parse(src));
+    return I.fromJS(esprima.parse(src, {loc:true}));
 }
 
 function parseFragment(src) {
@@ -276,7 +289,7 @@ function sanitizeJsxExpressionContainer (ast) {
         var [name, expression] = nameAndExpressionForNamedExpression(ast.get('expression'));
         return ast.set('expression', makeLiteralExpressionAst(name));
     } else {
-        throw new Error("Message contains a non-named expression.");
+        throw new Error("Message contains a non-named expression: " + generate(ast));
     }
 }
 
@@ -516,17 +529,14 @@ function translateMessagesInAst(ast, translations) {
             var message = ast.getIn(keypath);
             var translation = translations[generateMessage(sanitize(message))];
             if(!translation) { throw new Error("Translation missing for message: " + generate(message)); }
-            console.log("what is my translation?", translation);
             translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
         } catch(e) {
-            e.message = "When processing the message... \n\n" +
-                generate(message) + "\n\n" +
-                "...the following error was encountered: \n\n" +
-                e.message;
+            addMessageToError(message, e);
             throw e;
         }
     }
+
     // Note that the message is pulled from the partially reduced AST; in this
     // way, already-translated inner messages are used when processing outer
     // messages, so they don't get clobbered.
@@ -539,7 +549,6 @@ function translateMessagesInAst(ast, translations) {
     var keypaths = keypathsForMessageNodesInAst(ast);
     return keypaths.reduceRight(substitute, ast);
 }
-
 
 
 // ==================================
@@ -579,19 +588,37 @@ function prepareTranslationForParsing (translationString, originalAst) {
 }
 
 
+function extractMessagesInAst(ast) {
+    return keypathsForMessageNodesInAst(ast).map(keypath => {
+        try {
+            generateMessage(sanitize(ast.getIn(keypath)))
+        } catch (e) {
+            addMessageToError(ast.getIn(keypath), e);
+            throw e;
+        }
+    });
+}
+
 // ==================================
 // EXPORTS
 // ==================================
 
 module.exports = {
+    /*
+        Given a source code string, return an array of message strings.
+    */
     extractMessages: function extractMessages(src) {
         var ast = parse(src);
+        return extractMessagesInAst(parse(src)).toJS();
         return keypathsForMessageNodesInAst(ast).map(keypath =>
             generateMessage(sanitize(ast.getIn(keypath)))).toJS();
     },
 
+    /*
+        Given a source code string and a translations dictionary,
+        return the source code as a string with the messages translated.
+    */
     translateMessages: function translateMessages(src, translations) {
-        var ast = parse(src);
-        return generate(translateMessagesInAst(ast, translations));
+        return generate(translateMessagesInAst(parse(src), translations));
     }
 }

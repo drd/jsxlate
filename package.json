@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "6to5": "^2.5.0",
+    "chalk": "^0.5.1",
     "escodegen": "git://github.com/davidmccabe/escodegen",
     "esprima-fb": "^8001.2001.0-dev-harmony-fb",
     "immutable": "^3.4.1",

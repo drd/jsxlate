@@ -14,6 +14,7 @@ if (process.argv.length < 3
     showHelpAndExit();
 }
 
+var chalk = require('chalk');
 var fs = require('fs');
 
 require("6to5/register");
@@ -24,7 +25,13 @@ var messages = {};
 
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
-    var messagesInFile = translator.extractMessages(buffer);
+    try {
+        var messagesInFile = translator.extractMessages(buffer);
+    } catch (e) {
+        console.error(chalk.bold.red("\nError in file " + filename + ":\n"));
+        console.error(e.message + "\n");
+        process.exit(1);
+    }
     messagesInFile.forEach(function (message) {
         messages[message] = message;
     })
