@@ -357,9 +357,11 @@ function reconstituteJsxElement(translatedAst, definitions) {
 
 function reconstituteJsxExpressionContainer(translatedAst, definitions) {
     var expr = translatedAst.get('expression');
-    if (!matches(expr, identifierPattern)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + translatedAst);
+    if (!matches(expr, identifierPattern)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
     var name = expr.get('name');
-    return translatedAst.set('expression', definitions.get(name));
+    var definition = definitions.get(name);
+    if (!definition) throw new InputError("Translated message has a JSX expression whose name doesn't exist in the original: " + generate(translatedAst));
+    return translatedAst.set('expression', definition);
 }
 
 
