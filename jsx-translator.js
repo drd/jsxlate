@@ -137,6 +137,7 @@ assertion:
 list (with rep) of capitalized component names must be the same in original and translated
 
 TODO:
+- Bail out if the translation has non-safe attributes; refactor attribute functions.
 - spread attribute
 - namespace names and member names
 - If an expression is just an identifier, then the identifier can be the name by default.
