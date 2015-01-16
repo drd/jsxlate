@@ -322,20 +322,23 @@ function nameAndExpressionForNamedExpression(ast) {
 // Return translatedAst with named expressions and elided
 // attributes put back in based on originalAst.
 function reconstitute(translatedAst, originalAst) {
+    return _reconstitute(translatedAst, namedExpressionDefinitions(originalAst));
+}
+
+function _reconstitute(translatedAst, definitions) {
     return {
         'Identifier': identity, // FIXME what else should be here? why not in sanitize?
         'Literal': identity,
         'XJSElement': reconstituteJsxElement,
         'XJSExpressionContainer': reconstituteJsxExpressionContainer,
         'XJSEmptyExpression': identity
-    }[translatedAst.get('type')](translatedAst, originalAst);
+    }[translatedAst.get('type')](translatedAst, definitions);
 }
 
-function reconstituteJsxElement(translatedAst, originalAst) {
+function reconstituteJsxElement(translatedAst, definitions) {
     var result = translatedAst;
     if(attributeNames(translatedAst).contains('i18n-name')) {
         var name = attributeWithName(translatedAst, 'i18n-name');
-        var definitions = namedExpressionDefinitions(originalAst); // FIXME move out
         if(!definitions.get(name)) {
             throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original.")
         }
@@ -349,14 +352,13 @@ function reconstituteJsxElement(translatedAst, originalAst) {
     }
 
     return result.update('children', children =>
-        children.map(child => reconstitute(child, originalAst)));
+        children.map(child => _reconstitute(child, definitions)));
 }
 
-function reconstituteJsxExpressionContainer(translatedAst, originalAst) {
+function reconstituteJsxExpressionContainer(translatedAst, definitions) {
     var expr = translatedAst.get('expression');
     if (!matches(expr, identifierPattern)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + translatedAst);
     var name = expr.get('name');
-    var definitions = namedExpressionDefinitions(originalAst); // FIXME move out
     return translatedAst.set('expression', definitions.get(name));
 }
 
