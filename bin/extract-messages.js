@@ -20,6 +20,7 @@ var fs = require('fs');
 require("6to5/register");
 var translator = require('../jsx-translator.js');
 
+
 var files = process.argv.slice(2);
 var messages = {};
 
@@ -28,8 +29,8 @@ files.forEach(function (filename) {
     try {
         var messagesInFile = translator.extractMessages(buffer);
     } catch (e) {
-        console.error(chalk.bold.red("\nError in file " + filename + ":\n"));
-        console.error(e.message + "\n");
+        console.error(chalk.bold.red("\nError in file " + filename + ":"));
+        console.error(translator.errorMessageForError(e));
         process.exit(1);
     }
     messagesInFile.forEach(function (message) {

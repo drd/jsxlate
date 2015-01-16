@@ -19,6 +19,7 @@ var rw = require('rw');
 require("6to5/register");
 var translator = require('../jsx-translator.js');
 
+
 var translationsFilename = process.argv[3];
 var translations = JSON.parse(rw.readFileSync(translationsFilename, "utf8"));
 
@@ -27,7 +28,6 @@ var input = rw.readFileSync("/dev/stdin", "utf8");
 try {
     console.log(translator.translateMessages(input, translations));
 } catch (e) {
-    console.error("\n" + e.message + "\n");
-    process.exit(1);    
+    console.error(translator.errorMessageForError(e));
+    process.exit(1);
 }
-

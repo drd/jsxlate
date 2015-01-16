@@ -187,11 +187,15 @@ function duplicatedValues(list) {
     return I.Set(dupes);
 }
 
-function addMessageToError(message, error) {
-    error.message = "On line "+ message.getIn(['loc', 'start', 'line']) +", when processing the message... \n\n" +
-        generate(message) + "\n\n" +
-        "...the following error occured: \n\n" +
-        error.message;    
+function InputError(description) {
+    return I.Map({
+        isInputError: true,
+        description: description
+    });
+}
+
+function isInputError(e) {
+    return I.Map.isMap(e) && e.get('isInputError');
 }
 
 
@@ -278,7 +282,7 @@ function sanitizeJsxElement (ast) {
 
     if(! I.is(originalAttributes, result.getIn(attributesKP))
         && ! attributeNames(ast).contains('i18n-name')) {
-        throw new Error("Element needs an i18n-name attribute: " + generateOpening(ast));
+        throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
     }
 
     return result.update('children', children => children.map(sanitize));
@@ -289,22 +293,22 @@ function sanitizeJsxExpressionContainer (ast) {
         var [name, expression] = nameAndExpressionForNamedExpression(ast.get('expression'));
         return ast.set('expression', makeLiteralExpressionAst(name));
     } else {
-        throw new Error("Message contains a non-named expression: " + generate(ast));
+        throw new InputError("Message contains a non-named expression: " + generate(ast));
     }
 }
 
 // Given the ast for __("Hello", expr), return ["Hello", the ast for expr]
 function nameAndExpressionForNamedExpression(ast) {
     if(!matches(ast, namedExpressionPattern)) {
-        throw new Error("Expected expression of the form __(string, ...) but got " + ast);
+        throw new Error("Expected expression of the form __(string, ...) but got " + generate(ast));
     }
     if(!ast.get('arguments') || ast.get('arguments').size !== 2) {
-        throw new Error("Named expression has " + ast.get('arguments').size + " arguments, expected 2.");
+        throw new InputError("Named expression has " + ast.get('arguments').size + " arguments, expected 2: " + generate(ast));
     }
     var nameArgument = ast.getIn(['arguments', 0]);
     var expressionArgument = ast.getIn(['arguments', 1]);
     if(!matches(nameArgument, stringLiteralPattern)) {
-        throw new Error("First argument to __ should be a string literal, but was instead " + nameArgument);
+        throw new InputError("First argument to __ should be a string literal, but was instead " + generate(nameArgument));
     }
     return [nameArgument.get('value'), expressionArgument];
 }
@@ -334,7 +338,7 @@ function reconstituteJsxElement(translatedAst, originalAst) {
         var name = attributeWithName(translatedAst, 'i18n-name');
         var definitions = namedExpressionDefinitions(originalAst); // FIXME move out
         if(!definitions.get(name)) {
-            throw new Error("Translation contains i18n-name '" + name + "', which is not in the original.")
+            throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original.")
         }
         result = result.updateIn(['openingElement', 'attributes'], attributes =>
             mergeAttributes(name, attributes, definitions.get(name)));
@@ -350,7 +354,7 @@ function reconstituteJsxElement(translatedAst, originalAst) {
 
 function reconstituteJsxExpressionContainer(translatedAst, originalAst) {
     var expr = translatedAst.get('expression');
-    if (!matches(expr, identifierPattern)) throw new Error("Translated message has JSX expression that isn't a placeholder name: " + translatedAst);
+    if (!matches(expr, identifierPattern)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + translatedAst);
     var name = expr.get('name');
     var definitions = namedExpressionDefinitions(originalAst); // FIXME move out
     return translatedAst.set('expression', definitions.get(name));
@@ -366,7 +370,7 @@ function namedExpressionDefinitions(ast) {
     var names = listOfPairs.map(p => p.first());
     var dupes = duplicatedValues(names);
     if (dupes.size != 0) {
-        throw new Error("Message has two named expressions with the same name: " + dupes.join(", "));
+        throw new InputError("Message has two named expressions with the same name: " + dupes.join(", "));
     } else {
         return I.Map(listOfPairs.map(x => x.toArray()));
     }
@@ -391,7 +395,7 @@ function namedExpressionDefinitionsInJsxElement(ast) {
         attributeDefinition = I.List();
     } else {
         var name = attributeWithName(ast, 'i18n-name');
-        if (!name) throw new Error("Element needs an i18n-name attribute: " + generateOpening(ast));
+        if (!name) throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
         attributeDefinition = I.List([I.List([name, hiddenAttributes])]);
     }
 
@@ -511,10 +515,10 @@ function keypathsForMessageNodesInAst(ast) {
         var messageMarker = ast.getIn(keypath);        
         if (matches(messageMarker, stringMarkerPattern)) {
             if ( !messageMarker.get('arguments').size == 1 ) {
-                throw new Error("Message marker must have exactly one argument: " + generate(messageMarker));
+                throw new InputError("Message marker must have exactly one argument: " + generate(messageMarker));
             }
             if ( !matches(messageMarker.getIn(['arguments', 0]), stringLiteralPattern) ) {
-                throw new Error("Message should be a string literal, but was instead: " + generate(messageMarker));
+                throw new InputError("Message should be a string literal, but was instead: " + generate(messageMarker));
             }
         }
     });
@@ -528,12 +532,11 @@ function translateMessagesInAst(ast, translations) {
         try {
             var message = ast.getIn(keypath);
             var translation = translations[generateMessage(sanitize(message))];
-            if(!translation) { throw new Error("Translation missing for message: " + generate(message)); }
+            if(!translation) { throw new InputError("Translation missing for message: " + generate(message)); }
             translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
         } catch(e) {
-            addMessageToError(message, e);
-            throw e;
+            throw e.set('messageAst', message);
         }
     }
 
@@ -588,17 +591,6 @@ function prepareTranslationForParsing (translationString, originalAst) {
 }
 
 
-function extractMessagesInAst(ast) {
-    return keypathsForMessageNodesInAst(ast).map(keypath => {
-        try {
-            generateMessage(sanitize(ast.getIn(keypath)))
-        } catch (e) {
-            addMessageToError(ast.getIn(keypath), e);
-            throw e;
-        }
-    });
-}
-
 // ==================================
 // EXPORTS
 // ==================================
@@ -609,9 +601,16 @@ module.exports = {
     */
     extractMessages: function extractMessages(src) {
         var ast = parse(src);
-        return extractMessagesInAst(parse(src)).toJS();
-        return keypathsForMessageNodesInAst(ast).map(keypath =>
-            generateMessage(sanitize(ast.getIn(keypath)))).toJS();
+        return keypathsForMessageNodesInAst(ast)
+            .map(keypath => ast.getIn(keypath))
+            .map(message => {
+                try {
+                    return generateMessage(sanitize(message))
+                } catch (e) {
+                    throw e.set('messageAst', message);
+                }
+            })
+            .toJS();
     },
 
     /*
@@ -620,5 +619,29 @@ module.exports = {
     */
     translateMessages: function translateMessages(src, translations) {
         return generate(translateMessagesInAst(parse(src), translations));
+    },
+
+    /*
+        If the given error represents an error in the inputted JSX files or
+        translations, then return a user-friendly error message without
+        a stack trace. If it is any other kind of error, return the basic
+        error message and stack trace.
+    */
+    errorMessageForError: function errorMessageForError(e) {
+        if (isInputError(e) && e.get('messageAst')) {
+            var ast = e.get('messageAst');
+            return (
+                "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
+                generate(ast) + "\n\n" +
+                "...the following error occured: \n\n" +
+                e.get('description') + "\n"
+            );
+        }
+        else if (isInputError(e)) {
+            return e.get('description') + "\n";
+        }
+        else {
+            return e.stack;
+        }
     }
 }
