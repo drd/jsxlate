@@ -224,6 +224,7 @@ function makeLiteralExpressionAst(value) {
 }
 
 function attributeIsSafe(componentName, attributeAst) {
+    if (!componentName) { throw new Error("Component name missing."); }
     return (!!~(allowedAttributesByComponentName[componentName] || []).indexOf(attributeName(attributeAst))
         || attributeName(attributeAst) === 'i18n-name');
 }
@@ -331,8 +332,6 @@ function reconstitute(translatedAst, originalAst) {
 }
 
 function reconstituteJsxElement(translatedAst, originalAst) {
-    var name = componentName(originalAst);
-
     var result = translatedAst;
     if(attributeNames(translatedAst).contains('i18n-name')) {
         var name = attributeWithName(translatedAst, 'i18n-name');
@@ -343,6 +342,7 @@ function reconstituteJsxElement(translatedAst, originalAst) {
         result = result.updateIn(['openingElement', 'attributes'], attributes =>
             mergeAttributes(name, attributes, definitions.get(name)));
     } else {
+        var name = componentName(translatedAst);
         result = result.updateIn(['openingElement', 'attributes'], attributes =>
             attributes.filter(attrib =>
                 attributeIsSafe(name, attrib)))
@@ -388,7 +388,7 @@ function _namedExpressionDefinitions(ast) {
 function namedExpressionDefinitionsInJsxElement(ast) {
     var hiddenAttributes = ast
         .getIn(['openingElement', 'attributes'])
-        .filterNot(attrib => attributeIsSafe(name, attrib));
+        .filterNot(attrib => attributeIsSafe(componentName(ast), attrib));
 
     var attributeDefinition;
     if (hiddenAttributes.size == 0) {
