@@ -358,8 +358,7 @@ function reconstituteJsxElement(translatedAst, definitions) {
 function reconstituteJsxExpressionContainer(translatedAst, definitions) {
     var expr = translatedAst.get('expression');
     if (!matches(expr, identifierPattern)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
-    var name = expr.get('name');
-    var definition = definitions.get(name);
+    var definition = definitions.get(expr.get('name'));
     if (!definition) throw new InputError("Translated message has a JSX expression whose name doesn't exist in the original: " + generate(translatedAst));
     return translatedAst.set('expression', definition);
 }
@@ -536,11 +535,11 @@ function translateMessagesInAst(ast, translations) {
         try {
             var message = ast.getIn(keypath);
             var translation = translations[generateMessage(sanitize(message))];
-            if(!translation) { throw new InputError("Translation missing for message: " + generate(message)); }
+            if(!translation) { throw new InputError("Translation missing for:\n" + generateMessage(sanitize(message))); }
             translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
         } catch(e) {
-            throw e.set('messageAst', message);
+            throw e.set('messageAst', message).set('translationString', translation);
         }
     }
 
@@ -632,7 +631,18 @@ module.exports = {
         error message and stack trace.
     */
     errorMessageForError: function errorMessageForError(e) {
-        if (isInputError(e) && e.get('messageAst')) {
+        if (isInputError(e) && e.get('messageAst') && e.get('translationString')) {
+            var ast = e.get('messageAst');
+            return (
+                "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
+                generate(ast) + "\n\n" +
+                "...and its associated translation... \n\n" +
+                e.get('translationString') + "\n\n" +
+                "...the following error occured: \n\n" +
+                e.get('description') + "\n"
+            );
+        }
+        else if (isInputError(e) && e.get('messageAst')) {
             var ast = e.get('messageAst');
             return (
                 "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
