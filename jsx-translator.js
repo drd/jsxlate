@@ -224,6 +224,25 @@ function makeLiteralExpressionAst(value) {
     return parseFragment(value);
 }
 
+function attributes(jsxElementAst) {
+    return jsxElementAst.getIn(['openingElement', 'attributes']);
+}
+
+function updateAttributes(jsxElementAst, f) {
+    return jsxElementAst.updateIn(['openingElement', 'attributes'], f);
+}
+
+function hasUnsafeAttributes(jsxElementAst) {
+    var name = componentName(jsxElementAst);
+    return attributes(jsxElementAst).some(a => !attributeIsSafe(name, a));
+}
+
+function withSafeAttributesOnly(jsxElementAst) {
+    var name = componentName(jsxElementAst);
+    return updateAttributes(jsxElementAst, attributes =>
+        attributes.filter(a => attributeIsSafe(name, a)));
+}
+
 function attributeIsSafe(componentName, attributeAst) {
     if (!componentName) { throw new Error("Component name missing."); }
     return (!!~(allowedAttributesByComponentName[componentName] || []).indexOf(attributeName(attributeAst))
@@ -239,11 +258,11 @@ function attributeName(attributeAst) {
 }
 
 function attributeNames(jsxElementAst) {
-    return jsxElementAst.getIn(['openingElement', 'attributes']).map(attributeName);
+    return attributes(jsxElementAst).map(attributeName);
 }
 
 function attributeWithName(jsxElementAst, name) {
-    return jsxElementAst.getIn(['openingElement', 'attributes'])
+    return attributes(jsxElementAst)
         .filter(attrib => attributeName(attrib) === name)
         .first().getIn(['value', 'value']);
 }
@@ -274,20 +293,10 @@ function sanitizeCallExpression (ast) {
 }
 
 function sanitizeJsxElement (ast) {
-    var name = componentName(ast);
-    var attributesKP = ['openingElement', 'attributes'];
-
-    var originalAttributes = ast.getIn(attributesKP);
-    var result = ast.updateIn(attributesKP,
-        attributes => attributes.filter(
-            attrib => attributeIsSafe(name, attrib)));
-
-    if(! I.is(originalAttributes, result.getIn(attributesKP))
-        && ! attributeNames(ast).contains('i18n-name')) {
-        throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
+    if (hasUnsafeAttributes(ast) && ! attributeNames(ast).contains('i18n-name')) {
+        throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));        
     }
-
-    return result.update('children', children => children.map(sanitize));
+    return withSafeAttributesOnly(ast).update('children', children => children.map(sanitize));
 }
 
 function sanitizeJsxExpressionContainer (ast) {
@@ -343,13 +352,11 @@ function reconstituteJsxElement(translatedAst, definitions) {
         if(!definitions.get(name)) {
             throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original.")
         }
-        result = result.updateIn(['openingElement', 'attributes'], attributes =>
-            mergeAttributes(name, attributes, definitions.get(name)));
+        result = updateAttributes(result, attributes =>
+            mergeAttributes(name, attributes, definitions.get(name))); // XXX WRONG NAME
     } else {
         var name = componentName(translatedAst);
-        result = result.updateIn(['openingElement', 'attributes'], attributes =>
-            attributes.filter(attrib =>
-                attributeIsSafe(name, attrib)))
+        result = withSafeAttributesOnly(result);
     }
 
     return result.update('children', children =>
@@ -381,17 +388,15 @@ function namedExpressionDefinitions(ast) {
 }
 
 function _namedExpressionDefinitions(ast) {
-    return {
-        'Literal': () => I.List(),
+    return ({
         'XJSElement': namedExpressionDefinitionsInJsxElement,
         'XJSExpressionContainer': namedExpressionDefinitionsInJsxExpressionContainer,
         'XJSEmptyExpression': () => I.List(),
-    }[ast.get('type')](ast);    
+    }[ast.get('type')] || () => I.List())(ast);
 }
 
 function namedExpressionDefinitionsInJsxElement(ast) {
-    var hiddenAttributes = ast
-        .getIn(['openingElement', 'attributes'])
+    var hiddenAttributes = attributes(ast)
         .filterNot(attrib => attributeIsSafe(componentName(ast), attrib));
 
     var attributeDefinition;
@@ -540,7 +545,7 @@ function translateMessagesInAst(ast, translations) {
             translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
         } catch(e) {
-            throw e.set('messageAst', message).set('translationString', translation);
+            throw e.set ? e.set('messageAst', message).set('translationString', translation) : e;
         }
     }
 
@@ -611,7 +616,7 @@ module.exports = {
                 try {
                     return generateMessage(sanitize(message))
                 } catch (e) {
-                    throw e.set('messageAst', message);
+                    throw e.set ? e.set('messageAst', message) : e;
                 }
             })
             .toJS();
