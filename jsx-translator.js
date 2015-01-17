@@ -224,6 +224,10 @@ function makeLiteralExpressionAst(value) {
     return parseFragment(value);
 }
 
+function componentName(jsxElementAst) {
+    return jsxElementAst.getIn(['openingElement', 'name', 'name']);
+}
+
 function attributes(jsxElementAst) {
     return jsxElementAst.getIn(['openingElement', 'attributes']);
 }
@@ -249,22 +253,19 @@ function attributeIsSafe(componentName, attributeAst) {
         || attributeName(attributeAst) === 'i18n-name');
 }
 
-function componentName(ast) {
-    return ast.getIn(['openingElement', 'name', 'name']);
-}
-
 function attributeName(attributeAst) {
     return attributeAst.getIn(['name', 'name'])
 }
 
-function attributeNames(jsxElementAst) {
-    return attributes(jsxElementAst).map(attributeName);
+function attributeValue(attributeAst) {
+    return attributeAst.getIn(['value', 'value']);
 }
 
 function attributeWithName(jsxElementAst, name) {
-    return attributes(jsxElementAst)
+    var a = attributes(jsxElementAst)
         .filter(attrib => attributeName(attrib) === name)
-        .first().getIn(['value', 'value']);
+        .first();
+    return a && attributeValue(a);
 }
 
 
@@ -293,7 +294,7 @@ function sanitizeCallExpression (ast) {
 }
 
 function sanitizeJsxElement (ast) {
-    if (hasUnsafeAttributes(ast) && ! attributeNames(ast).contains('i18n-name')) {
+    if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
         throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));        
     }
     return withSafeAttributesOnly(ast).update('children', children => children.map(sanitize));
@@ -347,15 +348,14 @@ function _reconstitute(translatedAst, definitions) {
 
 function reconstituteJsxElement(translatedAst, definitions) {
     var result = translatedAst;
-    if(attributeNames(translatedAst).contains('i18n-name')) {
-        var name = attributeWithName(translatedAst, 'i18n-name');
+    var name = attributeWithName(translatedAst, 'i18n-name');
+    if (name) {
         if(!definitions.get(name)) {
             throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original.")
         }
         result = updateAttributes(result, attributes =>
             mergeAttributes(name, attributes, definitions.get(name))); // XXX WRONG NAME
     } else {
-        var name = componentName(translatedAst);
         result = withSafeAttributesOnly(result);
     }
 
