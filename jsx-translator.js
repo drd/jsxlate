@@ -147,6 +147,9 @@ TODO:
 - bin scripts shouldn't obscure Errors that aren't errors in the input.
 - strip leading whitespace?
 - Enforce non-direct-nesting of I18N tags.
+- Possible alternative syntax to i18n-name: just make up a different tag name:
+  So the developer inputs <a i18n-name="myspecialthing">
+  and the translator sees <myspecialthing> or maybe <a-myspecialthing>.
 */
 
 Error.stackTraceLimit = Infinity;
@@ -226,6 +229,18 @@ function makeLiteralExpressionAst(value) {
 
 function componentName(jsxElementAst) {
     return jsxElementAst.getIn(['openingElement', 'name', 'name']);
+}
+
+function attributeMap(attributes) {
+    return I.Map(attributes.map(a => [a.get('name'), a.get('value')]));
+}
+
+function attributesFromMap(attributes) {
+    return I.List(attributes.map((v,k) => I.Map({
+        type: 'XJSAttribute',
+        name: k,
+        value: v
+    })).valueSeq());
 }
 
 function attributes(jsxElementAst) {
@@ -346,17 +361,25 @@ function _reconstitute(translatedAst, definitions) {
     }[translatedAst.get('type')](translatedAst, definitions);
 }
 
+
 function reconstituteJsxElement(translatedAst, definitions) {
-    var result = translatedAst;
+    if (hasUnsafeAttributes(translatedAst)) {
+        throw new InputError("Translation includes unsafe attribute: " + generateOpening(translatedAst));
+    }
+
+    var result;
     var name = attributeWithName(translatedAst, 'i18n-name');
     if (name) {
-        if(!definitions.get(name)) {
-            throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original.")
-        }
-        result = updateAttributes(result, attributes =>
-            mergeAttributes(name, attributes, definitions.get(name))); // XXX WRONG NAME
+        var originalAttributes = definitions.get(name);
+        if (!originalAttributes) { throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original."); }
+        console.log(originalAttributes.map(generate), originalAttributes.merge(attributes(translatedAst)).map(generate));
+
+        result = updateAttributes(translatedAst,
+            translationAttributes => attributesFromMap(
+                attributeMap(originalAttributes).merge(
+                attributeMap(translationAttributes))));
     } else {
-        result = withSafeAttributesOnly(result);
+        result = translatedAst;
     }
 
     return result.update('children', children =>
@@ -390,8 +413,7 @@ function namedExpressionDefinitions(ast) {
 function _namedExpressionDefinitions(ast) {
     return ({
         'XJSElement': namedExpressionDefinitionsInJsxElement,
-        'XJSExpressionContainer': namedExpressionDefinitionsInJsxExpressionContainer,
-        'XJSEmptyExpression': () => I.List(),
+        'XJSExpressionContainer': namedExpressionDefinitionsInJsxExpressionContainer
     }[ast.get('type')] || () => I.List())(ast);
 }
 
@@ -421,21 +443,6 @@ function namedExpressionDefinitionsInJsxExpressionContainer(ast) {
     }
 }
 
-
-// ==================================
-// MERGING ATTRIBUTES
-// ==================================
-
-// element name -> List<XJSAttribute> -> List<XJSAttribute> -> List<XJSAttribute>
-function mergeAttributes(name, translated, original) {
-    // Use the attributes from the original element,
-    // overriden by those in the translation which are both
-    // safe and present in the original:
-    return original.merge(
-        translated.filter(attrib =>
-            attributeIsSafe(name, attrib) &&
-            original.map(attributeName).contains(attributeName(attrib))));
-}
 
 
 // ==================================
