@@ -264,8 +264,9 @@ function withSafeAttributesOnly(jsxElementAst) {
 
 function attributeIsSafe(componentName, attributeAst) {
     if (!componentName) { throw new Error("Component name missing."); }
-    return (!!~(allowedAttributesByComponentName[componentName] || []).indexOf(attributeName(attributeAst))
-        || attributeName(attributeAst) === 'i18n-name');
+    var forComponent = allowedAttributesByComponentName[componentName] || [];
+    return attributeName(attributeAst) === 'i18n-name'
+        || -1 != (forComponent).indexOf(attributeName(attributeAst);
 }
 
 function attributeName(attributeAst) {
@@ -312,7 +313,8 @@ function sanitizeJsxElement (ast) {
     if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
         throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));        
     }
-    return withSafeAttributesOnly(ast).update('children', children => children.map(sanitize));
+    return withSafeAttributesOnly(ast)
+        .update('children', children => children.map(sanitize));
 }
 
 function sanitizeJsxExpressionContainer (ast) {
@@ -372,7 +374,6 @@ function reconstituteJsxElement(translatedAst, definitions) {
     if (name) {
         var originalAttributes = definitions.get(name);
         if (!originalAttributes) { throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original."); }
-        console.log(originalAttributes.map(generate), originalAttributes.merge(attributes(translatedAst)).map(generate));
 
         result = updateAttributes(translatedAst,
             translationAttributes => attributesFromMap(
@@ -500,7 +501,6 @@ var identifierPattern = I.fromJS({
     type: "Identifier"
 });
 
-// This would be a great place for laziness.
 function allKeypathsInAst(ast) {
     var keypaths = [];
     function f(node, keypath) {
@@ -550,7 +550,10 @@ function translateMessagesInAst(ast, translations) {
             var translation = translations[generateMessage(sanitize(message))];
             if(!translation) { throw new InputError("Translation missing for:\n" + generateMessage(sanitize(message))); }
             translation = prepareTranslationForParsing(translation, message);
-            return ast.setIn(keypath, reconstitute(parseFragment(translation), message));
+            return ast.setIn(keypath,
+                reconstitute(
+                    parseFragment(translation),
+                    message));
         } catch(e) {
             throw e.set ? e.set('messageAst', message).set('translationString', translation) : e;
         }
