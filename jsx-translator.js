@@ -302,7 +302,7 @@ function sanitize(ast) {
 function sanitizeCallExpression (ast) {
     // The only valid call expression is the outer message marker,
     // so verify that's what we're dealing with and return it unchanged if so.
-    if (matches(ast, stringMarkerPattern)) {
+    if (isStringMarker(ast)) {
         return ast;
     } else {
         throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
@@ -318,7 +318,7 @@ function sanitizeJsxElement (ast) {
 }
 
 function sanitizeJsxExpressionContainer (ast) {
-    if(matches(ast.get('expression'), namedExpressionPattern)) {
+    if (isNamedExpression(ast.get('expression'))) {
         var [name, expression] = nameAndExpressionForNamedExpression(ast.get('expression'));
         return ast.set('expression', makeLiteralExpressionAst(name));
     } else {
@@ -328,7 +328,7 @@ function sanitizeJsxExpressionContainer (ast) {
 
 // Given the ast for __("Hello", expr), return ["Hello", the ast for expr]
 function nameAndExpressionForNamedExpression(ast) {
-    if(!matches(ast, namedExpressionPattern)) {
+    if (!isNamedExpression(ast)) {
         throw new Error("Expected expression of the form __(string, ...) but got " + generate(ast));
     }
     if(!ast.get('arguments') || ast.get('arguments').size !== 2) {
@@ -336,7 +336,7 @@ function nameAndExpressionForNamedExpression(ast) {
     }
     var nameArgument = ast.getIn(['arguments', 0]);
     var expressionArgument = ast.getIn(['arguments', 1]);
-    if(!matches(nameArgument, stringLiteralPattern)) {
+    if(!isStringLiteral(nameArgument)) {
         throw new InputError("First argument to __ should be a string literal, but was instead " + generate(nameArgument));
     }
     return [nameArgument.get('value'), expressionArgument];
@@ -389,7 +389,7 @@ function reconstituteJsxElement(translatedAst, definitions) {
 
 function reconstituteJsxExpressionContainer(translatedAst, definitions) {
     var expr = translatedAst.get('expression');
-    if (!matches(expr, identifierPattern)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
+    if (!isIdentifier(expr)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
     var definition = definitions.get(expr.get('name'));
     if (!definition) throw new InputError("Translated message has a JSX expression whose name doesn't exist in the original: " + generate(translatedAst));
     return translatedAst.set('expression', definition);
@@ -436,7 +436,7 @@ function namedExpressionDefinitionsInJsxElement(ast) {
 }
 
 function namedExpressionDefinitionsInJsxExpressionContainer(ast) {
-    if(matches(ast.get('expression'), namedExpressionPattern)) {
+    if (isNamedExpression(ast.get('expression'))) {    
         var definition = nameAndExpressionForNamedExpression(ast.get('expression'));
         return I.fromJS([definition]);
     } else {
@@ -460,7 +460,12 @@ function matches(ast, pattern) {
     }
 }
 
-var namedExpressionPattern = I.fromJS({
+function matcher(pattern) {
+    var Ipattern = I.fromJS(pattern);
+    return value => matches(value, Ipattern);
+}
+
+var isNamedExpression = matcher({
     type: "CallExpression",
     callee: {
         type: "Identifier",
@@ -468,7 +473,7 @@ var namedExpressionPattern = I.fromJS({
     }
 });
 
-var stringMarkerPattern = I.fromJS({
+var isStringMarker = matcher({
     type: "CallExpression",
     callee: {
         type: "Identifier",
@@ -476,7 +481,7 @@ var stringMarkerPattern = I.fromJS({
     }
 });
 
-var elementMarkerPattern = I.fromJS({
+var isElementMarker = matcher({
     type: "XJSElement",
     openingElement: {
         type: "XJSOpeningElement",
@@ -486,18 +491,22 @@ var elementMarkerPattern = I.fromJS({
             name: "I18N"
         }
     }    
-})
+});
 
-var stringLiteralPattern = I.fromJS({
+function isMarker (ast) {
+    return isStringMarker(ast) || isElementMarker(ast);
+}
+
+var isStringLiteral = matcher({
     type: "Literal",
     value: isString
 });
 
-var jsxElementPattern = I.fromJS({
+var isJsxElement = matcher({
     type: "XJSElement"
 });
 
-var identifierPattern = I.fromJS({
+var isIdentifier = matcher({
     type: "Identifier"
 });
 
@@ -516,6 +525,12 @@ function allKeypathsInAst(ast) {
     return I.fromJS(keypaths);
 }
 
+
+
+// ==================================
+// TRANSLATING
+// ==================================
+
 /*
     Return the keypath for each message in the given ast,
     and (important) return them with ancestors coming before descendents
@@ -523,17 +538,16 @@ function allKeypathsInAst(ast) {
 */
 function keypathsForMessageNodesInAst(ast) {
     var keypaths = allKeypathsInAst(ast)
-        .filter(keypath => matches(ast.getIn(keypath), stringMarkerPattern)
-                        || matches(ast.getIn(keypath), elementMarkerPattern));
+        .filter(keypath => isMarker(ast.getIn(keypath)));
 
     // Validate arguments of string markers:
     keypaths.forEach(keypath => {
         var messageMarker = ast.getIn(keypath);        
-        if (matches(messageMarker, stringMarkerPattern)) {
+        if (isStringMarker(messageMarker)) {
             if ( !messageMarker.get('arguments').size == 1 ) {
                 throw new InputError("Message marker must have exactly one argument: " + generate(messageMarker));
             }
-            if ( !matches(messageMarker.getIn(['arguments', 0]), stringLiteralPattern) ) {
+            if ( !isStringLiteral(messageMarker.getIn(['arguments', 0])) ) {
                 throw new InputError("Message should be a string literal, but was instead: " + generate(messageMarker));
             }
         }
@@ -578,10 +592,10 @@ function translateMessagesInAst(ast, translations) {
 // ==================================
 
 function generateMessage(ast) {
-    if (matches(ast, stringMarkerPattern)) {
+    if (isStringMarker(ast)) {
         return ast.getIn(['arguments', 0, 'value']);
     }
-    else if (matches(ast, elementMarkerPattern)) {
+    else if (isElementMarker(ast)) {
         return ast.get('children').map(generateJsxChild).join('');
     }
     else {
@@ -590,7 +604,7 @@ function generateMessage(ast) {
 }
 
 function generateJsxChild (ast) {
-    if (matches(ast, stringLiteralPattern)) {
+    if (isStringLiteral(ast)) {
         return ast.get('value')
     } else {
         return generate(ast);
@@ -598,10 +612,10 @@ function generateJsxChild (ast) {
 }
 
 function prepareTranslationForParsing (translationString, originalAst) {
-    if (matches(originalAst, stringMarkerPattern)) {
+    if (isStringMarker(originalAst)) {
         return JSON.stringify(translationString);
     }
-    else if (matches(originalAst, elementMarkerPattern)) {
+    else if (isElementMarker(originalAst)) {
         return "<I18N>" + translationString + "</I18N>";
     }
     else {
