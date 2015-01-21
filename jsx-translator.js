@@ -266,7 +266,7 @@ function attributeIsSafe(componentName, attributeAst) {
     if (!componentName) { throw new Error("Component name missing."); }
     var forComponent = allowedAttributesByComponentName[componentName] || [];
     return attributeName(attributeAst) === 'i18n-name'
-        || -1 != (forComponent).indexOf(attributeName(attributeAst);
+        || -1 != forComponent.indexOf(attributeName(attributeAst));
 }
 
 function attributeName(attributeAst) {
@@ -286,59 +286,83 @@ function attributeWithName(jsxElementAst, name) {
 
 
 // ==================================
+// VALIDATE
+// ==================================
+
+
+function validateMessage(ast) {
+    var _ = {
+        'CallExpression': validateCallExpression,
+        'XJSElement': validateJsxElement,
+        'XJSExpressionContainer': validateJsxExpressionContainer,
+    }[ast.get('type') || identity](ast);
+    return ast;
+}
+
+function validateCallExpression(ast) {
+    // The only valid call expression is the outer message marker:
+    if (!isStringMarker(ast)) {
+        throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
+    }
+    ast.get('children').forEach(validateMessage);
+}
+
+function validateJsxElement(ast) {
+    if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
+        throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
+    }
+}
+
+function validateJsxExpressionContainer(ast) {
+    var expression = ast.get('expression');
+    if (! isNamedExpression(expression)) {
+        throw new InputError("Message contains a non-named expression: " + generate(ast));
+    }
+    var [name, expression] = nameAndExpressionForNamedExpression(expression);
+    if(!ast.get('arguments') || ast.get('arguments').size !== 2) {
+        throw new InputError("Named expression has " + ast.get('arguments').size + " arguments, expected 2: " + generate(ast));
+    }
+    if(!isStringLiteral(nameArgument)) {
+        throw new InputError("First argument to __ should be a string literal, but was instead " + generate(nameArgument));
+    }
+}
+
+
+// ==================================
+// VALIDATE TRANSLATIONS
+// ==================================
+
+
+
+// ==================================
 // SANITIZE
 // ==================================
 
 function sanitize(ast) {
     return {
         'Literal': identity,
-        'CallExpression': sanitizeCallExpression,
+        'CallExpression': identity,
         'XJSElement': sanitizeJsxElement,
         'XJSExpressionContainer': sanitizeJsxExpressionContainer,
         'XJSEmptyExpression': identity,
     }[ast.get('type')](ast);
 }
 
-function sanitizeCallExpression (ast) {
-    // The only valid call expression is the outer message marker,
-    // so verify that's what we're dealing with and return it unchanged if so.
-    if (isStringMarker(ast)) {
-        return ast;
-    } else {
-        throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
-    }
-}
-
 function sanitizeJsxElement (ast) {
-    if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
-        throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));        
-    }
     return withSafeAttributesOnly(ast)
         .update('children', children => children.map(sanitize));
 }
 
 function sanitizeJsxExpressionContainer (ast) {
-    if (isNamedExpression(ast.get('expression'))) {
-        var [name, expression] = nameAndExpressionForNamedExpression(ast.get('expression'));
-        return ast.set('expression', makeLiteralExpressionAst(name));
-    } else {
-        throw new InputError("Message contains a non-named expression: " + generate(ast));
-    }
+    // Validation ensures expression is a named expression.
+    var [name, expression] = nameAndExpressionForNamedExpression(ast.get('expression'));
+    return ast.set('expression', makeLiteralExpressionAst(name));
 }
 
 // Given the ast for __("Hello", expr), return ["Hello", the ast for expr]
 function nameAndExpressionForNamedExpression(ast) {
-    if (!isNamedExpression(ast)) {
-        throw new Error("Expected expression of the form __(string, ...) but got " + generate(ast));
-    }
-    if(!ast.get('arguments') || ast.get('arguments').size !== 2) {
-        throw new InputError("Named expression has " + ast.get('arguments').size + " arguments, expected 2: " + generate(ast));
-    }
     var nameArgument = ast.getIn(['arguments', 0]);
     var expressionArgument = ast.getIn(['arguments', 1]);
-    if(!isStringLiteral(nameArgument)) {
-        throw new InputError("First argument to __ should be a string literal, but was instead " + generate(nameArgument));
-    }
     return [nameArgument.get('value'), expressionArgument];
 }
 
@@ -591,7 +615,7 @@ function translateMessagesInAst(ast, translations) {
 // PRINTING AND UNPRINTING
 // ==================================
 
-function generateMessage(ast) {
+function generateMessage (ast) {
     if (isStringMarker(ast)) {
         return ast.getIn(['arguments', 0, 'value']);
     }
@@ -638,7 +662,7 @@ module.exports = {
             .map(keypath => ast.getIn(keypath))
             .map(message => {
                 try {
-                    return generateMessage(sanitize(message))
+                    return generateMessage(sanitize(validateMessage(message)))
                 } catch (e) {
                     throw e.set ? e.set('messageAst', message) : e;
                 }
