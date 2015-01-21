@@ -291,11 +291,11 @@ function attributeWithName(jsxElementAst, name) {
 
 
 function validateMessage(ast) {
-    var _ = {
+    var _ = ({
         'CallExpression': validateCallExpression,
         'XJSElement': validateJsxElement,
         'XJSExpressionContainer': validateJsxExpressionContainer,
-    }[ast.get('type') || identity](ast);
+    }[ast.get('type')] || identity)(ast);
     return ast;
 }
 
@@ -304,13 +304,13 @@ function validateCallExpression(ast) {
     if (!isStringMarker(ast)) {
         throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
     }
-    ast.get('children').forEach(validateMessage);
 }
 
 function validateJsxElement(ast) {
     if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
         throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
     }
+    ast.get('children').forEach(validateMessage);
 }
 
 function validateJsxExpressionContainer(ast) {
