@@ -307,9 +307,18 @@ function validateCallExpression(ast) {
 }
 
 function validateJsxElement(ast) {
+    // Throws if definitions are duplicated:
+    namedExpressionDefinitions(ast);
+
     if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
         throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
     }
+
+    // Disallow direct nesting of message marker tags:
+    if (isElementMarker(ast) && ast.get('children').some(isElementMarker)) {
+        throw new InputError("Don't directly nest <I18N> tags: " + generate(ast));
+    }
+
     ast.get('children').forEach(validateMessage);
 }
 
@@ -569,7 +578,7 @@ function keypathsForMessageNodesInAst(ast) {
     keypaths.forEach(keypath => {
         var messageMarker = ast.getIn(keypath);        
         if (isStringMarker(messageMarker)) {
-            if ( !messageMarker.get('arguments').size == 1 ) {
+            if ( messageMarker.get('arguments').size !== 1 ) {
                 throw new InputError("Message marker must have exactly one argument: " + generate(messageMarker));
             }
             if ( !isStringLiteral(messageMarker.getIn(['arguments', 0])) ) {
