@@ -318,12 +318,13 @@ function validateJsxExpressionContainer(ast) {
     if (! isNamedExpression(expression)) {
         throw new InputError("Message contains a non-named expression: " + generate(ast));
     }
-    var [name, expression] = nameAndExpressionForNamedExpression(expression);
-    if(!ast.get('arguments') || ast.get('arguments').size !== 2) {
-        throw new InputError("Named expression has " + ast.get('arguments').size + " arguments, expected 2: " + generate(ast));
+    var arity = expression.get('arguments') ? expression.get('arguments').size : 0;
+    if(arity !== 2) {
+        throw new InputError("Named expression has " + arity + " arguments, expected 2: " + generate(ast));
     }
-    if(!isStringLiteral(nameArgument)) {
-        throw new InputError("First argument to __ should be a string literal, but was instead " + generate(nameArgument));
+    var name = expression.getIn(['arguments', 0]);
+    if(!isStringLiteral(name)) {
+        throw new InputError("First argument to __ should be a string literal, but was instead " + generate(name));
     }
 }
 
