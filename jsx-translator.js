@@ -75,6 +75,15 @@ designation removed:
 
 <I18N><i>Click me: <a href="example.fr" target="_blank">Example</a></i></I18N>
 
+There is an alternative syntax if you want your untranslated sources to be
+executable, since namespaces would interfere with that. You can say:
+
+<a i18n-designation="foo"></a>
+
+which will be shown to the translator as:
+
+<a:foo></a:foo>
+
 
 Printing and unprinting:
 
@@ -105,15 +114,17 @@ NOTES:
 
 assertion:
 list (with rep) of capitalized component names must be the same in original and translated
+Ensure can't go from self-closing to not or vice-versa in translation.
+Ensure no tag with designation has member expression for tag name.
 
 TODO:
 - Bail out if the translation has non-safe attributes; refactor attribute functions.
 - spread attribute
 - namespace names and member names
-- Various heuristics for omitting i18n-name.
+- Various heuristics for omitting i18n-designation.
 - strip leading whitespace? -- rules appear complicated
-- Possible alternative syntax to i18n-name: just make up a different tag name:
-  So the developer inputs <a i18n-name="myspecialthing">
+- Possible alternative syntax to i18n-designation: just make up a different tag name:
+  So the developer inputs <a i18n-designation="myspecialthing">
   and the translator sees <myspecialthing> or maybe <a-myspecialthing>.
 */
 
@@ -192,21 +203,25 @@ function makeLiteralExpressionAst(value) {
     return parseFragment(value);
 }
 
-function componentName(jsxElementAst) {
+function componentNameAst(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
     if (type === 'XJSNamespacedName') {
         // The component is of the form <name:designation>
-        return generate(nameAst.get('namespace'));
+        return nameAst.get('namespace');
     }
     else if (type === 'XJSIdentifier' || type === 'XJSMemberExpression') {
         // The component is of the form <name> or <namey.mcnamerson>
-        return generate(nameAst);
+        return nameAst;
     }
     else {
         throw new Error(`Unknown component name type ${type} for component ${generateOpening(jsxElementAst)}`);
-    }
+    }    
+}
+
+function componentName(jsxElementAst) {
+    return generate(componentNameAst(jsxElementAst));
 }
 
 function componentDesignation(jsxElementAst) {
@@ -218,8 +233,49 @@ function componentDesignation(jsxElementAst) {
         return generate(nameAst.get('name'));
     }
     else {
-        // The component has no designation.
-        return null;
+        // The component has an i18n-designation attribute or else has no designation.
+        return attributeWithName(jsxElementAst, 'i18n-designation');
+    }
+}
+
+function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
+    var name = componentName(jsxElementAst);
+    var designation = componentDesignation(jsxElementAst);
+    var attribute = attributeWithName(jsxElementAst, 'i18n-designation');
+    if (designation && attribute) {
+        var namespacedName = I.fromJS({
+            type: 'XJSNamespacedName',
+            name: {
+                type: 'XJSIdentifier',
+                name: designation
+            },
+            namespace: {
+                type: 'XJSIdentifier',
+                name: name
+            }
+        });
+        var withNamespace = setJsxElementName(jsxElementAst, namespacedName);
+        return updateAttributes(withNamespace, attributes =>
+            attributes.filterNot(a => attributeName(a) === 'i18n-designation'))
+    }
+    else {
+        return jsxElementAst;
+    }
+}
+
+function removeDesignation(jsxElementAst) {
+    var renamed = setJsxElementName(jsxElementAst,
+            componentNameAst(jsxElementAst));
+    return removeAttributeWithName(renamed, 'i18n-designation');
+}
+
+function setJsxElementName (jsxElementAst, nameAst) {
+    if (jsxElementAst.getIn(['openingElement', 'selfClosing'])) {
+        return jsxElementAst.setIn(['openingElement', 'name'], nameAst);
+    }
+    else {
+        return jsxElementAst.setIn(['openingElement', 'name'], nameAst)
+                            .setIn(['closingElement', 'name'], nameAst);
     }
 }
 
@@ -273,6 +329,12 @@ function attributeWithName(jsxElementAst, name) {
         .filter(attrib => attributeName(attrib) === name)
         .first();
     return a && attributeValue(a);
+}
+
+function removeAttributeWithName(jsxElementAst, name) {
+    return jsxElementAst.updateIn(['openingElement', 'attributes'],
+        attributes => attributes
+        .filterNot(attrib => attributeName(attrib) === name));
 }
 
 
@@ -342,7 +404,7 @@ function sanitize(ast) {
 }
 
 function sanitizeJsxElement (ast) {
-    return withSafeAttributesOnly(ast)
+    return withSafeAttributesOnly(rewriteDesignationToNamespaceSyntax(ast))
         .update('children', children => children.map(sanitize));
 }
 
@@ -393,6 +455,8 @@ function reconstituteJsxElement(translatedAst, definitions) {
             translationAttributes => attributesFromMap(
                 attributeMap(originalAttributes).merge(
                 attributeMap(translationAttributes))));
+
+        result = removeDesignation(result);
     } else {
         result = translatedAst;
     }
