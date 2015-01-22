@@ -105,3 +105,30 @@ exports.testErrorsInExtraction = function (test) {
 }
 
 
+var toBeTranslated = `
+function render () {
+    return <p>
+        <I18N>Hello, world. <Component />{foo}{bar.baz}</I18N>
+    </p>
+}
+`
+
+// Translations for above source that should cause errors:
+var invalidTranslations = [
+    '<a target="_blank">Unsafe attribute</a> <Component />{foo}{bar.baz}',
+    '<a:made-up-designation></a:made-up-designation><Component />{foo}{bar.baz}',
+    '{random + expression + in + placeholder}<Component />{foo}{bar.baz}',
+    '{non.existant.name}<Component />{foo}{bar.baz}',
+    '<Component /> Duplicated expressions: {foo}{foo}{bar.baz}',
+];
+
+exports.testErrorsInTranslation = function (test) {
+    invalidTranslations.forEach(translation => {
+        test.throws(() => translator.translateMessages(toBeTranslated, {
+            'Hello, world. <Component />{foo}{bar.baz}': translation
+        }), translation);
+    });
+    test.done();
+}
+
+
