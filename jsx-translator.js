@@ -120,12 +120,8 @@ Ensure no tag with designation has member expression for tag name.
 TODO:
 - Bail out if the translation has non-safe attributes; refactor attribute functions.
 - spread attribute
-- namespace names and member names
 - Various heuristics for omitting i18n-designation.
 - strip leading whitespace? -- rules appear complicated
-- Possible alternative syntax to i18n-designation: just make up a different tag name:
-  So the developer inputs <a i18n-designation="myspecialthing">
-  and the translator sees <myspecialthing> or maybe <a-myspecialthing>.
 */
 
 Error.stackTraceLimit = Infinity;
