@@ -40,7 +40,7 @@ and dangerous for them to edit. And they certainly shouldn't see JavaScript
 expressions inside curly-braces. Therefore:
 
 1) Sanitization removes attributes not listed in
-   allowedAttributesByComponentName.
+   allowedAttributesByElementName.
 2) The only expressions allowed in messages are identifiers and simple
    member expressions (e.g. "foo.bar.baz").
 
@@ -134,7 +134,7 @@ var I = require('immutable');
     These attributes are shown to translators and may be inserted
     and modified by translators:
 */
-var allowedAttributesByComponentName = {
+var allowedAttributesByElementName = {
     'a': ['href'],
 }
 
@@ -199,44 +199,44 @@ function makeLiteralExpressionAst(value) {
     return parseFragment(value);
 }
 
-function componentNameAst(jsxElementAst) {
+function elementNameAst(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
     if (type === 'XJSNamespacedName') {
-        // The component is of the form <name:designation>
+        // The element is of the form <name:designation>
         return nameAst.get('namespace');
     }
     else if (type === 'XJSIdentifier' || type === 'XJSMemberExpression') {
-        // The component is of the form <name> or <namey.mcnamerson>
+        // The element is of the form <name> or <namey.mcnamerson>
         return nameAst;
     }
     else {
-        throw new Error(`Unknown component name type ${type} for component ${generateOpening(jsxElementAst)}`);
+        throw new Error(`Unknown element name type ${type} for element ${generateOpening(jsxElementAst)}`);
     }    
 }
 
-function componentName(jsxElementAst) {
-    return generate(componentNameAst(jsxElementAst));
+function elementName(jsxElementAst) {
+    return generate(elementNameAst(jsxElementAst));
 }
 
-function componentDesignation(jsxElementAst) {
+function elementDesignation(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
     if (type === 'XJSNamespacedName') {
-        // The component is of the form <name:designation>
+        // The element is of the form <name:designation>
         return generate(nameAst.get('name'));
     }
     else {
-        // The component has an i18n-designation attribute or else has no designation.
+        // The element has an i18n-designation attribute or else has no designation.
         return attributeWithName(jsxElementAst, 'i18n-designation');
     }
 }
 
 function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
-    var name = componentName(jsxElementAst);
-    var designation = componentDesignation(jsxElementAst);
+    var name = elementName(jsxElementAst);
+    var designation = elementDesignation(jsxElementAst);
     var attribute = attributeWithName(jsxElementAst, 'i18n-designation');
     if (designation && attribute) {
         var namespacedName = I.fromJS({
@@ -261,7 +261,7 @@ function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
 
 function removeDesignation(jsxElementAst) {
     var renamed = setJsxElementName(jsxElementAst,
-            componentNameAst(jsxElementAst));
+            elementNameAst(jsxElementAst));
     return removeAttributeWithName(renamed, 'i18n-designation');
 }
 
@@ -296,20 +296,20 @@ function updateAttributes(jsxElementAst, f) {
 }
 
 function hasUnsafeAttributes(jsxElementAst) {
-    var name = componentName(jsxElementAst);
+    var name = elementName(jsxElementAst);
     return attributes(jsxElementAst).some(a => !attributeIsSafe(name, a));
 }
 
 function withSafeAttributesOnly(jsxElementAst) {
-    var name = componentName(jsxElementAst);
+    var name = elementName(jsxElementAst);
     return updateAttributes(jsxElementAst, attributes =>
         attributes.filter(a => attributeIsSafe(name, a)));
 }
 
-function attributeIsSafe(componentName, attributeAst) {
-    if (!componentName) { throw new Error("Component name missing."); }
-    var forComponent = allowedAttributesByComponentName[componentName] || [];
-    return -1 !== forComponent.indexOf(attributeName(attributeAst));
+function attributeIsSafe(elementName, attributeAst) {
+    if (!elementName) { throw new Error("Element name missing."); }
+    var forElement = allowedAttributesByElementName[elementName] || [];
+    return -1 !== forElement.indexOf(attributeName(attributeAst));
 }
 
 function attributeName(attributeAst) {
@@ -359,7 +359,7 @@ function validateJsxElement(ast) {
     // Throws if definitions are duplicated:
     namedExpressionDefinitions(ast);
 
-    if (hasUnsafeAttributes(ast) && ! componentDesignation(ast)) {
+    if (hasUnsafeAttributes(ast) && ! elementDesignation(ast)) {
         throw new InputError("Element needs a designation: " + generateOpening(ast));
     }
 
@@ -448,7 +448,7 @@ function reconstituteJsxElement(translatedAst, definitions) {
     }
 
     var result;
-    var designation = componentDesignation(translatedAst);
+    var designation = elementDesignation(translatedAst);
     if (designation) {
         var originalAttributes = definitions.get(designation);
         if (!originalAttributes) { throw new InputError("Translation contains designation '" + designation + "', which is not in the original."); }
@@ -500,13 +500,13 @@ function _namedExpressionDefinitions(ast) {
 
 function namedExpressionDefinitionsInJsxElement(ast) {
     var hiddenAttributes = attributes(ast)
-        .filterNot(attrib => attributeIsSafe(componentName(ast), attrib));
+        .filterNot(attrib => attributeIsSafe(elementName(ast), attrib));
 
     var attributeDefinition;
     if (hiddenAttributes.size == 0) {
         attributeDefinition = I.List();
     } else {
-        var designation = componentDesignation(ast);
+        var designation = elementDesignation(ast);
         if (!designation) throw new InputError("Element needs a designation: " + generateOpening(ast));
         attributeDefinition = I.List([I.List([designation, hiddenAttributes])]);
     }
