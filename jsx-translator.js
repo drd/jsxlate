@@ -383,6 +383,12 @@ function validateJsxExpressionContainer(ast) {
 // VALIDATE TRANSLATIONS
 // ==================================
 
+function validateTranslation(translation, original) {
+    // Throws if definitions are duplicated:
+    namedExpressionDefinitions(translation);
+
+    return translation;
+}
 
 
 // ==================================
@@ -644,7 +650,7 @@ function translateMessagesInAst(ast, translations) {
             translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath,
                 reconstitute(
-                    parseFragment(translation),
+                    validateTranslation(parseFragment(translation), message),
                     message));
         } catch(e) {
             throw e.set ? e.set('messageAst', message).set('translationString', translation) : e;
