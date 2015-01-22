@@ -58,19 +58,20 @@ the original.
 When we elide attributes from an element, we need to know
 which element in the translation to re-attach those attributes to. Since
 translators can add and remove elements, the only general way to know where to
-put the attributes is to name that element:
+put the attributes is to give that element a special designation:
 
-<I18N><a href="example.com" target="_blank" i18n-name="my-link">Example</a></I18N>
-                                            ^^^^^^^^^^^^^^^^^^^
+<I18N><a:my-link href="example.com" target="_blank">Example</a:my-link></I18N>
+        ^^^^^^^^                                              ^^^^^^^^
 When sanitized, this produces the message:
 
-<a href="example.com" i18n-name="my-link">Example</a>
+<a:my-link href="example.com">Example</a:my-link>
 
 Note that target="_blank" is missing. Now the translator can rearrange at will:
 
-<i>Click me: <a href="example.fr" i18n-name="my-link">Example</a></i>
+<i>Click me: <a:my-link href="example.fr">Example</a:my-link></i>
 
-Under reconstitution, the elided attribute is put back in:
+Under reconstitution, the elided attribute is put back in and the
+designation removed:
 
 <I18N><i>Click me: <a href="example.fr" target="_blank">Example</a></i></I18N>
 
@@ -192,7 +193,34 @@ function makeLiteralExpressionAst(value) {
 }
 
 function componentName(jsxElementAst) {
-    return jsxElementAst.getIn(['openingElement', 'name', 'name']);
+    var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
+    var type = nameAst.get('type');
+
+    if (type === 'XJSNamespacedName') {
+        // The component is of the form <name:designation>
+        return generate(nameAst.get('namespace'));
+    }
+    else if (type === 'XJSIdentifier' || type === 'XJSMemberExpression') {
+        // The component is of the form <name> or <namey.mcnamerson>
+        return generate(nameAst);
+    }
+    else {
+        throw new Error(`Unknown component name type ${type} for component ${generateOpening(jsxElementAst)}`);
+    }
+}
+
+function componentDesignation(jsxElementAst) {
+    var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
+    var type = nameAst.get('type');
+
+    if (type === 'XJSNamespacedName') {
+        // The component is of the form <name:designation>
+        return generate(nameAst.get('name'));
+    }
+    else {
+        // The component has no designation.
+        return null;
+    }
 }
 
 function attributeMap(attributes) {
@@ -229,8 +257,7 @@ function withSafeAttributesOnly(jsxElementAst) {
 function attributeIsSafe(componentName, attributeAst) {
     if (!componentName) { throw new Error("Component name missing."); }
     var forComponent = allowedAttributesByComponentName[componentName] || [];
-    return attributeName(attributeAst) === 'i18n-name'
-        || -1 != forComponent.indexOf(attributeName(attributeAst));
+    return -1 !== forComponent.indexOf(attributeName(attributeAst));
 }
 
 function attributeName(attributeAst) {
@@ -274,8 +301,8 @@ function validateJsxElement(ast) {
     // Throws if definitions are duplicated:
     namedExpressionDefinitions(ast);
 
-    if (hasUnsafeAttributes(ast) && ! attributeWithName(ast, 'i18n-name')) {
-        throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
+    if (hasUnsafeAttributes(ast) && ! componentDesignation(ast)) {
+        throw new InputError("Element needs a designation: " + generateOpening(ast));
     }
 
     // Disallow direct nesting of message marker tags:
@@ -357,10 +384,10 @@ function reconstituteJsxElement(translatedAst, definitions) {
     }
 
     var result;
-    var name = attributeWithName(translatedAst, 'i18n-name');
-    if (name) {
-        var originalAttributes = definitions.get(name);
-        if (!originalAttributes) { throw new InputError("Translation contains i18n-name '" + name + "', which is not in the original."); }
+    var designation = componentDesignation(translatedAst);
+    if (designation) {
+        var originalAttributes = definitions.get(designation);
+        if (!originalAttributes) { throw new InputError("Translation contains designation '" + designation + "', which is not in the original."); }
 
         result = updateAttributes(translatedAst,
             translationAttributes => attributesFromMap(
@@ -413,9 +440,9 @@ function namedExpressionDefinitionsInJsxElement(ast) {
     if (hiddenAttributes.size == 0) {
         attributeDefinition = I.List();
     } else {
-        var name = attributeWithName(ast, 'i18n-name');
-        if (!name) throw new InputError("Element needs an i18n-name attribute: " + generateOpening(ast));
-        attributeDefinition = I.List([I.List([name, hiddenAttributes])]);
+        var designation = componentDesignation(ast);
+        if (!designation) throw new InputError("Element needs a designation: " + generateOpening(ast));
+        attributeDefinition = I.List([I.List([designation, hiddenAttributes])]);
     }
 
     return attributeDefinition.concat(
