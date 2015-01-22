@@ -31,27 +31,6 @@ String literals are marked with a special identity function:
 JSX elements are marked with a special React component:
     <I18N>Hello, <em>world!</em></I18N>
 
-Messages nested inside other messages will be found and processed correctly,
-provided that the inner message is within a named expression.
-For example, the following...
-
-<I18N>
-    Energy reharmonization is priced as follows:
-    {__("priceList", crystals.map(crystal => <p><I18N>
-        {__("crystalName", crystal.name)}: ${__("crystalPrice", crystal.price)}
-    </I18N></p>))}
-</I18N>
-
-...will result in two messages:
-
-    Energy reharmonization is priced as follows: {priceList}
-
-    {crystalName}: ${crystalPrice}
-
-However, you are forbidden from directly nesting I18N tags:
-
-<I18N>Hello, <I18N>world!</I18N></I18N>
-
 
 Sanitizing:
 
@@ -59,40 +38,11 @@ We want translators to see some markup, so that they can make necessary
 changes, but other sorts of markup are confusing and irrelevant to them,
 and dangerous for them to edit. And they certainly shouldn't see JavaScript
 expressions inside curly-braces. Therefore:
-Sanitization replaces JSX expressions in curly-braces with their names.
-Sanitization removes attributes not listed in allowedAttributesByComponentName.
 
-This process imposes a requirement on messages: Anything hidden must be named.
-JSX expressions are named using the __ function, which takes two arguments
-and returns its second argument. The first argument is the name of the
-expression, and will be shown to the translator. For instance, this JSX
-
-<I18N>Hello, {__('name', someExpression)}!</I18N>
-
-will produce this message:
-
-Hello, {name}!
-
-The expression has been replaced with its name.
-
-Similarly, when we elide unsafe attributes from an element, we need to know
-which element in the translation to re-attach those attributes to. Since
-translators can add and remove elements, the only general way to know where to
-put the attributes is to name that element:
-
-<I18N><a href="example.com" target="_blank" i18n-name="my-link">Example</a></I18N>
-                                            ^^^^^^^^^^^^^^^^^^^
-This produces the message:
-
-<a href="example.com" i18n-name="my-link">Example</a>
-
-Note that target="_blank" is missing. Now the translator can rearrange at will:
-
-<i>Click me: <a href="example.fr" i18n-name="my-link">Example</a></i>
-
-Under reconstitution, the elided attribute is put back in:
-
-<I18N><i>Click me: <a href="example.fr" target="_blank">Example</a></i></I18N>
+1) Sanitization removes attributes not listed in
+   allowedAttributesByComponentName.
+2) The only expressions allowed in messages are identifiers and simple
+   member expressions (e.g. "foo.bar.baz").
 
 
 Reconstituting:
@@ -104,6 +54,25 @@ structure of the markup, while the original only determines the values of
 expressions and elided attributes. During reconstitution, checks can be
 performed to make sure that the translator hasn't deviated too much from
 the original.
+
+When we elide attributes from an element, we need to know
+which element in the translation to re-attach those attributes to. Since
+translators can add and remove elements, the only general way to know where to
+put the attributes is to name that element:
+
+<I18N><a href="example.com" target="_blank" i18n-name="my-link">Example</a></I18N>
+                                            ^^^^^^^^^^^^^^^^^^^
+When sanitized, this produces the message:
+
+<a href="example.com" i18n-name="my-link">Example</a>
+
+Note that target="_blank" is missing. Now the translator can rearrange at will:
+
+<i>Click me: <a href="example.fr" i18n-name="my-link">Example</a></i>
+
+Under reconstitution, the elided attribute is put back in:
+
+<I18N><i>Click me: <a href="example.fr" target="_blank">Example</a></i></I18N>
 
 
 Printing and unprinting:
@@ -128,7 +97,7 @@ To translate a whole file, we first find the keypath of every message in the
 file. (A keypath is a sequence of keys and array indices that can be used to
 select a node out of the AST.)
 
-/*****************************************************************************
+*****************************************************************************/
 
 /*
 NOTES:
@@ -140,13 +109,8 @@ TODO:
 - Bail out if the translation has non-safe attributes; refactor attribute functions.
 - spread attribute
 - namespace names and member names
-- If an expression is just an identifier, then the identifier can be the name by default.
-- Let expression names be non-identifiers.
-- Mark named expressions with an element?
 - Various heuristics for omitting i18n-name.
-- bin scripts shouldn't obscure Errors that aren't errors in the input.
-- strip leading whitespace?
-- Enforce non-direct-nesting of I18N tags.
+- strip leading whitespace? -- rules appear complicated
 - Possible alternative syntax to i18n-name: just make up a different tag name:
   So the developer inputs <a i18n-name="myspecialthing">
   and the translator sees <myspecialthing> or maybe <a-myspecialthing>.
@@ -327,14 +291,6 @@ function validateJsxExpressionContainer(ast) {
     if (! isNamedExpression(expression)) {
         throw new InputError("Message contains a non-named expression: " + generate(ast));
     }
-    var arity = expression.get('arguments') ? expression.get('arguments').size : 0;
-    if(arity !== 2) {
-        throw new InputError("Named expression has " + arity + " arguments, expected 2: " + generate(ast));
-    }
-    var name = expression.getIn(['arguments', 0]);
-    if(!isStringLiteral(name)) {
-        throw new InputError("First argument to __ should be a string literal, but was instead " + generate(name));
-    }
 }
 
 
@@ -369,11 +325,8 @@ function sanitizeJsxExpressionContainer (ast) {
     return ast.set('expression', makeLiteralExpressionAst(name));
 }
 
-// Given the ast for __("Hello", expr), return ["Hello", the ast for expr]
 function nameAndExpressionForNamedExpression(ast) {
-    var nameArgument = ast.getIn(['arguments', 0]);
-    var expressionArgument = ast.getIn(['arguments', 1]);
-    return [nameArgument.get('value'), expressionArgument];
+    return [generate(ast), ast];
 }
 
 
@@ -423,8 +376,8 @@ function reconstituteJsxElement(translatedAst, definitions) {
 
 function reconstituteJsxExpressionContainer(translatedAst, definitions) {
     var expr = translatedAst.get('expression');
-    if (!isIdentifier(expr)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
-    var definition = definitions.get(expr.get('name'));
+    if (!isNamedExpression(expr)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
+    var definition = definitions.get(generate(expr));
     if (!definition) throw new InputError("Translated message has a JSX expression whose name doesn't exist in the original: " + generate(translatedAst));
     return translatedAst.set('expression', definition);
 }
@@ -499,14 +452,6 @@ function matcher(pattern) {
     return value => matches(value, Ipattern);
 }
 
-var isNamedExpression = matcher({
-    type: "CallExpression",
-    callee: {
-        type: "Identifier",
-        name: "__"
-    }
-});
-
 var isStringMarker = matcher({
     type: "CallExpression",
     callee: {
@@ -543,6 +488,18 @@ var isJsxElement = matcher({
 var isIdentifier = matcher({
     type: "Identifier"
 });
+
+var isSimpleMemberExpression = matcher({
+    type: "MemberExpression",
+    computed: false,
+    object: (ast) => isIdentifier(ast) || isSimpleMemberExpression(ast),
+    property: isIdentifier
+});
+
+function isNamedExpression (ast) {
+    return isIdentifier(ast) || isSimpleMemberExpression(ast);
+}
+
 
 function allKeypathsInAst(ast) {
     var keypaths = [];

@@ -9,8 +9,10 @@ var extractions = {
     'i18n("world")': ['world'],
     '<I18N><a href="foo">tag with only safe attributes</a></I18N>': ['<a href="foo">tag with only safe attributes</a>'],
     '<I18N><a href="foo" target="_blank" i18n-name="link">tag with unsafe attributes</a></I18N>': ['<a href="foo" i18n-name="link">tag with unsafe attributes</a>'],
-    '<I18N>Cat: {__("hat", hat)}</I18N>': ['Cat: {hat}'],
-    '<I18N>Cat: {__("hat", i18n("hatters"))}</I18N>': ['Cat: {hat}', 'hatters'],
+    '<I18N>Cat: {hat}</I18N>': ['Cat: {hat}'],
+    '<I18N>And now {a.member.expression}</I18N>': ['And now {a.member.expression}'],
+    'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
+    '<p><I18N>1: {same.name.different.message}</I18N> <I18N>2: {same.name.different.message}</I18N></p>': ['1: {same.name.different.message}', '2: {same.name.different.message}'],
 }
 
 exports.testExtraction = function (test) {
@@ -35,8 +37,9 @@ var translations = {
     'world': 'byd',
     '<a href="foo">tag with only safe attributes</a>': '<a href="bar">Mae tag sydd wedi dim ond priodoleddau sy\'n ddiogel</a>',
     '<a href="foo" i18n-name="link">tag with unsafe attributes</a>': '<a href="bar" i18n-name="link">tag gyda phriodoleddau anniogel</a>',
-    'Cat: {hat}': 'Cat : {hat}',
-    'hatters': 'hetwyr'
+    'Cat: {nested}': 'Cat : {nested}',
+    'hatters': 'hetwyr',
+    'And now {a.member.expression}': 'Ac yn awr {a.member.expression}'
 }
 
 var expectedResultsFromTranslation = {
@@ -44,12 +47,14 @@ var expectedResultsFromTranslation = {
     'i18n("world")': "'byd';",
     '<I18N><a href="foo">tag with only safe attributes</a></I18N>': '<I18N><a href="bar">Mae tag sydd wedi dim ond priodoleddau sy\'n ddiogel</a></I18N>;',
     '<I18N><a href="foo" target="_blank" i18n-name="link">tag with unsafe attributes</a></I18N>': '<I18N><a target="_blank" href="bar" i18n-name="link">tag gyda phriodoleddau anniogel</a></I18N>;',
-    '<I18N>Cat: {__("hat", hat)}</I18N>': "<I18N>Cat : {hat}</I18N>;",
-    '<I18N>Cat: {__("hat", i18n("hatters"))}</I18N>': "<I18N>Cat : {'hetwyr'}</I18N>;",
+    '<I18N>Cat: {nested}</I18N>': "<I18N>Cat : {nested}</I18N>;",
+    '<I18N>And now {a.member.expression}</I18N>': '<I18N>Ac yn awr {a.member.expression}</I18N>;',
+    'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': "var nested = 'hetwyr';\n<I18N>Cat : {nested}</I18N>;",
 }
 
 exports.testTranslation = function (test) {
     Object.keys(expectedResultsFromTranslation).forEach(original => {
+        try { translator.translateMessages(original, translations) } catch (e) {console.error(e)};
         test.ok(
             I.is(I.fromJS(expectedResultsFromTranslation[original]),
                  I.fromJS(translator.translateMessages(original, translations))),
@@ -71,12 +76,13 @@ var shouldNotBeExtractable = [
     'i18n()',
     'i18n("Too many", "arguments")',
     '<I18N><a target="_blank">Unsafe attributes but no i18n-name.</a></I18N>',
-    '<I18N>{"non-named expression"}</I18N>',
-    '<I18N>{__(42, "expression name is not a string literal")}</I18N>',
-    '<I18N>{__("only one argument")}</I18N>',
-    '<I18N>{__("too", "many", "arguments")</I18N>',
-    '<I18N>{__("same-name", 0)}{__("same-name", 1)}</I18N>',
-    '<I18N>{__("same-name", 0)}<a target="_blank" i18n-name="same-name"></a></I18N>',
+    '<I18N>{"string literal"}</I18N>',
+    '<I18N>{arbitrary.expression()}</I18N>',    
+    '<I18N>{("non"+"simple").memberExpression}</I18N>',
+    '<I18N>{computed["memberExpression"]}</I18N>',
+    '<I18N>{sameName}{sameName}</I18N>',
+    '<I18N>{same.name}{same.name}</I18N>',    
+    '<I18N>{sameName}<a target="_blank" i18n-name="sameName"></a></I18N>',
 ]
 
 exports.testErrorsInExtraction = function (test) {
