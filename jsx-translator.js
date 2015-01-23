@@ -274,6 +274,7 @@ function findTranslation(messageAst, translations) {
     Validating translations
 *****************************************************************************/
 
+
 function validateTranslation(translation, original) {
     if (! I.is(countOfReactComponentsByName(translation),
               countOfReactComponentsByName(original))) {
@@ -478,8 +479,7 @@ function removeAttributeWithName(jsxElementAst, name) {
 
 function sanitize(ast) {
     return ({
-        'XJSElement': sanitizeJsxElement,
-        'XJSExpressionContainer': sanitizeJsxExpressionContainer,
+        'XJSElement': sanitizeJsxElement
     }[ast.get('type')] || identity)(ast);
 }
 
@@ -496,27 +496,15 @@ function withSafeAttributesOnly(jsxElementAst) {
 
 function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
     var name = elementName(jsxElementAst);
-    var designation = elementDesignation(jsxElementAst);
-    var attribute = attributeWithName(jsxElementAst, 'i18n-designation');
-    if (designation && attribute) {
+    var designation = attributeWithName(jsxElementAst, 'i18n-designation');
+    if (designation) {
         var withNamespace = setJsxElementName(jsxElementAst,
             makeNamespaceAst(name, designation));
-        return updateAttributes(withNamespace, attributes =>
-            attributes.filterNot(a => attributeName(a) === 'i18n-designation'))
+        return removeAttributeWithName(withNamespace, 'i18n-designation');
     }
     else {
         return jsxElementAst;
     }
-}
-
-function sanitizeJsxExpressionContainer (ast) {
-    // Validation ensures expression is a named expression.
-    var [name, expression] = nameAndExpressionForNamedExpression(ast.get('expression'));
-    return ast.set('expression', makeLiteralExpressionAst(name));
-}
-
-function nameAndExpressionForNamedExpression(ast) {
-    return [generate(ast), ast];
 }
 
 
@@ -536,7 +524,6 @@ function _reconstitute(translatedAst, definitions) {
         'XJSExpressionContainer': reconstituteJsxExpressionContainer,
     }[translatedAst.get('type')] || identity)(translatedAst, definitions);
 }
-
 
 function reconstituteJsxElement(translatedAst, definitions) {
     if (hasUnsafeAttributes(translatedAst)) {
@@ -622,6 +609,10 @@ function namedExpressionDefinitionsInJsxExpressionContainer(ast) {
     } else {
         return I.List();
     }
+}
+
+function nameAndExpressionForNamedExpression(ast) {
+    return [generate(ast), ast];
 }
 
 
@@ -759,6 +750,7 @@ function keypathsForMessageNodesInAst(ast) {
 /****************************************************************************
     Printing and unprinting
 *****************************************************************************/
+
 
 function printMessage (ast) {
     if (isStringMarker(ast)) {
