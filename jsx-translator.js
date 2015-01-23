@@ -199,6 +199,20 @@ function makeLiteralExpressionAst(value) {
     return parseFragment(value);
 }
 
+function makeNamespaceAst(namespace, name) {
+    return I.fromJS({
+        type: 'XJSNamespacedName',
+        name: {
+            type: 'XJSIdentifier',
+            name: name
+        },
+        namespace: {
+            type: 'XJSIdentifier',
+            name: namespace
+        }
+    });
+}
+
 function elementNameAst(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
@@ -239,18 +253,8 @@ function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
     var designation = elementDesignation(jsxElementAst);
     var attribute = attributeWithName(jsxElementAst, 'i18n-designation');
     if (designation && attribute) {
-        var namespacedName = I.fromJS({
-            type: 'XJSNamespacedName',
-            name: {
-                type: 'XJSIdentifier',
-                name: designation
-            },
-            namespace: {
-                type: 'XJSIdentifier',
-                name: name
-            }
-        });
-        var withNamespace = setJsxElementName(jsxElementAst, namespacedName);
+        var withNamespace = setJsxElementName(jsxElementAst,
+            makeNamespaceAst(name, designation));
         return updateAttributes(withNamespace, attributes =>
             attributes.filterNot(a => attributeName(a) === 'i18n-designation'))
     }
