@@ -113,7 +113,6 @@ select a node out of the AST.)
 NOTES:
 
 assertion:
-list (with rep) of capitalized component names must be the same in original and translated
 Ensure can't go from self-closing to not or vice-versa in translation.
 Ensure no tag with designation has member expression for tag name.
 
@@ -153,6 +152,7 @@ function isString(thing) {
     return typeof thing == 'string' || false;
 }
 
+// TODO see if count() can be used to get rid of this.
 function duplicatedValues(list) {
     var dupes = [];
     var seen = [];
@@ -384,10 +384,39 @@ function validateJsxExpressionContainer(ast) {
 // ==================================
 
 function validateTranslation(translation, original) {
-    // Throws if definitions are duplicated:
-    namedExpressionDefinitions(translation);
+    if (! I.is(countOfReactComponentsByName(translation),
+              countOfReactComponentsByName(original))) {
+        throw new InputError("The translation has a different set of React components than the original.");
+    }
+    if (! I.is(countOfNamedExpressionsByName(translation),
+              countOfNamedExpressionsByName(original))) {
+        throw new InputError("The translation has a different set of expressions than the original.");
+    }
 
     return translation;
+}
+
+function countOfReactComponentsByName(ast) {
+    var names = allKeypathsInAst(ast)
+        .map(keypath => ast.getIn(keypath))
+        .filter(isReactComponent)
+        .map(elementName);
+    return count(names);
+}
+
+function countOfNamedExpressionsByName(ast) {
+    // TODO change isNamedExpression to take the expression container.
+    var names = allKeypathsInAst(ast)
+        .map(keypath => ast.getIn(keypath))
+        .filter(isJsxExpressionContainer)
+        .map(ast => ast.get('expression'))
+        .filter(isNamedExpression)
+        .map(generate);
+    return count(names);
+}
+
+function count(list) {
+    return list.groupBy(identity).map(l => l.size);
 }
 
 
@@ -484,7 +513,7 @@ function namedExpressionDefinitions(ast) {
     var listOfPairs = _namedExpressionDefinitions(ast);
     var names = listOfPairs.map(p => p.first());
     var dupes = duplicatedValues(names);
-    if (dupes.size != 0) {
+    if (dupes.size != 0) { // TODO use isEmpty?
         throw new InputError("Message has two named expressions with the same name: " + dupes.join(", "));
     } else {
         return I.Map(listOfPairs.map(x => x.toArray()));
@@ -503,7 +532,7 @@ function namedExpressionDefinitionsInJsxElement(ast) {
         .filterNot(attrib => attributeIsSafe(elementName(ast), attrib));
 
     var attributeDefinition;
-    if (hiddenAttributes.size == 0) {
+    if (hiddenAttributes.size == 0) { // TODO use isEmpty
         attributeDefinition = I.List();
     } else {
         var designation = elementDesignation(ast);
@@ -574,6 +603,10 @@ var isStringLiteral = matcher({
     value: isString
 });
 
+var isJsxExpressionContainer = matcher({
+    type: "XJSExpressionContainer"
+});
+
 var isJsxElement = matcher({
     type: "XJSElement"
 });
@@ -591,6 +624,22 @@ var isSimpleMemberExpression = matcher({
 
 function isNamedExpression (ast) {
     return isIdentifier(ast) || isSimpleMemberExpression(ast);
+}
+
+var isElement = matcher({
+    type: "XJSElement"
+});
+
+function isReactComponent (ast) {
+    return isElement(ast) && ! isTag(ast);
+}
+
+/*
+    Return true if the given element is an html tag rather than a React component.
+    The rule is taken from https://github.com/facebook/react/blob/e8e79472aabcbcaa70ad8cd901722cad2dbbd709/vendor/fbtransform/transforms/react.js
+*/
+function isTag (ast) {
+    return isElement(ast) && /^[a-z]|\-/.test(elementName(ast));
 }
 
 

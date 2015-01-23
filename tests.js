@@ -120,13 +120,22 @@ var invalidTranslations = [
     '{random + expression + in + placeholder}<Component />{foo}{bar.baz}',
     '{non.existant.name}<Component />{foo}{bar.baz}',
     '<Component /> Duplicated expressions: {foo}{foo}{bar.baz}',
+    'Missing component. {foo}{foo}{bar.baz}',
+    'Duplicated component. <Component /> <Component /> {foo}{foo}{bar.baz}',
 ];
+var correctTranslation = 'Helo, byd. <Component />{foo}{bar.baz}';
 
 exports.testErrorsInTranslation = function (test) {
+    var extraction = translator.extractMessages(toBeTranslated)[0];
+
+    test.doesNotThrow(() =>
+        translator.translateMessages(toBeTranslated, {[extraction]: correctTranslation}),
+        "Correct translation couldn't be translated.");
+
     invalidTranslations.forEach(translation => {
-        test.throws(() => translator.translateMessages(toBeTranslated, {
-            'Hello, world. <Component />{foo}{bar.baz}': translation
-        }), translation);
+        test.throws(() =>
+                translator.translateMessages(toBeTranslated, {[extraction]: translation}),
+            translation);
     });
     test.done();
 }
