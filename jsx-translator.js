@@ -14,24 +14,23 @@ The AST format is documented here:
 https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API
 The JSX extensions are not documented; they just come from esprima-fb.
 
-
-There are five important processes:
-* Finding messages within a file
-* Sanitizing a message for presenting to the translator
-* Reconstituting the sanitized parts of a translated message
-* Printing and unprinting JSX elements and string literals
-* Translating a whole file
-
 There are two forms of messages: string literals and JSX elements.
 String literals are marked with a special identity function:
     i18n("Hello, world!")
 JSX elements are marked with a special React component:
     <I18N>Hello, <em>world!</em></I18N>
 
+Outline:
 
-
-Printing and unprinting:
-
+* Extracting
+  - Validating
+  - Sanitizing
+* Translating
+  - Validating
+  - Reconstituting
+* Finding definitions of named expressions
+* Finding nodes
+* Printing and unprinting
 
 *****************************************************************************/
 
@@ -68,7 +67,7 @@ var allowedAttributesByElementName = {
 
 /*****************************************************************************
 
-    Extracting messages
+    Extracting messages.
 
     To extract messages, we find each message marker in the source and then
     pass it through three stages:
@@ -154,7 +153,7 @@ function validateJsxExpressionContainer(ast) {
 
 
 /****************************************************************************
-    Sanitizing messages during extraction
+    Sanitizing messages during extraction.
     Sanitization makes a message presentable for translators. Currently,
     that means removing unsafe attributes, and making sure element designations
     are written with the namespace syntax and not the attribute syntax.
@@ -194,7 +193,7 @@ function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
 
 /*****************************************************************************
 
-    Translating sources with a translations dictionary
+    Translating sources with a translations dictionary.
 
     We again find all the message markers in the source.
 
@@ -302,7 +301,7 @@ function countOfNamedExpressionsByName(ast) {
 
 
 /****************************************************************************
-    Reconstituting
+    Reconstituting.
     Reconstituting is the process of putting back what was taken away during
     sanitization. The process starts with the translator's translation and
     pulls out details from the original; thus, the translator's version
@@ -544,8 +543,11 @@ function keypathsForMessageNodesInAst(ast) {
 }
 
 
+
 /****************************************************************************
-    Printing and unprinting
+
+    Printing and unprinting.
+
     Most of the process works on ASTs, but we need to turn those ASTs into
     strings to show the translator, and parse the translation back into an
     AST. However, the strings we want to show the translator are not exactly
@@ -558,6 +560,7 @@ function keypathsForMessageNodesInAst(ast) {
     For JSX messages, we don't want to show the outer <I18N> tag, so we generate
     each of the message's children and concatenate them. During parsing, we
     surround the string with <I18N> tags and then parse it.
+
 *****************************************************************************/
 
 
@@ -653,6 +656,7 @@ module.exports.errorMessageForError = function errorMessageForError(e) {
         return e.stack;
     }
 }
+
 
 
 /****************************************************************************
