@@ -421,13 +421,10 @@ function countOfNamedExpressionsByName(ast) {
 // ==================================
 
 function sanitize(ast) {
-    return {
-        'Literal': identity,
-        'CallExpression': identity,
+    return ({
         'XJSElement': sanitizeJsxElement,
         'XJSExpressionContainer': sanitizeJsxExpressionContainer,
-        'XJSEmptyExpression': identity,
-    }[ast.get('type')](ast);
+    }[ast.get('type')] || identity)(ast);
 }
 
 function sanitizeJsxElement (ast) {
@@ -457,13 +454,10 @@ function reconstitute(translatedAst, originalAst) {
 }
 
 function _reconstitute(translatedAst, definitions) {
-    return {
-        'Identifier': identity, // FIXME what else should be here? why not in sanitize?
-        'Literal': identity,
+    return ({
         'XJSElement': reconstituteJsxElement,
         'XJSExpressionContainer': reconstituteJsxExpressionContainer,
-        'XJSEmptyExpression': identity
-    }[translatedAst.get('type')](translatedAst, definitions);
+    }[translatedAst.get('type')] || identity)(translatedAst, definitions);
 }
 
 
