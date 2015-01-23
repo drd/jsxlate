@@ -22,9 +22,6 @@ There are five important processes:
 * Printing and unprinting JSX elements and string literals
 * Translating a whole file
 
-
-Finding messages:
-
 There are two forms of messages: string literals and JSX elements.
 String literals are marked with a special identity function:
     i18n("Hello, world!")
@@ -32,51 +29,9 @@ JSX elements are marked with a special React component:
     <I18N>Hello, <em>world!</em></I18N>
 
 
-Sanitizing:
-
-We want translators to see some markup, so that they can make necessary
-changes, but other sorts of markup are confusing and irrelevant to them,
-and dangerous for them to edit. And they certainly shouldn't see JavaScript
-expressions inside curly-braces. Therefore:
-
-1) Sanitization removes attributes not listed in
-   allowedAttributesByElementName.
-2) The only expressions allowed in messages are identifiers and simple
-   member expressions (e.g. "foo.bar.baz").
-
-
-Reconstituting:
-
-Reconstituting is the process of putting back what was taken away during
-sanitization. The process starts with the translator's translation and pulls
-out details from the original; thus, the translator's version determines the
-structure of the markup, while the original only determines the values of
-expressions and elided attributes. During reconstitution, checks can be
-performed to make sure that the translator hasn't deviated too much from
-the original.
-
 
 Printing and unprinting:
 
-Most of the process works on ASTs, but we need to turn those ASTs into strings
-to show the translator, and parse the translation back into an AST. However,
-the strings we want to show the translator are not exactly the generated code
-of any single AST node, so we have to do a small extra step when generating
-and parsing.
-
-For string messages, we want to show them unquoted, and so we must also requote
-them before parsing.
-
-For JSX messages, we don't want to show the outer <I18N> tag, so we generate
-each of the message's children and concatenate them. During parsing, we
-surround the string with <I18N> tags and then parse it.
-
-
-Translating a message:
-
-To translate a whole file, we first find the keypath of every message in the
-file. (A keypath is a sequence of keys and array indices that can be used to
-select a node out of the AST.)
 
 *****************************************************************************/
 
@@ -198,6 +153,45 @@ function validateJsxExpressionContainer(ast) {
 
 
 
+/****************************************************************************
+    Sanitizing messages during extraction
+    Sanitization makes a message presentable for translators. Currently,
+    that means removing unsafe attributes, and making sure element designations
+    are written with the namespace syntax and not the attribute syntax.
+*****************************************************************************/
+
+function sanitize (ast) {
+    return ({
+        'XJSElement': sanitizeJsxElement
+    }[ast.get('type')] || identity)(ast);
+}
+
+function sanitizeJsxElement (ast) {
+    return withSafeAttributesOnly(rewriteDesignationToNamespaceSyntax(ast))
+        .update('children', children => children.map(sanitize));
+}
+
+function withSafeAttributesOnly (jsxElementAst) {
+    var name = elementName(jsxElementAst);
+    return updateAttributes(jsxElementAst, attributes =>
+        attributes.filter(a => attributeIsSafe(name, a)));
+}
+
+function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
+    var name = elementName(jsxElementAst);
+    var designation = attributeWithName(jsxElementAst, 'i18n-designation');
+    if (designation) {
+        var withNamespace = setJsxElementName(jsxElementAst,
+            makeNamespaceAst(name, designation));
+        return removeAttributeWithName(withNamespace, 'i18n-designation');
+    }
+    else {
+        return jsxElementAst;
+    }
+}
+
+
+
 /*****************************************************************************
 
     Translating sources with a translations dictionary
@@ -251,7 +245,7 @@ module.exports.translateMessages = function (src, translations) {
 */
 function translateMessage (message, translationString) {
     var translation = parseExpression(
-        prepareTranslationForParsing(translationString, message));
+        unprintTranslation(translationString, message));
     return reconstitute(
         validateTranslation(translation, message),
         message);
@@ -270,10 +264,10 @@ function findTranslation(messageAst, translations) {
 }
 
 
+
 /*****************************************************************************
     Validating translations
 *****************************************************************************/
-
 
 function validateTranslation(translation, original) {
     if (! I.is(countOfReactComponentsByName(translation),
@@ -306,214 +300,16 @@ function countOfNamedExpressionsByName(ast) {
 }
 
 
-/****************************************************************************
-    Utilities
-*****************************************************************************/
-
-function identity(x) { return x; }
-
-function isFunction(thing) {
-    return typeof thing == 'function' || false;
-}
-
-function isString(thing) {
-    return typeof thing == 'string' || false;
-}
-
-// I.List([a, b, a]) => I.Map({a: 2, b: 1})
-function countOfItemsByItem(list) {
-    return list.groupBy(identity).toMap().map(l => l.size);
-}
-
-// The set of elements from the given list that appear more than once.
-function duplicatedValues(list) {
-    return I.Set(countOfItemsByItem(list).filter(c => c > 1).keys())
-}
-
-
-/****************************************************************************
-    Ast utilities
-*****************************************************************************/
-
-function parse(src) {
-    return I.fromJS(esprima.parse(src, {loc:true}));
-}
-
-function parseExpression(src) {
-    return parse(src).getIn(['body', 0, 'expression']);
-}
-
-function generate(ast) {
-    return escodegen.generate(ast.toJS());
-}
-
-function generateOpening(jsxExpressionAst) {
-    return generate(jsxExpressionAst.get('openingElement'));
-}
-
-function makeLiteralExpressionAst(value) {
-    return parseExpression(value);
-}
-
-function makeNamespaceAst(namespace, name) {
-    return I.fromJS({
-        type: 'XJSNamespacedName',
-        name: {
-            type: 'XJSIdentifier',
-            name: name
-        },
-        namespace: {
-            type: 'XJSIdentifier',
-            name: namespace
-        }
-    });
-}
-
-function elementNameAst(jsxElementAst) {
-    var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
-    var type = nameAst.get('type');
-
-    if (type === 'XJSNamespacedName') {
-        // The element is of the form <name:designation>
-        return nameAst.get('namespace');
-    }
-    else if (type === 'XJSIdentifier' || type === 'XJSMemberExpression') {
-        // The element is of the form <name> or <namey.mcnamerson>
-        return nameAst;
-    }
-    else {
-        throw new Error(`Unknown element name type ${type} for element ${generateOpening(jsxElementAst)}`);
-    }    
-}
-
-function elementName(jsxElementAst) {
-    return generate(elementNameAst(jsxElementAst));
-}
-
-function elementDesignation(jsxElementAst) {
-    var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
-    var type = nameAst.get('type');
-
-    if (type === 'XJSNamespacedName') {
-        // The element is of the form <name:designation>
-        return generate(nameAst.get('name'));
-    }
-    else {
-        // The element has an i18n-designation attribute or else has no designation.
-        return attributeWithName(jsxElementAst, 'i18n-designation');
-    }
-}
-
-function removeDesignation(jsxElementAst) {
-    var renamed = setJsxElementName(jsxElementAst,
-            elementNameAst(jsxElementAst));
-    return removeAttributeWithName(renamed, 'i18n-designation');
-}
-
-function setJsxElementName (jsxElementAst, nameAst) {
-    if (jsxElementAst.getIn(['openingElement', 'selfClosing'])) {
-        return jsxElementAst.setIn(['openingElement', 'name'], nameAst);
-    }
-    else {
-        return jsxElementAst.setIn(['openingElement', 'name'], nameAst)
-                            .setIn(['closingElement', 'name'], nameAst);
-    }
-}
-
-function attributeMap(attributes) {
-    return I.Map(attributes.map(a => [a.get('name'), a.get('value')]));
-}
-
-function attributesFromMap(attributes) {
-    return I.List(attributes.map((v,k) => I.Map({
-        type: 'XJSAttribute',
-        name: k,
-        value: v
-    })).valueSeq());
-}
-
-function attributes(jsxElementAst) {
-    return jsxElementAst.getIn(['openingElement', 'attributes']);
-}
-
-function updateAttributes(jsxElementAst, f) {
-    return jsxElementAst.updateIn(['openingElement', 'attributes'], f);
-}
-
-function hasUnsafeAttributes(jsxElementAst) {
-    var name = elementName(jsxElementAst);
-    return attributes(jsxElementAst).some(a => !attributeIsSafe(name, a));
-}
-
-function attributeIsSafe(elementName, attributeAst) {
-    if (!elementName) { throw new Error("Element name missing."); }
-    var forElement = allowedAttributesByElementName[elementName] || [];
-    return -1 !== forElement.indexOf(attributeName(attributeAst));
-}
-
-function attributeName(attributeAst) {
-    return attributeAst.getIn(['name', 'name'])
-}
-
-function attributeValue(attributeAst) {
-    return attributeAst.getIn(['value', 'value']);
-}
-
-function attributeWithName(jsxElementAst, name) {
-    var a = attributes(jsxElementAst)
-        .filter(attrib => attributeName(attrib) === name)
-        .first();
-    return a && attributeValue(a);
-}
-
-function removeAttributeWithName(jsxElementAst, name) {
-    return jsxElementAst.updateIn(['openingElement', 'attributes'],
-        attributes => attributes
-        .filterNot(attrib => attributeName(attrib) === name));
-}
-
-
-/****************************************************************************
-    Sanitization
-*****************************************************************************/
-
-function sanitize(ast) {
-    return ({
-        'XJSElement': sanitizeJsxElement
-    }[ast.get('type')] || identity)(ast);
-}
-
-function sanitizeJsxElement (ast) {
-    return withSafeAttributesOnly(rewriteDesignationToNamespaceSyntax(ast))
-        .update('children', children => children.map(sanitize));
-}
-
-function withSafeAttributesOnly(jsxElementAst) {
-    var name = elementName(jsxElementAst);
-    return updateAttributes(jsxElementAst, attributes =>
-        attributes.filter(a => attributeIsSafe(name, a)));
-}
-
-function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
-    var name = elementName(jsxElementAst);
-    var designation = attributeWithName(jsxElementAst, 'i18n-designation');
-    if (designation) {
-        var withNamespace = setJsxElementName(jsxElementAst,
-            makeNamespaceAst(name, designation));
-        return removeAttributeWithName(withNamespace, 'i18n-designation');
-    }
-    else {
-        return jsxElementAst;
-    }
-}
-
 
 /****************************************************************************
     Reconstituting
+    Reconstituting is the process of putting back what was taken away during
+    sanitization. The process starts with the translator's translation and
+    pulls out details from the original; thus, the translator's version
+    determines the structure of the markup, while the original only
+    determines the values of elided attributes.
 *****************************************************************************/
 
-// Return translatedAst with named expressions and elided
-// attributes put back in based on originalAst.
 function reconstitute(translatedAst, originalAst) {
     return _reconstitute(translatedAst, namedExpressionDefinitions(originalAst));
 }
@@ -556,6 +352,7 @@ function reconstituteJsxExpressionContainer(translatedAst, definitions) {
     if (!definition) throw new InputError("Translated message has a JSX expression whose name doesn't exist in the original: " + generate(translatedAst));
     return translatedAst.set('expression', definition);
 }
+
 
 
 /****************************************************************************
@@ -749,6 +546,18 @@ function keypathsForMessageNodesInAst(ast) {
 
 /****************************************************************************
     Printing and unprinting
+    Most of the process works on ASTs, but we need to turn those ASTs into
+    strings to show the translator, and parse the translation back into an
+    AST. However, the strings we want to show the translator are not exactly
+    the generated code of any single AST node, so we have to do a small extra
+    step when generating and parsing.
+
+    For string messages, we want to show them unquoted, and so we must also requote
+    them before parsing.
+
+    For JSX messages, we don't want to show the outer <I18N> tag, so we generate
+    each of the message's children and concatenate them. During parsing, we
+    surround the string with <I18N> tags and then parse it.
 *****************************************************************************/
 
 
@@ -772,7 +581,7 @@ function printJsxChild (ast) {
     }
 }
 
-function prepareTranslationForParsing (translationString, originalAst) {
+function unprintTranslation (translationString, originalAst) {
     if (isStringMarker(originalAst)) {
         return JSON.stringify(translationString);
     }
@@ -844,3 +653,172 @@ module.exports.errorMessageForError = function errorMessageForError(e) {
         return e.stack;
     }
 }
+
+
+/****************************************************************************
+    Utilities
+*****************************************************************************/
+
+function identity(x) { return x; }
+
+function isFunction(thing) {
+    return typeof thing == 'function' || false;
+}
+
+function isString(thing) {
+    return typeof thing == 'string' || false;
+}
+
+// I.List([a, b, a]) => I.Map({a: 2, b: 1})
+function countOfItemsByItem(list) {
+    return list.groupBy(identity).toMap().map(l => l.size);
+}
+
+// The set of elements from the given list that appear more than once.
+function duplicatedValues(list) {
+    return I.Set(countOfItemsByItem(list).filter(c => c > 1).keys())
+}
+
+
+
+/****************************************************************************
+    Ast utilities
+*****************************************************************************/
+
+function parse(src) {
+    return I.fromJS(esprima.parse(src, {loc:true}));
+}
+
+function parseExpression(src) {
+    return parse(src).getIn(['body', 0, 'expression']);
+}
+
+function generate(ast) {
+    return escodegen.generate(ast.toJS());
+}
+
+function generateOpening(jsxExpressionAst) {
+    return generate(jsxExpressionAst.get('openingElement'));
+}
+
+function makeLiteralExpressionAst(value) {
+    return parseExpression(value);
+}
+
+function makeNamespaceAst(namespace, name) {
+    return I.fromJS({
+        type: 'XJSNamespacedName',
+        name: {
+            type: 'XJSIdentifier',
+            name: name
+        },
+        namespace: {
+            type: 'XJSIdentifier',
+            name: namespace
+        }
+    });
+}
+
+function elementNameAst(jsxElementAst) {
+    var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
+    var type = nameAst.get('type');
+
+    if (type === 'XJSNamespacedName') {
+        // The element is of the form <name:designation>
+        return nameAst.get('namespace');
+    }
+    else if (type === 'XJSIdentifier' || type === 'XJSMemberExpression') {
+        // The element is of the form <name> or <namey.mcnamerson>
+        return nameAst;
+    }
+    else {
+        throw new Error(`Unknown element name type ${type} for element ${generateOpening(jsxElementAst)}`);
+    }    
+}
+
+function elementName(jsxElementAst) {
+    return generate(elementNameAst(jsxElementAst));
+}
+
+function elementDesignation(jsxElementAst) {
+    var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
+    var type = nameAst.get('type');
+
+    if (type === 'XJSNamespacedName') {
+        // The element is of the form <name:designation>
+        return generate(nameAst.get('name'));
+    }
+    else {
+        // The element has an i18n-designation attribute or else has no designation.
+        return attributeWithName(jsxElementAst, 'i18n-designation');
+    }
+}
+
+function removeDesignation(jsxElementAst) {
+    var renamed = setJsxElementName(jsxElementAst,
+            elementNameAst(jsxElementAst));
+    return removeAttributeWithName(renamed, 'i18n-designation');
+}
+
+function setJsxElementName (jsxElementAst, nameAst) {
+    if (jsxElementAst.getIn(['openingElement', 'selfClosing'])) {
+        return jsxElementAst.setIn(['openingElement', 'name'], nameAst);
+    }
+    else {
+        return jsxElementAst.setIn(['openingElement', 'name'], nameAst)
+                            .setIn(['closingElement', 'name'], nameAst);
+    }
+}
+
+function attributeMap(attributes) {
+    return I.Map(attributes.map(a => [a.get('name'), a.get('value')]));
+}
+
+function attributesFromMap(attributes) {
+    return I.List(attributes.map((v,k) => I.Map({
+        type: 'XJSAttribute',
+        name: k,
+        value: v
+    })).valueSeq());
+}
+
+function attributes(jsxElementAst) {
+    return jsxElementAst.getIn(['openingElement', 'attributes']);
+}
+
+function updateAttributes(jsxElementAst, f) {
+    return jsxElementAst.updateIn(['openingElement', 'attributes'], f);
+}
+
+function hasUnsafeAttributes(jsxElementAst) {
+    var name = elementName(jsxElementAst);
+    return attributes(jsxElementAst).some(a => !attributeIsSafe(name, a));
+}
+
+function attributeIsSafe(elementName, attributeAst) {
+    if (!elementName) { throw new Error("Element name missing."); }
+    var forElement = allowedAttributesByElementName[elementName] || [];
+    return -1 !== forElement.indexOf(attributeName(attributeAst));
+}
+
+function attributeName(attributeAst) {
+    return attributeAst.getIn(['name', 'name'])
+}
+
+function attributeValue(attributeAst) {
+    return attributeAst.getIn(['value', 'value']);
+}
+
+function attributeWithName(jsxElementAst, name) {
+    var a = attributes(jsxElementAst)
+        .filter(attrib => attributeName(attrib) === name)
+        .first();
+    return a && attributeValue(a);
+}
+
+function removeAttributeWithName(jsxElementAst, name) {
+    return jsxElementAst.updateIn(['openingElement', 'attributes'],
+        attributes => attributes
+        .filterNot(attrib => attributeName(attrib) === name));
+}
+

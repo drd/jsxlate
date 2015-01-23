@@ -13,6 +13,7 @@ var extractions = {
     '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': ['<SelfClosing:foo />'],
     '<I18N><SelfClosing /></I18N>': ['<SelfClosing />'],
     '<I18N><Member.Name /></I18N>': ['<Member.Name />'],
+    '<I18N><a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a></I18N>': ['<a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a>'],
     '<I18N>Cat: {hat}</I18N>': ['Cat: {hat}'],
     '<I18N>And now {a.member.expression}</I18N>': ['And now {a.member.expression}'],
     'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
