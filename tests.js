@@ -127,15 +127,16 @@ var correctTranslation = 'Helo, byd. <Component />{foo}{bar.baz}';
 
 exports.testErrorsInTranslation = function (test) {
     var extraction = translator.extractMessages(toBeTranslated)[0];
+    
+    function translate(translation) {
+        translator.translateMessages(toBeTranslated, {[extraction]: translation})
+    }
 
-    test.doesNotThrow(() =>
-        translator.translateMessages(toBeTranslated, {[extraction]: correctTranslation}),
+    test.doesNotThrow(() => translate(correctTranslation),
         "Correct translation couldn't be translated.");
 
     invalidTranslations.forEach(translation => {
-        test.throws(() =>
-                translator.translateMessages(toBeTranslated, {[extraction]: translation}),
-            translation);
+        test.throws(() => translate(translation), translation);
     });
     test.done();
 }
