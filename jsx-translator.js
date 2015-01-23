@@ -152,15 +152,14 @@ function isString(thing) {
     return typeof thing == 'string' || false;
 }
 
-// TODO see if count() can be used to get rid of this.
+// I.List([a, b, a]) => I.Map({a: 2, b: 1})
+function countOfItemsByItem(list) {
+    return list.groupBy(identity).toMap().map(l => l.size);
+}
+
+// The set of elements from the given list that appear more than once.
 function duplicatedValues(list) {
-    var dupes = [];
-    var seen = [];
-    list.forEach(x => {
-        if (~seen.indexOf(x) && !~dupes.indexOf(x)) dupes.push(x);
-        else seen.push(x);
-    });
-    return I.Set(dupes);
+    return I.Set(countOfItemsByItem(list).filter(c => c > 1).keys())
 }
 
 function InputError(description) {
@@ -405,7 +404,7 @@ function countOfReactComponentsByName(ast) {
         .map(keypath => ast.getIn(keypath))
         .filter(isReactComponent)
         .map(elementName);
-    return count(names);
+    return countOfItemsByItem(names);
 }
 
 function countOfNamedExpressionsByName(ast) {
@@ -416,11 +415,7 @@ function countOfNamedExpressionsByName(ast) {
         .map(ast => ast.get('expression'))
         .filter(isNamedExpression)
         .map(generate);
-    return count(names);
-}
-
-function count(list) {
-    return list.groupBy(identity).toMap().map(l => l.size);
+    return countOfItemsByItem(names);
 }
 
 
