@@ -110,6 +110,120 @@ var allowedAttributesByElementName = {
 }
 
 
+
+/*****************************************************************************
+
+    Extracting messages
+
+    To extract messages, we find each message marker in the source and then
+    pass it through three stages:
+
+    1) Validation -- ensuring the message is valid
+    2) Sanitization -- removing things the translator shouldn't see
+    3) Printing -- converting the AST to a final string
+
+*****************************************************************************/
+
+
+/*
+    Given a source code string, return an array of message strings.
+*/
+module.exports.extractMessages = function (src) {
+    var ast = parse(src);
+    return keypathsForMessageNodesInAst(ast)
+        .map(keypath => ast.getIn(keypath))
+        .map(message => {
+            try {
+                return extractMessage(message);
+            } catch (e) {
+                throw e.set ? e.set('messageAst', message) : e;
+            }
+        })
+        .toJS();
+};
+
+
+/*
+    Given the AST of a message marker, return a message string.
+*/
+function extractMessage(ast) {
+    return generateMessage(sanitize(validateMessage(ast)));
+}
+
+
+/*****************************************************************************
+
+    Translating sources with a translations dictionary
+
+    We again find all the message markers in the source.
+
+    To translate a message, we first extract it and look up that extraction
+    in the translations dictionary. Having found the transation, we:
+
+    1) Unprint and parse it
+    2) Validate it to make sure the translator hasn't done something naughty
+    3) Reconstitute what was removed when sanitizing during extraction
+
+*****************************************************************************/
+
+
+/*
+    Given a source code string and a translations dictionary,
+    return the source code as a string with the messages translated.
+*/
+module.exports.translateMessages = function (src, translations) {
+    // Substitute at a single keypath based on translations:
+    function substitute(ast, keypath) {
+        try {
+            var message = ast.getIn(keypath);
+            var translationString = findTranslation(message, translations);
+            return ast.setIn(keypath,
+                translateMessage(message, translationString));
+        } catch(e) {
+            throw e.set ? e.set('messageAst', message).set('translationString', translationString) : e;
+        }
+    }
+
+    // Note that the message is pulled from the partially reduced AST; in this
+    // way, already-translated inner messages are used when processing outer
+    // messages, so they don't get clobbered.
+
+    // Perform this substitution for all message keypaths, starting
+    // at the bottom of the document, and processing inner nested messages
+    // before outer messages. This ensures that no operation will invalidate
+    // the keypath of another operation, either by changing array indices
+    // or relocating an inner message within an outer one:
+    var ast = parse(src);
+    var keypaths = keypathsForMessageNodesInAst(ast);
+    return generate(keypaths.reduceRight(substitute, ast));
+};
+
+/*
+    Given a message AST and translation string,
+    return a translated message AST.
+*/
+function translateMessage (message, translationString) {
+    var translation = parseExpression(
+        prepareTranslationForParsing(translationString, message));
+    return reconstitute(
+        validateTranslation(translation, message),
+        message);
+}
+
+/*
+    Given a message AST and dictionary, return the translation string.
+*/
+function findTranslation(messageAst, translations) {
+    var translation = translations[extractMessage(messageAst)];
+    if(!translation) {
+        throw new InputError(
+            "Translation missing for:\n" + extractMessage(messageAst));
+    }
+    return translation;
+}
+
+
+
 // ==================================
 // UTILITIES
 // ==================================
@@ -132,17 +246,6 @@ function countOfItemsByItem(list) {
 // The set of elements from the given list that appear more than once.
 function duplicatedValues(list) {
     return I.Set(countOfItemsByItem(list).filter(c => c > 1).keys())
-}
-
-function InputError(description) {
-    return I.Map({
-        isInputError: true,
-        description: description
-    });
-}
-
-function isInputError(e) {
-    return I.Map.isMap(e) && e.get('isInputError');
 }
 
 
@@ -605,7 +708,6 @@ function isTag (ast) {
     return isElement(ast) && /^[a-z]|\-/.test(elementName(ast));
 }
 
-
 function allKeypathsInAst(ast) {
     var keypaths = [];
     function f(node, keypath) {
@@ -620,12 +722,6 @@ function allKeypathsInAst(ast) {
     f(ast, []);
     return I.fromJS(keypaths);
 }
-
-
-
-// ==================================
-// TRANSLATING
-// ==================================
 
 /*
     Return the keypath for each message in the given ast,
@@ -650,36 +746,6 @@ function keypathsForMessageNodesInAst(ast) {
     });
 
     return keypaths;
-}
-
-function translateMessagesInAst(ast, translations) {
-    // Substitute at a single keypath based on translations:
-    function substitute(ast, keypath) {
-        try {
-            var message = ast.getIn(keypath);
-            var translation = translations[generateMessage(sanitize(message))];
-            if(!translation) { throw new InputError("Translation missing for:\n" + generateMessage(sanitize(message))); }
-            translation = prepareTranslationForParsing(translation, message);
-            return ast.setIn(keypath,
-                reconstitute(
-                    validateTranslation(parseExpression(translation), message),
-                    message));
-        } catch(e) {
-            throw e.set ? e.set('messageAst', message).set('translationString', translation) : e;
-        }
-    }
-
-    // Note that the message is pulled from the partially reduced AST; in this
-    // way, already-translated inner messages are used when processing outer
-    // messages, so they don't get clobbered.
-
-    // Perform this substitution for all message keypaths, starting
-    // at the bottom of the document, and processing inner nested messages
-    // before outer messages. This ensures that no operation will invalidate
-    // the keypath of another operation, either by changing array indices
-    // or relocating an inner message within an outer one:
-    var keypaths = keypathsForMessageNodesInAst(ast);
-    return keypaths.reduceRight(substitute, ast);
 }
 
 
@@ -720,68 +786,62 @@ function prepareTranslationForParsing (translationString, originalAst) {
 }
 
 
-// ==================================
-// EXPORTS
-// ==================================
 
-module.exports = {
-    /*
-        Given a source code string, return an array of message strings.
-    */
-    extractMessages: function extractMessages(src) {
-        var ast = parse(src);
-        return keypathsForMessageNodesInAst(ast)
-            .map(keypath => ast.getIn(keypath))
-            .map(message => {
-                try {
-                    return generateMessage(sanitize(validateMessage(message)))
-                } catch (e) {
-                    throw e.set ? e.set('messageAst', message) : e;
-                }
-            })
-            .toJS();
-    },
+/*****************************************************************************
 
-    /*
-        Given a source code string and a translations dictionary,
-        return the source code as a string with the messages translated.
-    */
-    translateMessages: function translateMessages(src, translations) {
-        return generate(translateMessagesInAst(parse(src), translations));
-    },
+    Error handling.
 
-    /*
-        If the given error represents an error in the inputted JSX files or
-        translations, then return a user-friendly error message without
-        a stack trace. If it is any other kind of error, return the basic
-        error message and stack trace.
-    */
-    errorMessageForError: function errorMessageForError(e) {
-        if (isInputError(e) && e.get('messageAst') && e.get('translationString')) {
-            var ast = e.get('messageAst');
-            return (
-                "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
-                generate(ast) + "\n\n" +
-                "...and its associated translation... \n\n" +
-                e.get('translationString') + "\n\n" +
-                "...the following error occured: \n\n" +
-                e.get('description') + "\n"
-            );
-        }
-        else if (isInputError(e) && e.get('messageAst')) {
-            var ast = e.get('messageAst');
-            return (
-                "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
-                generate(ast) + "\n\n" +
-                "...the following error occured: \n\n" +
-                e.get('description') + "\n"
-            );
-        }
-        else if (isInputError(e)) {
-            return e.get('description') + "\n";
-        }
-        else {
-            return e.stack;
-        }
+    We define a type, InputError, for errors in the JSX sources or in the
+    translations. These errors are given friendly error messages and are
+    printed without stack traces. The top-level extraction and transation
+    functions assign to InputErrors extra properties showing the message
+    and translation which caused the error.
+
+*****************************************************************************/
+
+
+function InputError(description) {
+    return I.Map({
+        isInputError: true,
+        description: description
+    });
+}
+
+function isInputError(e) {
+    return I.Map.isMap(e) && e.get('isInputError');
+}
+
+/*
+    If the given error represents an error in the inputted JSX files or
+    translations, then return a user-friendly error message without
+    a stack trace. If it is any other kind of error, return the basic
+    error message and stack trace.
+*/
+module.exports.errorMessageForError = function errorMessageForError(e) {
+    if (isInputError(e) && e.get('messageAst') && e.get('translationString')) {
+        var ast = e.get('messageAst');
+        return (
+            "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
+            generate(ast) + "\n\n" +
+            "...and its associated translation... \n\n" +
+            e.get('translationString') + "\n\n" +
+            "...the following error occured: \n\n" +
+            e.get('description') + "\n"
+        );
+    }
+    else if (isInputError(e) && e.get('messageAst')) {
+        var ast = e.get('messageAst');
+        return (
+            "\nOn line " + ast.getIn(['loc', 'start', 'line']) + ", when processing the message... \n\n" +
+            generate(ast) + "\n\n" +
+            "...the following error occured: \n\n" +
+            e.get('description') + "\n"
+        );
+    }
+    else if (isInputError(e)) {
+        return e.get('description') + "\n";
+    }
+    else {
+        return e.stack;
     }
 }
