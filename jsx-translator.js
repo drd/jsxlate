@@ -55,35 +55,6 @@ expressions and elided attributes. During reconstitution, checks can be
 performed to make sure that the translator hasn't deviated too much from
 the original.
 
-When we elide attributes from an element, we need to know
-which element in the translation to re-attach those attributes to. Since
-translators can add and remove elements, the only general way to know where to
-put the attributes is to give that element a special designation:
-
-<I18N><a:my-link href="example.com" target="_blank">Example</a:my-link></I18N>
-        ^^^^^^^^                                              ^^^^^^^^
-When sanitized, this produces the message:
-
-<a:my-link href="example.com">Example</a:my-link>
-
-Note that target="_blank" is missing. Now the translator can rearrange at will:
-
-<i>Click me: <a:my-link href="example.fr">Example</a:my-link></i>
-
-Under reconstitution, the elided attribute is put back in and the
-designation removed:
-
-<I18N><i>Click me: <a href="example.fr" target="_blank">Example</a></i></I18N>
-
-There is an alternative syntax if you want your untranslated sources to be
-executable, since namespaces would interfere with that. You can say:
-
-<a i18n-designation="foo"></a>
-
-which will be shown to the translator as:
-
-<a:foo></a:foo>
-
 
 Printing and unprinting:
 
@@ -121,6 +92,7 @@ TODO:
 - spread attribute
 - Various heuristics for omitting i18n-designation.
 - strip leading whitespace? -- rules appear complicated
+- Disallow <script>, dangerouslySetInnerHTML, etc.
 */
 
 Error.stackTraceLimit = Infinity;
@@ -182,7 +154,7 @@ function parse(src) {
     return I.fromJS(esprima.parse(src, {loc:true}));
 }
 
-function parseFragment(src) {
+function parseExpression(src) {
     return parse(src).getIn(['body', 0, 'expression']);
 }
 
@@ -195,7 +167,7 @@ function generateOpening(jsxExpressionAst) {
 }
 
 function makeLiteralExpressionAst(value) {
-    return parseFragment(value);
+    return parseExpression(value);
 }
 
 function makeNamespaceAst(namespace, name) {
@@ -247,21 +219,6 @@ function elementDesignation(jsxElementAst) {
     }
 }
 
-function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
-    var name = elementName(jsxElementAst);
-    var designation = elementDesignation(jsxElementAst);
-    var attribute = attributeWithName(jsxElementAst, 'i18n-designation');
-    if (designation && attribute) {
-        var withNamespace = setJsxElementName(jsxElementAst,
-            makeNamespaceAst(name, designation));
-        return updateAttributes(withNamespace, attributes =>
-            attributes.filterNot(a => attributeName(a) === 'i18n-designation'))
-    }
-    else {
-        return jsxElementAst;
-    }
-}
-
 function removeDesignation(jsxElementAst) {
     var renamed = setJsxElementName(jsxElementAst,
             elementNameAst(jsxElementAst));
@@ -301,12 +258,6 @@ function updateAttributes(jsxElementAst, f) {
 function hasUnsafeAttributes(jsxElementAst) {
     var name = elementName(jsxElementAst);
     return attributes(jsxElementAst).some(a => !attributeIsSafe(name, a));
-}
-
-function withSafeAttributesOnly(jsxElementAst) {
-    var name = elementName(jsxElementAst);
-    return updateAttributes(jsxElementAst, attributes =>
-        attributes.filter(a => attributeIsSafe(name, a)));
 }
 
 function attributeIsSafe(elementName, attributeAst) {
@@ -430,6 +381,27 @@ function sanitize(ast) {
 function sanitizeJsxElement (ast) {
     return withSafeAttributesOnly(rewriteDesignationToNamespaceSyntax(ast))
         .update('children', children => children.map(sanitize));
+}
+
+function withSafeAttributesOnly(jsxElementAst) {
+    var name = elementName(jsxElementAst);
+    return updateAttributes(jsxElementAst, attributes =>
+        attributes.filter(a => attributeIsSafe(name, a)));
+}
+
+function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
+    var name = elementName(jsxElementAst);
+    var designation = elementDesignation(jsxElementAst);
+    var attribute = attributeWithName(jsxElementAst, 'i18n-designation');
+    if (designation && attribute) {
+        var withNamespace = setJsxElementName(jsxElementAst,
+            makeNamespaceAst(name, designation));
+        return updateAttributes(withNamespace, attributes =>
+            attributes.filterNot(a => attributeName(a) === 'i18n-designation'))
+    }
+    else {
+        return jsxElementAst;
+    }
 }
 
 function sanitizeJsxExpressionContainer (ast) {
@@ -690,7 +662,7 @@ function translateMessagesInAst(ast, translations) {
             translation = prepareTranslationForParsing(translation, message);
             return ast.setIn(keypath,
                 reconstitute(
-                    validateTranslation(parseFragment(translation), message),
+                    validateTranslation(parseExpression(translation), message),
                     message));
         } catch(e) {
             throw e.set ? e.set('messageAst', message).set('translationString', translation) : e;
