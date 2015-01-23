@@ -17,7 +17,7 @@
     "chalk": "^0.5.1",
     "escodegen": "git://github.com/davidmccabe/escodegen",
     "esprima-fb": "^8001.2001.0-dev-harmony-fb",
-    "immutable": "^3.4.1",
+    "immutable": "^3.6.2",
     "rw": "^0.1.4"
   },
   "devDependencies": {

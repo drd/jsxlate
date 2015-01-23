@@ -420,7 +420,7 @@ function countOfNamedExpressionsByName(ast) {
 }
 
 function count(list) {
-    return list.groupBy(identity).map(l => l.size);
+    return list.groupBy(identity).toMap().map(l => l.size);
 }
 
 
@@ -517,7 +517,7 @@ function namedExpressionDefinitions(ast) {
     var listOfPairs = _namedExpressionDefinitions(ast);
     var names = listOfPairs.map(p => p.first());
     var dupes = duplicatedValues(names);
-    if (dupes.size != 0) { // TODO use isEmpty?
+    if ( ! dupes.isEmpty()) {
         throw new InputError("Message has two named expressions with the same name: " + dupes.join(", "));
     } else {
         return I.Map(listOfPairs.map(x => x.toArray()));
@@ -536,7 +536,7 @@ function namedExpressionDefinitionsInJsxElement(ast) {
         .filterNot(attrib => attributeIsSafe(elementName(ast), attrib));
 
     var attributeDefinition;
-    if (hiddenAttributes.size == 0) { // TODO use isEmpty
+    if (hiddenAttributes.isEmpty()) {
         attributeDefinition = I.List();
     } else {
         var designation = elementDesignation(ast);

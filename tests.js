@@ -46,7 +46,8 @@ var translations = {
     '<Member.Name />': 'Translated: <Member.Name />',    
     'Cat: {nested}': 'Cat : {nested}',
     'hatters': 'hetwyr',
-    'And now {a.member.expression}': 'Ac yn awr {a.member.expression}'
+    'And now {a.member.expression}': 'Ac yn awr {a.member.expression}',
+    '<Re /><Ordering />': '<Ordering /><Re />',
 }
 
 var expectedResultsFromTranslation = {
@@ -61,6 +62,7 @@ var expectedResultsFromTranslation = {
     '<I18N>Cat: {nested}</I18N>': "<I18N>Cat : {nested}</I18N>;",
     '<I18N>And now {a.member.expression}</I18N>': '<I18N>Ac yn awr {a.member.expression}</I18N>;',
     'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': "var nested = 'hetwyr';\n<I18N>Cat : {nested}</I18N>;",
+    '<I18N><Re /><Ordering /></I18N>': '<I18N><Ordering /><Re /></I18N>;',
 }
 
 exports.testTranslation = function (test) {
