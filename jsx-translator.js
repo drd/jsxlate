@@ -375,8 +375,7 @@ function validateJsxElement(ast) {
 }
 
 function validateJsxExpressionContainer(ast) {
-    var expression = ast.get('expression');
-    if (! isNamedExpression(expression)) {
+    if (! isValidExpressionContainer(ast)) {
         throw new InputError("Message contains a non-named expression: " + generate(ast));
     }
 }
@@ -408,12 +407,10 @@ function countOfReactComponentsByName(ast) {
 }
 
 function countOfNamedExpressionsByName(ast) {
-    // TODO change isNamedExpression to take the expression container.
     var names = allKeypathsInAst(ast)
         .map(keypath => ast.getIn(keypath))
-        .filter(isJsxExpressionContainer)
+        .filter(isValidExpressionContainer)
         .map(ast => ast.get('expression'))
-        .filter(isNamedExpression)
         .map(generate);
     return countOfItemsByItem(names);
 }
@@ -496,9 +493,8 @@ function reconstituteJsxElement(translatedAst, definitions) {
 }
 
 function reconstituteJsxExpressionContainer(translatedAst, definitions) {
-    var expr = translatedAst.get('expression');
-    if (!isNamedExpression(expr)) throw new InputError("Translated message has JSX expression that isn't a placeholder name: " + generate(translatedAst));
-    var definition = definitions.get(generate(expr));
+    if (!isValidExpressionContainer(translatedAst)) throw new InputError("Translation has an expression that isn't just an identifier or member expression: " + generate(translatedAst));
+    var definition = definitions.get(generate(translatedAst.get('expression')));
     if (!definition) throw new InputError("Translated message has a JSX expression whose name doesn't exist in the original: " + generate(translatedAst));
     return translatedAst.set('expression', definition);
 }
@@ -544,7 +540,7 @@ function namedExpressionDefinitionsInJsxElement(ast) {
 }
 
 function namedExpressionDefinitionsInJsxExpressionContainer(ast) {
-    if (isNamedExpression(ast.get('expression'))) {    
+    if (isValidExpressionContainer(ast)) {    
         var definition = nameAndExpressionForNamedExpression(ast.get('expression'));
         return I.fromJS([definition]);
     } else {
@@ -621,8 +617,10 @@ var isSimpleMemberExpression = matcher({
     property: isIdentifier
 });
 
-function isNamedExpression (ast) {
-    return isIdentifier(ast) || isSimpleMemberExpression(ast);
+function isValidExpressionContainer (ast) {
+    if (!isJsxExpressionContainer(ast)) return false;
+    var expression = ast.get('expression');
+    return isIdentifier(expression) || isSimpleMemberExpression(expression);
 }
 
 var isElement = matcher({
