@@ -147,8 +147,55 @@ module.exports.extractMessages = function (src) {
     Given the AST of a message marker, return a message string.
 */
 function extractMessage(ast) {
-    return generateMessage(sanitize(validateMessage(ast)));
+    return printMessage(sanitize(validateMessage(ast)));
 }
+
+
+
+/*****************************************************************************
+    Validating messages during extraction
+*****************************************************************************/
+
+function validateMessage(ast) {
+    var _ = ({
+        'CallExpression': validateCallExpression,
+        'XJSElement': validateJsxElement,
+        'XJSExpressionContainer': validateJsxExpressionContainer,
+    }[ast.get('type')] || identity)(ast);
+    return ast;
+}
+
+function validateCallExpression(ast) {
+    // The only valid call expression is the outer message marker:
+    if (!isStringMarker(ast)) {
+        throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
+    }
+}
+
+function validateJsxElement(ast) {
+    // Throws if definitions are duplicated:
+    namedExpressionDefinitions(ast);
+
+    if (hasUnsafeAttributes(ast) && ! elementDesignation(ast)) {
+        throw new InputError(
+            "Element needs a designation: " + generateOpening(ast));
+    }
+
+    // Disallow direct nesting of message marker tags:
+    if (isElementMarker(ast) && ast.get('children').some(isElementMarker)) {
+        throw new InputError(
+            "Message has nested <I18N> tags: " + generate(ast));
+    }
+
+    ast.get('children').forEach(validateMessage);
+}
+
+function validateJsxExpressionContainer(ast) {
+    if (! isValidExpressionContainer(ast)) {
+        throw new InputError("Message contains a non-named expression: " + generate(ast));
+    }
+}
+
 
 
 /*****************************************************************************
@@ -223,10 +270,44 @@ function findTranslation(messageAst, translations) {
 }
 
 
+/*****************************************************************************
+    Validating translations
+*****************************************************************************/
 
-// ==================================
-// UTILITIES
-// ==================================
+function validateTranslation(translation, original) {
+    if (! I.is(countOfReactComponentsByName(translation),
+              countOfReactComponentsByName(original))) {
+        throw new InputError("The translation has a different set of React components than the original.");
+    }
+    if (! I.is(countOfNamedExpressionsByName(translation),
+              countOfNamedExpressionsByName(original))) {
+        throw new InputError("The translation has a different set of expressions than the original.");
+    }
+
+    return translation;
+}
+
+function countOfReactComponentsByName(ast) {
+    var names = allKeypathsInAst(ast)
+        .map(keypath => ast.getIn(keypath))
+        .filter(isReactComponent)
+        .map(elementName);
+    return countOfItemsByItem(names);
+}
+
+function countOfNamedExpressionsByName(ast) {
+    var names = allKeypathsInAst(ast)
+        .map(keypath => ast.getIn(keypath))
+        .filter(isValidExpressionContainer)
+        .map(ast => ast.get('expression'))
+        .map(generate);
+    return countOfItemsByItem(names);
+}
+
+
+/****************************************************************************
+    Utilities
+*****************************************************************************/
 
 function identity(x) { return x; }
 
@@ -249,9 +330,9 @@ function duplicatedValues(list) {
 }
 
 
-// ==================================
-// AST UTILITIES
-// ==================================
+/****************************************************************************
+    Ast utilities
+*****************************************************************************/
 
 function parse(src) {
     return I.fromJS(esprima.parse(src, {loc:true}));
@@ -391,88 +472,9 @@ function removeAttributeWithName(jsxElementAst, name) {
 }
 
 
-// ==================================
-// VALIDATE
-// ==================================
-
-
-function validateMessage(ast) {
-    var _ = ({
-        'CallExpression': validateCallExpression,
-        'XJSElement': validateJsxElement,
-        'XJSExpressionContainer': validateJsxExpressionContainer,
-    }[ast.get('type')] || identity)(ast);
-    return ast;
-}
-
-function validateCallExpression(ast) {
-    // The only valid call expression is the outer message marker:
-    if (!isStringMarker(ast)) {
-        throw new Error("Internal error: tried to sanitize call expression: " + generate(ast));
-    }
-}
-
-function validateJsxElement(ast) {
-    // Throws if definitions are duplicated:
-    namedExpressionDefinitions(ast);
-
-    if (hasUnsafeAttributes(ast) && ! elementDesignation(ast)) {
-        throw new InputError("Element needs a designation: " + generateOpening(ast));
-    }
-
-    // Disallow direct nesting of message marker tags:
-    if (isElementMarker(ast) && ast.get('children').some(isElementMarker)) {
-        throw new InputError("Don't directly nest <I18N> tags: " + generate(ast));
-    }
-
-    ast.get('children').forEach(validateMessage);
-}
-
-function validateJsxExpressionContainer(ast) {
-    if (! isValidExpressionContainer(ast)) {
-        throw new InputError("Message contains a non-named expression: " + generate(ast));
-    }
-}
-
-
-// ==================================
-// VALIDATE TRANSLATIONS
-// ==================================
-
-function validateTranslation(translation, original) {
-    if (! I.is(countOfReactComponentsByName(translation),
-              countOfReactComponentsByName(original))) {
-        throw new InputError("The translation has a different set of React components than the original.");
-    }
-    if (! I.is(countOfNamedExpressionsByName(translation),
-              countOfNamedExpressionsByName(original))) {
-        throw new InputError("The translation has a different set of expressions than the original.");
-    }
-
-    return translation;
-}
-
-function countOfReactComponentsByName(ast) {
-    var names = allKeypathsInAst(ast)
-        .map(keypath => ast.getIn(keypath))
-        .filter(isReactComponent)
-        .map(elementName);
-    return countOfItemsByItem(names);
-}
-
-function countOfNamedExpressionsByName(ast) {
-    var names = allKeypathsInAst(ast)
-        .map(keypath => ast.getIn(keypath))
-        .filter(isValidExpressionContainer)
-        .map(ast => ast.get('expression'))
-        .map(generate);
-    return countOfItemsByItem(names);
-}
-
-
-// ==================================
-// SANITIZE
-// ==================================
+/****************************************************************************
+    Sanitization
+*****************************************************************************/
 
 function sanitize(ast) {
     return ({
@@ -518,9 +520,9 @@ function nameAndExpressionForNamedExpression(ast) {
 }
 
 
-// ==================================
-// RECONSTITUTE
-// ==================================
+/****************************************************************************
+    Reconstituting
+*****************************************************************************/
 
 // Return translatedAst with named expressions and elided
 // attributes put back in based on originalAst.
@@ -569,16 +571,18 @@ function reconstituteJsxExpressionContainer(translatedAst, definitions) {
 }
 
 
-// ==================================
-// NAMED EXPRESSIONS, FINDING DEFINITIONS OF
-// ==================================
+/****************************************************************************
+    Finding definitions of expressions
+*****************************************************************************/
 
 function namedExpressionDefinitions(ast) {
     var listOfPairs = _namedExpressionDefinitions(ast);
     var names = listOfPairs.map(p => p.first());
     var dupes = duplicatedValues(names);
     if ( ! dupes.isEmpty()) {
-        throw new InputError("Message has two named expressions with the same name: " + dupes.join(", "));
+        throw new InputError(
+            "Message has two named expressions with the same name: "
+            + dupes.join(", "));
     } else {
         return I.Map(listOfPairs.map(x => x.toArray()));
     }
@@ -600,8 +604,11 @@ function namedExpressionDefinitionsInJsxElement(ast) {
         attributeDefinition = I.List();
     } else {
         var designation = elementDesignation(ast);
-        if (!designation) throw new InputError("Element needs a designation: " + generateOpening(ast));
-        attributeDefinition = I.List([I.List([designation, hiddenAttributes])]);
+        if (!designation)
+            throw new InputError("Element needs a designation: " + generateOpening(ast));
+        attributeDefinition = I.List([
+            I.List( [designation, hiddenAttributes] )
+        ]);
     }
 
     return attributeDefinition.concat(
@@ -619,9 +626,9 @@ function namedExpressionDefinitionsInJsxExpressionContainer(ast) {
 
 
 
-// ==================================
-// FINDING
-// ==================================
+/****************************************************************************
+    Finding nodes
+*****************************************************************************/
 
 function matches(ast, pattern) {
     if ( I.Map.isMap(ast) && I.Map.isMap(pattern) ) {
@@ -749,23 +756,23 @@ function keypathsForMessageNodesInAst(ast) {
 }
 
 
-// ==================================
-// PRINTING AND UNPRINTING
-// ==================================
+/****************************************************************************
+    Printing and unprinting
+*****************************************************************************/
 
-function generateMessage (ast) {
+function printMessage (ast) {
     if (isStringMarker(ast)) {
         return ast.getIn(['arguments', 0, 'value']);
     }
     else if (isElementMarker(ast)) {
-        return ast.get('children').map(generateJsxChild).join('');
+        return ast.get('children').map(printJsxChild).join('');
     }
     else {
         throw new Error("Internal error: message is not string literal or JSX element: " + generate(ast));
     }
 }
 
-function generateJsxChild (ast) {
+function printJsxChild (ast) {
     if (isStringLiteral(ast)) {
         return ast.get('value')
     } else {
