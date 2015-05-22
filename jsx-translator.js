@@ -494,6 +494,10 @@ function isIdentifierOrXJSIdentifier (ast) {
     return I.Set(['Identifier', 'XJSIdentifier']).contains(ast.get('type'));
 }
 
+function isThisExpression(ast) {
+    return ast.get('type') === 'ThisExpression';
+}
+
 function isReactComponent (ast) {
     return isElement(ast) && ! isTag(ast);
 }
@@ -527,7 +531,6 @@ function allKeypathsInAst(ast) {
 }
 
 function variableNameForReactComponent(componentAst) {
-    console.log('type', componentAst.get('type'), componentAst.getIn(['openingElement', 'type']));
     return ({
         'XJSMemberExpression': variableNameForMemberExpression,
         'XJSIdentifier': variableNameForIdentifier
@@ -540,10 +543,12 @@ function variableNameForIdentifier(identifierAst) {
 
 function variableNameForMemberExpression(memberExpressionAst) {
     var node = memberExpressionAst;
-    while (! isIdentifierOrXJSIdentifier(node)) {
+    while (! (isIdentifierOrXJSIdentifier(node) || isThisExpression(node))) {
         node = node.get('object');
     }
-    return node.get('name');
+    // if a node is an Identifier or XJSIdentifier will always have a name
+    // so assume it is a thisExpression elsewise
+    return node.get('name') || 'this';
 }
 
 function variableNameForCallExpression(callExpressionAst) {
@@ -573,14 +578,10 @@ function keypathsForFreeVariablesInAst(ast) {
 }
 
 module.exports.freeVariablesInMessageAst = function freeVariablesInMessageAst(messageAst) {
-    console.log("messageAst", JSON.stringify(messageAst.toJSON(), null, 2));
     var keypaths = keypathsForFreeVariablesInAst(messageAst);
-    return keypaths.map(keypath => {
-        console.log('freevar', JSON.stringify(messageAst.getIn(keypath).toJSON(), null, 2));
-        return variableNameForNode(messageAst.getIn(keypath));
-        // if (isIdentifier(messageAst.getIn(keypath))) {
-        // }
-    })
+    return keypaths
+        .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
+        .filter(name => name !== 'this');
 }
 
 /*

@@ -111,7 +111,7 @@ exports.testErrorsInExtraction = function (test) {
 var toBeTranslated = `
 function render () {
     return <p>
-        <I18N>Hello, world. <Component prop={ugh()} />{foo}{bar.baz}</I18N>
+        <I18N>Hello, world. <Component />{foo}{bar.baz}</I18N>
     </p>
 }
 `
@@ -145,17 +145,41 @@ exports.testErrorsInTranslation = function (test) {
 }
 
 
+// var messagesWithFreeVariables = I.Map({
+//     'function render () { return <p><I18N>Hello, world. <Component />{foo}{bar.baz}</I18N></p> }': I.Set(['Component', 'foo', 'bar'])
+// });
+
+var messagesWithFreeVariables = I.List([
+    [
+        `function render () {
+            return <p>
+                <I18N>Hello, world. <Component />{foo}{bar.baz}</I18N>
+            </p>
+        }`, I.Set(['Component', 'foo', 'bar'])
+    ],
+
+    [
+        `function render () {
+            return <p>
+                <I18N>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</I18N>
+            </p>
+        }`, I.Set(['Component', 'boochies'])
+    ]
+]);
+
 exports.testDetectFreeVariables = function(test) {
-    var ast = translator._parse(toBeTranslated);
-    var keypaths = translator._keypathsForMessageNodesInAst(ast);
-    keypaths.forEach((keypath) => {
-        var messageAst = ast.getIn(keypath);
-        test.ok(
-            I.is(
-                translator.freeVariablesInMessageAst(messageAst),
-                I.List(['Component', 'ugh', 'foo', 'bar'])),
-                `${translator.freeVariablesInMessageAst(messageAst)} did not satisfy.`
-            );
-    });
+    messagesWithFreeVariables.forEach(([message, variables]) => {
+        var ast = translator._parse(message);
+        var keypaths = translator._keypathsForMessageNodesInAst(ast);
+        keypaths.forEach((keypath) => {
+            var messageAst = ast.getIn(keypath);
+            test.ok(
+                I.is(
+                    translator.freeVariablesInMessageAst(messageAst).toSet(),
+                    variables),
+                    `${translator.freeVariablesInMessageAst(messageAst)} did not equal ${variables}.`
+                );
+        });
+    })
     test.done();
 }
