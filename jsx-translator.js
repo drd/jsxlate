@@ -399,7 +399,7 @@ function namedExpressionDefinitionsInJsxElement(ast) {
 }
 
 function namedExpressionDefinitionsInJsxExpressionContainer(ast) {
-    if (isValidExpressionContainer(ast)) {    
+    if (isValidExpressionContainer(ast)) {
         var definition = nameAndExpressionForNamedExpression(ast.get('expression'));
         return I.fromJS([definition]);
     } else {
@@ -449,7 +449,7 @@ var isElementMarker = matcher({
             type: "XJSIdentifier",
             name: "I18N"
         }
-    }    
+    }
 });
 
 function isMarker (ast) {
@@ -490,9 +490,18 @@ var isElement = matcher({
     type: "XJSElement"
 });
 
+function isIdentifierOrXJSIdentifier (ast) {
+    return I.Set(['Identifier', 'XJSIdentifier']).contains(ast.get('type'));
+}
+
 function isReactComponent (ast) {
     return isElement(ast) && ! isTag(ast);
 }
+
+function isFreeVariable(ast) {
+    return isReactComponent(ast) || isJsxExpressionContainer(ast);
+}
+
 
 /*
     Return true if the given element is an html tag rather than a React component.
@@ -517,6 +526,63 @@ function allKeypathsInAst(ast) {
     return I.fromJS(keypaths);
 }
 
+function variableNameForReactComponent(componentAst) {
+    console.log('type', componentAst.get('type'), componentAst.getIn(['openingElement', 'type']));
+    return ({
+        'XJSMemberExpression': variableNameForMemberExpression,
+        'XJSIdentifier': variableNameForIdentifier
+    }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
+}
+
+function variableNameForIdentifier(identifierAst) {
+    return identifierAst.get('name');
+}
+
+function variableNameForMemberExpression(memberExpressionAst) {
+    var node = memberExpressionAst;
+    while (! isIdentifierOrXJSIdentifier(node)) {
+        node = node.get('object');
+    }
+    return node.get('name');
+}
+
+function variableNameForCallExpression(callExpressionAst) {
+    return callExpressionAst.getIn(['callee', 'name']);
+}
+
+function variableNameForJsxExpressionContainer(expressionContainerAst) {
+    var expressionAst = expressionContainerAst.get('expression');
+    return ({
+        'Identifier': variableNameForIdentifier,
+        'MemberExpression': variableNameForMemberExpression,
+        'CallExpression': variableNameForCallExpression
+    }[expressionAst.get('type')])(expressionAst);
+}
+
+function variableNameForNode(nodeAst) {
+    return ({
+        'XJSElement': variableNameForReactComponent,
+        'XJSExpressionContainer': variableNameForJsxExpressionContainer,
+    }[nodeAst.get('type')])(nodeAst);
+}
+
+function keypathsForFreeVariablesInAst(ast) {
+    var keypaths = allKeypathsInAst(ast)
+        .filter(keypath => isFreeVariable(ast.getIn(keypath)))
+    return keypaths;
+}
+
+module.exports.freeVariablesInMessageAst = function freeVariablesInMessageAst(messageAst) {
+    console.log("messageAst", JSON.stringify(messageAst.toJSON(), null, 2));
+    var keypaths = keypathsForFreeVariablesInAst(messageAst);
+    return keypaths.map(keypath => {
+        console.log('freevar', JSON.stringify(messageAst.getIn(keypath).toJSON(), null, 2));
+        return variableNameForNode(messageAst.getIn(keypath));
+        // if (isIdentifier(messageAst.getIn(keypath))) {
+        // }
+    })
+}
+
 /*
     Return the keypath for each message in the given ast,
     and (important) return them with ancestors coming before descendents
@@ -528,7 +594,7 @@ function keypathsForMessageNodesInAst(ast) {
 
     // Validate arguments of string markers:
     keypaths.forEach(keypath => {
-        var messageMarker = ast.getIn(keypath);        
+        var messageMarker = ast.getIn(keypath);
         if (isStringMarker(messageMarker)) {
             if ( messageMarker.get('arguments').size !== 1 ) {
                 throw new InputError("Message marker must have exactly one argument: " + generate(messageMarker));
@@ -541,7 +607,7 @@ function keypathsForMessageNodesInAst(ast) {
 
     return keypaths;
 }
-
+module.exports._keypathsForMessageNodesInAst = keypathsForMessageNodesInAst;
 
 
 /****************************************************************************
@@ -692,10 +758,12 @@ function duplicatedValues(list) {
 function parse(src) {
     return I.fromJS(esprima.parse(src, {loc:true}));
 }
+module.exports._parse = parse;
 
 function parseExpression(src) {
     return parse(src).getIn(['body', 0, 'expression']);
 }
+module.exports._parseExpression = parseExpression;
 
 function generate(ast) {
     return escodegen.generate(ast.toJS());
@@ -737,7 +805,7 @@ function elementNameAst(jsxElementAst) {
     }
     else {
         throw new Error(`Unknown element name type ${type} for element ${generateOpening(jsxElementAst)}`);
-    }    
+    }
 }
 
 function elementName(jsxElementAst) {

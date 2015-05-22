@@ -44,7 +44,7 @@ var translations = {
     '<a:link href="foo">tag with unsafe attributes</a:link>': '<a:link href="bar">tag gyda phriodoleddau anniogel</a:link>',
     '<SelfClosing />': 'Translated: <SelfClosing />',
     '<SelfClosing:foo />': 'Translated: <SelfClosing:foo />',
-    '<Member.Name />': 'Translated: <Member.Name />',    
+    '<Member.Name />': 'Translated: <Member.Name />',
     'Cat: {nested}': 'Cat : {nested}',
     'hatters': 'hetwyr',
     'And now {a.member.expression}': 'Ac yn awr {a.member.expression}',
@@ -91,11 +91,11 @@ var shouldNotBeExtractable = [
     'i18n("Too many", "arguments")',
     '<I18N><a target="_blank">Unsafe attributes but no designation.</a></I18N>',
     '<I18N>{"string literal"}</I18N>',
-    '<I18N>{arbitrary.expression()}</I18N>',    
+    '<I18N>{arbitrary.expression()}</I18N>',
     '<I18N>{("non"+"simple").memberExpression}</I18N>',
     '<I18N>{computed["memberExpression"]}</I18N>',
     '<I18N>{sameName}{sameName}</I18N>',
-    '<I18N>{same.name}{same.name}</I18N>',    
+    '<I18N>{same.name}{same.name}</I18N>',
     '<I18N>{sameName}<a:sameName target="_blank">...</a:sameName></I18N>',
     '<I18N>{sameName}<a i18n-designation="sameName" target="_blank">...</a></I18N>',
 ]
@@ -111,7 +111,7 @@ exports.testErrorsInExtraction = function (test) {
 var toBeTranslated = `
 function render () {
     return <p>
-        <I18N>Hello, world. <Component />{foo}{bar.baz}</I18N>
+        <I18N>Hello, world. <Component prop={ugh()} />{foo}{bar.baz}</I18N>
     </p>
 }
 `
@@ -130,7 +130,7 @@ var correctTranslation = 'Helo, byd. <Component />{foo}{bar.baz}';
 
 exports.testErrorsInTranslation = function (test) {
     var extraction = translator.extractMessages(toBeTranslated)[0];
-    
+
     function translate(translation) {
         translator.translateMessages(toBeTranslated, {[extraction]: translation})
     }
@@ -145,3 +145,17 @@ exports.testErrorsInTranslation = function (test) {
 }
 
 
+exports.testDetectFreeVariables = function(test) {
+    var ast = translator._parse(toBeTranslated);
+    var keypaths = translator._keypathsForMessageNodesInAst(ast);
+    keypaths.forEach((keypath) => {
+        var messageAst = ast.getIn(keypath);
+        test.ok(
+            I.is(
+                translator.freeVariablesInMessageAst(messageAst),
+                I.List(['Component', 'ugh', 'foo', 'bar'])),
+                `${translator.freeVariablesInMessageAst(messageAst)} did not satisfy.`
+            );
+    });
+    test.done();
+}
