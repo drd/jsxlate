@@ -548,7 +548,7 @@ function variableNameForMemberExpression(memberExpressionAst) {
     }
     // if a node is an Identifier or XJSIdentifier will always have a name
     // so assume it is a thisExpression elsewise
-    return node.get('name') || 'this';
+    return node.get('name');
 }
 
 function variableNameForCallExpression(callExpressionAst) {
@@ -560,7 +560,8 @@ function variableNameForJsxExpressionContainer(expressionContainerAst) {
     return ({
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
-        'CallExpression': variableNameForCallExpression
+        'CallExpression': variableNameForCallExpression,
+        'XJSEmptyExpression': empty
     }[expressionAst.get('type')])(expressionAst);
 }
 
@@ -581,7 +582,7 @@ module.exports.freeVariablesInMessageAst = function freeVariablesInMessageAst(me
     var keypaths = keypathsForFreeVariablesInAst(messageAst);
     return keypaths
         .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
-        .filter(name => name !== 'this');
+        .filter(identity);
 }
 
 /*
@@ -731,6 +732,8 @@ module.exports.errorMessageForError = function errorMessageForError(e) {
 *****************************************************************************/
 
 function identity(x) { return x; }
+
+function empty(x) { return undefined; }
 
 function isFunction(thing) {
     return typeof thing == 'function' || false;

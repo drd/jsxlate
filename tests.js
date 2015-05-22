@@ -145,25 +145,15 @@ exports.testErrorsInTranslation = function (test) {
 }
 
 
-// var messagesWithFreeVariables = I.Map({
-//     'function render () { return <p><I18N>Hello, world. <Component />{foo}{bar.baz}</I18N></p> }': I.Set(['Component', 'foo', 'bar'])
-// });
-
 var messagesWithFreeVariables = I.List([
     [
-        `function render () {
-            return <p>
-                <I18N>Hello, world. <Component />{foo}{bar.baz}</I18N>
-            </p>
-        }`, I.Set(['Component', 'foo', 'bar'])
+        '<I18N>Hello, world. {/* no variables here bruh */}<Component />{foo}<p>{bar.baz}</p></I18N>',
+        I.Set(['Component', 'foo', 'bar'])
     ],
 
     [
-        `function render () {
-            return <p>
-                <I18N>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</I18N>
-            </p>
-        }`, I.Set(['Component', 'boochies'])
+        '<I18N>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</I18N>',
+        I.Set(['Component', 'boochies'])
     ]
 ]);
 
