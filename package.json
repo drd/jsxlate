@@ -8,19 +8,26 @@
     "translate": "./bin/translate"
   },
   "scripts": {
-    "test": "6to5-node node_modules/.bin/nodeunit tests.js"
-  },  
-  "author": "David McCabe",
+    "test": "babel-node node_modules/.bin/nodeunit tests.js"
+  },
+  "author": "Eric O'Connell <eric.oconnell@idealist.org>",
+  "contributors": [
+    "Carl Bauer <carl@idealist.org>",
+    "Ben Carr <ben@idealist.org>",
+    "David McCabe <davidmccabe@gmail.com>",
+    "Mike Sugarbaker <mike.sugarbaker@idealist.org>"
+  ],
   "license": "MIT",
   "dependencies": {
-    "6to5": "^2.5.0",
+    "babel": "^5.4.4",
     "chalk": "^0.5.1",
-    "escodegen": "git://github.com/davidmccabe/escodegen",
-    "esprima-fb": "^8001.2001.0-dev-harmony-fb",
-    "immutable": "^3.6.2",
+    "escodegen": "drd/escodegen",
+    "acorn-jsx": "^1.0.1",
+    "immutable": "^3.7.3",
     "rw": "^0.1.4"
   },
   "devDependencies": {
+    "node-inspector": "^0.10.1",
     "nodeunit": "^0.9.0"
   }
 }

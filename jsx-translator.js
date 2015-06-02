@@ -12,7 +12,8 @@ or only a single expression. Some of the functions only operate on ASTs
 representing particular kinds of expressions, while others work on any AST.
 The AST format is documented here:
 https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Parser_API
-The JSX extensions are not documented; they just come from esprima-fb.
+The JSX extensions are documented here:
+https://github.com/facebook/jsx/blob/master/AST.md
 
 There are two forms of messages: string literals and JSX elements.
 String literals are marked with a special identity function:
@@ -51,7 +52,7 @@ TODO:
 
 Error.stackTraceLimit = Infinity;
 
-var esprima = require('esprima-fb');
+var acorn = require('acorn-jsx');
 var escodegen = require('escodegen');
 var I = require('immutable');
 
@@ -113,8 +114,8 @@ function extractMessage(ast) {
 function validateMessage(ast) {
     var _ = ({
         'CallExpression': validateCallExpression,
-        'XJSElement': validateJsxElement,
-        'XJSExpressionContainer': validateJsxExpressionContainer,
+        'JSXElement': validateJsxElement,
+        'JSXExpressionContainer': validateJsxExpressionContainer,
     }[ast.get('type')] || identity)(ast);
     return ast;
 }
@@ -161,7 +162,7 @@ function validateJsxExpressionContainer(ast) {
 
 function sanitize (ast) {
     return ({
-        'XJSElement': sanitizeJsxElement
+        'JSXElement': sanitizeJsxElement
     }[ast.get('type')] || identity)(ast);
 }
 
@@ -315,8 +316,8 @@ function reconstitute(translatedAst, originalAst) {
 
 function _reconstitute(translatedAst, definitions) {
     return ({
-        'XJSElement': reconstituteJsxElement,
-        'XJSExpressionContainer': reconstituteJsxExpressionContainer,
+        'JSXElement': reconstituteJsxElement,
+        'JSXExpressionContainer': reconstituteJsxExpressionContainer,
     }[translatedAst.get('type')] || identity)(translatedAst, definitions);
 }
 
@@ -373,9 +374,9 @@ function namedExpressionDefinitions(ast) {
 
 function _namedExpressionDefinitions(ast) {
     return ({
-        'XJSElement': namedExpressionDefinitionsInJsxElement,
-        'XJSExpressionContainer': namedExpressionDefinitionsInJsxExpressionContainer
-    }[ast.get('type')] || () => I.List())(ast);
+        'JSXElement': namedExpressionDefinitionsInJsxElement,
+        'JSXExpressionContainer': namedExpressionDefinitionsInJsxExpressionContainer
+    }[ast.get('type')] || (() => I.List()))(ast);
 }
 
 function namedExpressionDefinitionsInJsxElement(ast) {
@@ -441,12 +442,12 @@ var isStringMarker = matcher({
 });
 
 var isElementMarker = matcher({
-    type: "XJSElement",
+    type: "JSXElement",
     openingElement: {
-        type: "XJSOpeningElement",
+        type: "JSXOpeningElement",
         selfClosing: false,
         name: {
-            type: "XJSIdentifier",
+            type: "JSXIdentifier",
             name: "I18N"
         }
     }
@@ -462,11 +463,11 @@ var isStringLiteral = matcher({
 });
 
 var isJsxExpressionContainer = matcher({
-    type: "XJSExpressionContainer"
+    type: "JSXExpressionContainer"
 });
 
 var isJsxElement = matcher({
-    type: "XJSElement"
+    type: "JSXElement"
 });
 
 var isIdentifier = matcher({
@@ -487,11 +488,11 @@ function isValidExpressionContainer (ast) {
 }
 
 var isElement = matcher({
-    type: "XJSElement"
+    type: "JSXElement"
 });
 
-function isIdentifierOrXJSIdentifier (ast) {
-    return I.Set(['Identifier', 'XJSIdentifier']).contains(ast.get('type'));
+function isIdentifierOrJSXIdentifier (ast) {
+    return I.Set(['Identifier', 'JSXIdentifier']).contains(ast.get('type'));
 }
 
 function isThisExpression(ast) {
@@ -532,8 +533,8 @@ function allKeypathsInAst(ast) {
 
 function variableNameForReactComponent(componentAst) {
     return ({
-        'XJSMemberExpression': variableNameForMemberExpression,
-        'XJSIdentifier': variableNameForIdentifier
+        'JSXMemberExpression': variableNameForMemberExpression,
+        'JSXIdentifier': variableNameForIdentifier
     }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
 }
 
@@ -543,10 +544,10 @@ function variableNameForIdentifier(identifierAst) {
 
 function variableNameForMemberExpression(memberExpressionAst) {
     var node = memberExpressionAst;
-    while (! (isIdentifierOrXJSIdentifier(node) || isThisExpression(node))) {
+    while (! (isIdentifierOrJSXIdentifier(node) || isThisExpression(node))) {
         node = node.get('object');
     }
-    // if a node is an Identifier or XJSIdentifier will always have a name
+    // if a node is an Identifier or JSXIdentifier will always have a name
     // so assume it is a thisExpression elsewise
     return node.get('name');
 }
@@ -561,14 +562,14 @@ function variableNameForJsxExpressionContainer(expressionContainerAst) {
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
         'CallExpression': variableNameForCallExpression,
-        'XJSEmptyExpression': empty
+        'JSXEmptyExpression': empty
     }[expressionAst.get('type')])(expressionAst);
 }
 
 function variableNameForNode(nodeAst) {
     return ({
-        'XJSElement': variableNameForReactComponent,
-        'XJSExpressionContainer': variableNameForJsxExpressionContainer,
+        'JSXElement': variableNameForReactComponent,
+        'JSXExpressionContainer': variableNameForJsxExpressionContainer,
     }[nodeAst.get('type')])(nodeAst);
 }
 
@@ -759,8 +760,52 @@ function duplicatedValues(list) {
     Ast utilities
 *****************************************************************************/
 
+function _convert(key, sequence) {
+    if (this[key].constructor === acorn.Node) {
+        return I.Map(this[key])
+    }
+    return Array.isArray(this[key]) ? sequence.toList() : sequence.toOrderedMap();
+}
+
+
+
+function acornAstToNestedObjects(ast) {
+    // This is sadly necessary because Immutable does not support
+    // converting objects with non-Object constructors in fromJS().
+    // Acorn's parser generates objects with prototypes of
+    // Node, SourceLocation, and Position, so this ensures that all
+    // ast nodes are POJSOs.
+    if (ast === null || ast === undefined || ast.constructor === Number || ast.constructor === String || ast.constructor === Boolean) {
+        return ast;
+    } else if (ast.constructor === Array) {
+        return ast.map(acornAstToNestedObjects)
+    } else if (ast.constructor === acorn.Node) {
+        return Object.entries(ast).reduce((acc, [key, value]) => {
+            acc[key] = acornAstToNestedObjects(value);
+            return acc;
+        }, {});
+    } else if (ast.constructor === acorn.SourceLocation) {
+        return {
+            start: {
+                line: ast.start.line,
+                column: ast.start.column
+            },
+            end: {
+                line: ast.end.line,
+                column: ast.end.column
+            }
+        };
+    } else {
+        throw new Error("Unexpected input", ast);
+    }
+}
+
 function parse(src) {
-    return I.fromJS(esprima.parse(src, {loc:true}));
+    var parsed = acorn.parse(src, {
+        plugins: {jsx: true},
+        locations: true
+    });
+    return I.fromJS(acornAstToNestedObjects(parsed));
 }
 module.exports._parse = parse;
 
@@ -783,13 +828,13 @@ function makeLiteralExpressionAst(value) {
 
 function makeNamespaceAst(namespace, name) {
     return I.fromJS({
-        type: 'XJSNamespacedName',
+        type: 'JSXNamespacedName',
         name: {
-            type: 'XJSIdentifier',
+            type: 'JSXIdentifier',
             name: name
         },
         namespace: {
-            type: 'XJSIdentifier',
+            type: 'JSXIdentifier',
             name: namespace
         }
     });
@@ -799,11 +844,11 @@ function elementNameAst(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
-    if (type === 'XJSNamespacedName') {
+    if (type === 'JSXNamespacedName') {
         // The element is of the form <name:designation>
         return nameAst.get('namespace');
     }
-    else if (type === 'XJSIdentifier' || type === 'XJSMemberExpression') {
+    else if (type === 'JSXIdentifier' || type === 'JSXMemberExpression') {
         // The element is of the form <name> or <namey.mcnamerson>
         return nameAst;
     }
@@ -820,7 +865,7 @@ function elementDesignation(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
-    if (type === 'XJSNamespacedName') {
+    if (type === 'JSXNamespacedName') {
         // The element is of the form <name:designation>
         return generate(nameAst.get('name'));
     }
@@ -852,7 +897,7 @@ function attributeMap(attributes) {
 
 function attributesFromMap(attributes) {
     return I.List(attributes.map((v,k) => I.Map({
-        type: 'XJSAttribute',
+        type: 'JSXAttribute',
         name: k,
         value: v
     })).valueSeq());
