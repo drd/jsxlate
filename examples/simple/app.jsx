@@ -1,7 +1,15 @@
 import React from 'react';
 //import {I18N, i18n, CONTEXT_TYPES} from '../../jsx-translator';
 
-import messages from './messages';
+import spanish from './bundle-es';
+import french from './bundle-fr';
+
+
+const messages = {
+    es: spanish,
+    fr: french,
+    en: {}
+};
 
 
 const CONTEXT_TYPES = Object.freeze({
@@ -9,6 +17,11 @@ const CONTEXT_TYPES = Object.freeze({
     messages: React.PropTypes.object
 });
 
+
+function i18n(original) {
+    var translated = i18n.messages[original];
+    return translated ? translated() : original;
+}
 
 class I18N extends React.Component {
     render() {
@@ -30,6 +43,7 @@ class App extends React.Component {
     }
 
     getChildContext() {
+        i18n.messages = messages[this.state.locale];
         return {
             locale: this.state.locale,
             messages: messages[this.state.locale]
@@ -41,13 +55,14 @@ class App extends React.Component {
     }
 
     render() {
-        var thing = 'awesome?';
+        var thing = i18n('awesome?');
         return <div>
             <header>
                 <h1><I18N>Translated {thing} Application</I18N></h1>
                 <I18N>Choose locale:</I18N> <select onChange={this.localeChanged.bind(this)}>
                     <option value="en">English</option>
                     <option value="es">Spanish</option>
+                    <option value="fr">French</option>
                 </select>
             </header>
             <main>
@@ -69,7 +84,7 @@ class Stupid extends React.Component {
 
 class Page extends React.Component {
     render() {
-        return <I18N>Hello, <Stupid/> world!</I18N>;
+        return <I18N>Hello, <Stupid /> world!</I18N>;
     }
 }
 

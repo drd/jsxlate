@@ -1,3 +1,2 @@
-*.pyc
+examples/simple/out
 node_modules
-.DS_Store

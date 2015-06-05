@@ -40,7 +40,7 @@ exports.testExtraction = function (test) {
 var translations = {
     'Hello': 'Helo',
     'world': 'byd',
-    '<a href="foo">tag with only safe attributes</a>': '<a href="bar">Mae tag sydd wedi dim ond priodoleddau sy\'n ddiogel</a>',
+    '<a href="foo">tag with only safe attributes</a>': '<a href="bar">Mae tag sydd <span>wedi</span> dim ond priodoleddau sy\'n ddiogel</a>',
     '<a:link href="foo">tag with unsafe attributes</a:link>': '<a:link href="bar">tag gyda phriodoleddau anniogel</a:link>',
     '<SelfClosing />': 'Translated: <SelfClosing />',
     '<SelfClosing:foo />': 'Translated: <SelfClosing:foo />',
@@ -54,7 +54,7 @@ var translations = {
 var expectedResultsFromTranslation = {
     '<I18N>Hello</I18N>': '<I18N>Helo</I18N>;',
     'i18n("world")': "'byd';",
-    '<I18N><a href="foo">tag with only safe attributes</a></I18N>': '<I18N><a href="bar">Mae tag sydd wedi dim ond priodoleddau sy\'n ddiogel</a></I18N>;',
+    '<I18N><a href="foo">tag with only safe attributes</a></I18N>': '<I18N><a href="bar">Mae tag sydd <span>wedi</span> dim ond priodoleddau sy\'n ddiogel</a></I18N>;',
     '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': '<I18N><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></I18N>;',
     '<I18N><a href="foo" target="_blank" i18n-designation="link">tag with unsafe attributes</a></I18N>': '<I18N><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></I18N>;',
     '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': '<I18N>Translated: <SelfClosing attr="attr" /></I18N>;',
@@ -79,6 +79,41 @@ exports.testTranslation = function (test) {
                  ${expectedResultsFromTranslation[original]}
                  but got
                  ${translator.translateMessages(original, translations)}
+                 `);
+    })
+    test.done();
+}
+
+var expectedResultsForTranslationBundles = {
+    '<I18N>Hello</I18N>': 'function() { return <span>Helo</span>; }',
+    'i18n("world")': "function() { return 'byd'; }",
+    '<I18N><a href="foo">tag with only safe attributes</a></I18N>': 'function() { return <span><a href="bar">Mae tag sydd <span>wedi</span> dim ond priodoleddau sy\'n ddiogel</a></span>; }',
+    '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
+    '<I18N><a href="foo" target="_blank" i18n-designation="link">tag with unsafe attributes</a></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
+    '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing attr="attr" /></span>; }',
+    '<I18N><SelfClosing /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing /></span>; }',
+    '<I18N><Member.Name /></I18N>': 'function(Member) { return <span>Translated: <Member.Name /></span>; }',
+    '<I18N>Cat: {nested}</I18N>': "function(nested) { return <span>Cat : {nested}</span>; }",
+    '<I18N>And now {a.member.expression}</I18N>': 'function(a) { return <span>Ac yn awr {a.member.expression}</span>; }',
+    '<I18N><Re /><Ordering /></I18N>': 'function(Re, Ordering) { return <span><Ordering /><Re /></span>; }',
+}
+
+exports.testTranslationToRenderer = function (test) {
+    debugger;
+    Object.keys(expectedResultsForTranslationBundles).forEach(original => {
+        var messageAst = translator._parseExpression(original);
+        var message = translator._extractMessage(messageAst);
+        try { translator.translatedRendererForMessage(messageAst, translations[message]) } catch (e) {console.error(e)};
+        test.ok(
+            (expectedResultsForTranslationBundles[original] ==
+                translator.translatedRendererForMessage(messageAst, translations[message])),
+                 `
+                 Incorrect translation function for original
+                 ${original}
+                 Expected
+                 ${expectedResultsForTranslationBundles[original]}
+                 but got
+                 ${translator.translatedRendererForMessage(messageAst, translations[message])}
                  `);
     })
     test.done();
@@ -186,6 +221,11 @@ var messagesToBeTransformed = I.List([
         '<I18N>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</I18N>',
         '<I18N message="Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}" context={this} args={[Component, boochies]}' +
           ' fallback={function() { return <span>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</span>; }}/>'
+    ],
+
+    [
+        "i18n('Well golly gee')",
+        "i18n('Well golly gee')"
     ]
 ]);
 
@@ -200,3 +240,5 @@ exports.testMessageNodeTransformation = function(test) {
     });
     test.done();
 };
+
+

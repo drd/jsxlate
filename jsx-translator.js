@@ -104,7 +104,7 @@ module.exports.extractMessages = function (src) {
 function extractMessage(ast) {
     return printMessage(sanitize(validateMessage(ast)));
 }
-
+module.exports._extractMessage = extractMessage;
 
 
 /*****************************************************************************
@@ -212,6 +212,26 @@ function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
     Given a source code string and a translations dictionary,
     return the source code as a string with the messages translated.
 */
+
+module.exports.translateMessagesToBundle = function (src, translations) {
+    var bundle = I.Map();
+
+    function substitute(bundle, keypath) {
+        try {
+            var messageAst = ast.getIn(keypath);
+            var translationString = findTranslation(messageAst, translations);
+            return bundle.set(extractMessage(messageAst),
+                translatedRendererForMessage(messageAst, translationString));
+        } catch(e) {
+            throw e.set ? e.set('messageAst', messageAst).set('translationString', translationString) : e;
+        }
+    }
+
+    var ast = parse(src);
+    var keypaths = keypathsForMessageNodesInAst(ast);
+    return keypaths.reduceRight(substitute, bundle).toJS();
+}
+
 module.exports.translateMessages = function (src, translations) {
     // Substitute at a single keypath based on translations:
     function substitute(ast, keypath) {
@@ -250,6 +270,23 @@ function translateMessage (message, translationString) {
         validateTranslation(translation, message),
         message);
 }
+
+function translatedRendererForMessage (message, translationString) {
+    var translation = parseExpression(
+        unprintTranslation(translationString, message));
+    var reconstituted = reconstitute(
+        validateTranslation(translation, message),
+        message);
+    var reconstitutedAsSpan = reconstituted
+        .setIn(['openingElement', 'name', 'name'], 'span')
+        .setIn(['closingElement', 'name', 'name'], 'span');
+
+    var freeVariables = freeVariablesInMessageAst(message);
+    var wrapped =
+        `function(${freeVariables.join(', ')}) { return ${generate(reconstitutedAsSpan)}; }`;
+    return wrapped;
+}
+module.exports.translatedRendererForMessage = translatedRendererForMessage;
 
 /*
     Given a message AST and dictionary, return the translation string.
@@ -657,13 +694,17 @@ module.exports.freeVariablesInMessageAst = freeVariablesInMessageAst;
 ****************************************************************************/
 
 function transformMessageNode(ast) {
-    var freeVariables = freeVariablesInMessageAst(ast).toJS().join(', ');
     var message = extractMessage(ast);
-    var fallbackDiv = ast
-        .setIn(['openingElement', 'name', 'name'], 'span')
-        .setIn(['closingElement', 'name', 'name'], 'span');
-    var fallback = `function() { return ${generate(fallbackDiv)}; }`;
-    return `<I18N message="${message}" context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
+    if (isElementMarker(ast)) {
+        var freeVariables = freeVariablesInMessageAst(ast).toJS().join(', ');
+        var fallbackDiv = ast
+            .setIn(['openingElement', 'name', 'name'], 'span')
+            .setIn(['closingElement', 'name', 'name'], 'span');
+        var fallback = `function() { return ${generate(fallbackDiv)}; }`;
+        return `<I18N message="${message}" context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
+    } else {
+        return `i18n('${message}')`;
+    }
 }
 module.exports._transformMessageNode = transformMessageNode;
 
