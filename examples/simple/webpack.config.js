@@ -24,8 +24,8 @@ module.exports = {
         loaders: [
             { test: /\.js$/, exclude: /node_modules/, loaders: ['babel'] },
             // Pass *.jsx files through jsx-loader transform
-            { test: /\.jsx$/, exclude: /messages\.jsx/, loaders: ['babel', '../../transform-loader'] },
-            { test: /messages\.jsx$/, loaders: ['babel']}
+            { test: /\.jsx$/, exclude: /(components|messages)\.jsx/, loaders: ['babel', '../../transform-loader'] },
+            { test: /(components|messages)\.jsx$/, loaders: ['babel']}
         ]
     }
 }

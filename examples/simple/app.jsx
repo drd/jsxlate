@@ -1,5 +1,5 @@
 import React from 'react';
-//import {I18N, i18n, CONTEXT_TYPES} from '../../jsx-translator';
+import {I18N, i18n, CONTEXT_TYPES} from '../../components';
 
 import spanish from './bundle-es';
 import french from './bundle-fr';
@@ -10,30 +10,6 @@ const messages = {
     fr: french,
     en: {}
 };
-
-
-const CONTEXT_TYPES = Object.freeze({
-    locale: React.PropTypes.string,
-    messages: React.PropTypes.object
-});
-
-
-function i18n(original) {
-    var translated = i18n.messages[original];
-    return translated ? translated() : original;
-}
-
-class I18N extends React.Component {
-    render() {
-        let renderer = this.context.messages[this.props.message];
-        if (renderer) {
-            return renderer.apply(this.props.context, this.props.args);
-        }
-        return this.props.fallback.call(this.props.context);
-    }
-}
-
-I18N.contextTypes = CONTEXT_TYPES;
 
 
 class App extends React.Component {
