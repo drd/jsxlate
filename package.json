@@ -4,9 +4,9 @@
   "description": "Automatic message extraction and translation for JSX files",
   "main": "jsx-translator.js",
   "bin": {
-    "extract-messages": "./bin/extract-messages",
-    "translate": "./bin/translate",
-    "bundle": "./bin/bundle"
+    "extract-messages": "./bin/extract-messages.js",
+    "translate": "./bin/translate.js",
+    "bundle": "./bin/bundle.js"
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js"
