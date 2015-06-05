@@ -2,7 +2,7 @@
 
 function showHelpAndExit() {
     console.log("Usage: extract-messages [FILES]");
-    console.log("Prints a JSON document with messages in FILES mapped to themselves.");    
+    console.log("Prints a JSON document with messages in FILES mapped to themselves.");
     console.log("Does not merge with existing translations;");
     console.log("use json(1) --merge for that.");
     process.exit();
@@ -17,7 +17,7 @@ if (process.argv.length < 3
 var chalk = require('chalk');
 var fs = require('fs');
 
-require("6to5/register");
+require("babel/register");
 var translator = require('../jsx-translator.js');
 
 

@@ -53,7 +53,7 @@ TODO:
 Error.stackTraceLimit = Infinity;
 
 var acorn = require('acorn-jsx');
-var escodegen = require('escodegen');
+var escodegen = require('escodegen-wallaby');
 var I = require('immutable');
 
 /*
@@ -477,7 +477,7 @@ var isIdentifier = matcher({
 var isSimpleMemberExpression = matcher({
     type: "MemberExpression",
     computed: false,
-    object: (ast) => isIdentifier(ast) || isSimpleMemberExpression(ast),
+    object: (ast) => isIdentifier(ast) || isThisExpression(ast) || isSimpleMemberExpression(ast),
     property: isIdentifier
 });
 
@@ -531,59 +531,13 @@ function allKeypathsInAst(ast) {
     return I.fromJS(keypaths);
 }
 
-function variableNameForReactComponent(componentAst) {
-    return ({
-        'JSXMemberExpression': variableNameForMemberExpression,
-        'JSXIdentifier': variableNameForIdentifier
-    }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
-}
-
-function variableNameForIdentifier(identifierAst) {
-    return identifierAst.get('name');
-}
-
-function variableNameForMemberExpression(memberExpressionAst) {
-    var node = memberExpressionAst;
-    while (! (isIdentifierOrJSXIdentifier(node) || isThisExpression(node))) {
-        node = node.get('object');
-    }
-    // if a node is an Identifier or JSXIdentifier will always have a name
-    // so assume it is a thisExpression elsewise
-    return node.get('name');
-}
-
-function variableNameForCallExpression(callExpressionAst) {
-    return callExpressionAst.getIn(['callee', 'name']);
-}
-
-function variableNameForJsxExpressionContainer(expressionContainerAst) {
-    var expressionAst = expressionContainerAst.get('expression');
-    return ({
-        'Identifier': variableNameForIdentifier,
-        'MemberExpression': variableNameForMemberExpression,
-        'CallExpression': variableNameForCallExpression,
-        'JSXEmptyExpression': empty
-    }[expressionAst.get('type')])(expressionAst);
-}
-
-function variableNameForNode(nodeAst) {
-    return ({
-        'JSXElement': variableNameForReactComponent,
-        'JSXExpressionContainer': variableNameForJsxExpressionContainer,
-    }[nodeAst.get('type')])(nodeAst);
-}
-
+/*
+    Return the keypath for each free variable in the given ast.
+*/
 function keypathsForFreeVariablesInAst(ast) {
     var keypaths = allKeypathsInAst(ast)
         .filter(keypath => isFreeVariable(ast.getIn(keypath)))
     return keypaths;
-}
-
-module.exports.freeVariablesInMessageAst = function freeVariablesInMessageAst(messageAst) {
-    var keypaths = keypathsForFreeVariablesInAst(messageAst);
-    return keypaths
-        .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
-        .filter(identity);
 }
 
 /*
@@ -611,6 +565,121 @@ function keypathsForMessageNodesInAst(ast) {
     return keypaths;
 }
 module.exports._keypathsForMessageNodesInAst = keypathsForMessageNodesInAst;
+
+
+/****************************************************************************
+
+    Free variables
+
+*****************************************************************************/
+
+function variableNameForReactComponent(componentAst) {
+    return ({
+        'JSXMemberExpression': variableNameForMemberExpression,
+        'JSXIdentifier': variableNameForIdentifier
+    }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
+}
+
+function variableNameForIdentifier(identifierAst) {
+    return identifierAst.get('name');
+}
+
+function variableNameForMemberExpression(memberExpressionAst) {
+    var node = memberExpressionAst;
+    while (! (isIdentifierOrJSXIdentifier(node) || isThisExpression(node))) {
+        node = node.get('object');
+    }
+    // if a node is an Identifier or JSXIdentifier will always have a name
+    // so assume it is a thisExpression elsewise and return undefined, which
+    // will be omitted.
+    return node.get('name');
+}
+
+function variableNameForCallExpression(callExpressionAst) {
+    return callExpressionAst.getIn(['callee', 'name']);
+}
+
+function variableNameForJsxExpressionContainer(expressionContainerAst) {
+    var expressionAst = expressionContainerAst.get('expression');
+    return ({
+        'Identifier': variableNameForIdentifier,
+        'MemberExpression': variableNameForMemberExpression,
+        'CallExpression': variableNameForCallExpression,
+        'JSXEmptyExpression': empty
+    }[expressionAst.get('type')])(expressionAst);
+}
+
+function variableNameForNode(nodeAst) {
+    return ({
+        'JSXElement': variableNameForReactComponent,
+        'JSXExpressionContainer': variableNameForJsxExpressionContainer,
+    }[nodeAst.get('type')])(nodeAst);
+}
+
+function freeVariablesInMessageAst(messageAst) {
+    var keypaths = keypathsForFreeVariablesInAst(messageAst);
+    return keypaths
+        .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
+        .filter(identity)
+        .toSet();
+}
+module.exports.freeVariablesInMessageAst = freeVariablesInMessageAst;
+
+/****************************************************************************
+
+    Message node mangling
+
+    This is the process of converting a message node in the source file
+    to a message node capable of retrieving the correct translation for its
+    message.
+
+    To wit,
+    render() {
+        var name = this.props.user.firstName;
+        return <div><I18N>Hello, {name}, you handsome devil!</I18N></div>;
+    }
+
+    is transformed to (with whitespace reformatted):
+    render() {
+        var name = this.props.user.firstName;
+        return <div>
+            <I18N message="Hello, {name}, you handsome devil"
+                  context={this}
+                  args={[name]}
+                  fallback={() => <I18N>Hello, {name}, you handsome devil!</I18N>}
+                  />
+        </div>;
+    }
+
+    This enables the I18N component to look up the translation for the current
+    locale, and if that is not available, still render the original.
+
+****************************************************************************/
+
+function transformMessageNode(ast) {
+    var freeVariables = freeVariablesInMessageAst(ast).toJS().join(', ');
+    var message = extractMessage(ast);
+    var fallbackDiv = ast
+        .setIn(['openingElement', 'name', 'name'], 'span')
+        .setIn(['closingElement', 'name', 'name'], 'span');
+    var fallback = `function() { return ${generate(fallbackDiv)}; }`;
+    return `<I18N message="${message}" context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
+}
+module.exports._transformMessageNode = transformMessageNode;
+
+module.exports.transformMessageNodes = function transformMessageNodes(src) {
+    function transform(ast, keypath) {
+        var message = ast.getIn(keypath);
+        return ast.setIn(keypath,
+            parseExpression(transformMessageNode(message)));
+    }
+
+    var ast = parse(src);
+    var keypaths = keypathsForMessageNodesInAst(ast);
+    return generate(keypaths.reduceRight(transform, ast));
+}
+
+
 
 
 /****************************************************************************
@@ -802,6 +871,8 @@ function acornAstToNestedObjects(ast) {
 
 function parse(src) {
     var parsed = acorn.parse(src, {
+        ecmaVersion: 6,
+        sourceType: 'module',
         plugins: {jsx: true},
         locations: true
     });

@@ -16,7 +16,7 @@ if (process.argv.length != 4
 
 var rw = require('rw');
 
-require("6to5/register");
+require("babel/register");
 var translator = require('../jsx-translator.js');
 
 

@@ -165,11 +165,38 @@ exports.testDetectFreeVariables = function(test) {
             var messageAst = ast.getIn(keypath);
             test.ok(
                 I.is(
-                    translator.freeVariablesInMessageAst(messageAst).toSet(),
+                    translator.freeVariablesInMessageAst(messageAst),
                     variables),
                     `${translator.freeVariablesInMessageAst(messageAst)} did not equal ${variables}.`
                 );
         });
     })
     test.done();
-}
+};
+
+
+var messagesToBeTransformed = I.List([
+    [
+        '<I18N>Hello, world. <Component />{foo}<p>{bar.baz}</p></I18N>',
+        '<I18N message="Hello, world. <Component />{foo}<p>{bar.baz}</p>" context={this} args={[Component, foo, bar]}' +
+          ' fallback={function() { return <span>Hello, world. <Component />{foo}<p>{bar.baz}</p></span>; }}/>'
+    ],
+
+    [
+        '<I18N>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</I18N>',
+        '<I18N message="Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}" context={this} args={[Component, boochies]}' +
+          ' fallback={function() { return <span>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</span>; }}/>'
+    ]
+]);
+
+exports.testMessageNodeTransformation = function(test) {
+    messagesToBeTransformed.forEach(([message, transformed]) => {
+        var ast = translator._parse(message);
+        var keypaths = translator._keypathsForMessageNodesInAst(ast);
+        keypaths.forEach((keypath) => {
+            test.ok(transformed === translator._transformMessageNode(ast.getIn(keypath)),
+            `${translator._transformMessageNode(ast.getIn(keypath))} did not equal ${transformed}.`);
+        });
+    });
+    test.done();
+};
