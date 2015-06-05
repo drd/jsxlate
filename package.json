@@ -1,11 +1,12 @@
 {
-  "name": "jsx-translator",
-  "version": "0.0.1",
-  "description": "Extracts messages from JSX files and substitutes translations back in.",
+  "name": "jsxlate",
+  "version": "0.1.0",
+  "description": "Automatic message extraction and translation for JSX files",
   "main": "jsx-translator.js",
   "bin": {
     "extract-messages": "./bin/extract-messages",
-    "translate": "./bin/translate"
+    "translate": "./bin/translate",
+    "bundle": "./bin/bundle"
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js"
