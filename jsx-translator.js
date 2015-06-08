@@ -879,19 +879,24 @@ function _convert(key, sequence) {
 
 
 
-function acornAstToNestedObjects(ast) {
+function acornAstToNestedObjects(ast, p) {
     // This is sadly necessary because Immutable does not support
     // converting objects with non-Object constructors in fromJS().
     // Acorn's parser generates objects with prototypes of
     // Node, SourceLocation, and Position, so this ensures that all
     // ast nodes are POJSOs.
-    if (ast === null || ast === undefined || ast.constructor === Number || ast.constructor === String || ast.constructor === Boolean) {
+    if (ast === null
+        || ast === undefined
+        || ast.constructor === Number
+        || ast.constructor === String
+        || ast.constructor === RegExp
+        || ast.constructor === Boolean) {
         return ast;
     } else if (ast.constructor === Array) {
         return ast.map(acornAstToNestedObjects)
-    } else if (ast.constructor === acorn.Node) {
+    } else if (ast.constructor === acorn.Node || ast.constructor === Object) {
         return Object.entries(ast).reduce((acc, [key, value]) => {
-            acc[key] = acornAstToNestedObjects(value);
+            acc[key] = acornAstToNestedObjects(value, ast);
             return acc;
         }, {});
     } else if (ast.constructor === acorn.SourceLocation) {
@@ -906,7 +911,7 @@ function acornAstToNestedObjects(ast) {
             }
         };
     } else {
-        throw new Error("Unexpected input", ast);
+        throw new Error(`Unexpected input: ${ast.constructor} ${JSON.stringify(ast)} ${JSON.stringify(p)}`);
     }
 }
 
