@@ -538,6 +538,10 @@ function isReactComponent (ast) {
     return isElement(ast) && ! isTag(ast);
 }
 
+function isObjectExpression (ast) {
+    return ast.get('type') === 'ObjectExpression';
+}
+
 function isFreeVariable(ast) {
     return isReactComponent(ast) || isJsxExpressionContainer(ast);
 }
@@ -645,6 +649,7 @@ function variableNameForJsxExpressionContainer(expressionContainerAst) {
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
         'CallExpression': variableNameForCallExpression,
+        'ObjectExpression': empty,
         'JSXEmptyExpression': empty
     }[expressionAst.get('type')])(expressionAst);
 }
