@@ -22,6 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "babel": "^5.4.4",
+    "babel-runtime": "^5.4.4",
     "chalk": "^0.5.1",
     "escodegen": "drd/escodegen#wallaby",
     "acorn-jsx": "^1.0.1",
