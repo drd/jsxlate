@@ -131,7 +131,7 @@ function validateJsxElement(ast) {
     // Throws if definitions are duplicated:
     namedExpressionDefinitions(ast);
 
-    if (hasUnsafeAttributes(ast) && ! elementDesignation(ast)) {
+    if (hasUnsafeAttributes(ast) && ! elementDesignation(ast) && ! isReactComponent(ast)) {
         throw new InputError(
             "Element needs a designation: " + generateOpening(ast));
     }
@@ -425,8 +425,6 @@ function namedExpressionDefinitionsInJsxElement(ast) {
         attributeDefinition = I.List();
     } else {
         var designation = elementDesignation(ast);
-        if (!designation)
-            throw new InputError("Element needs a designation: " + generateOpening(ast));
         attributeDefinition = I.List([
             I.List( [designation, hiddenAttributes] )
         ]);
@@ -613,12 +611,17 @@ module.exports._keypathsForMessageNodesInAst = keypathsForMessageNodesInAst;
 function variableNameForReactComponent(componentAst) {
     return ({
         'JSXMemberExpression': variableNameForMemberExpression,
+        'JSXNamespacedName': variableNameForNamespacedName,
         'JSXIdentifier': variableNameForIdentifier
     }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
 }
 
 function variableNameForIdentifier(identifierAst) {
     return identifierAst.get('name');
+}
+
+function variableNameForNamespacedName(namespacedNameAst) {
+    return namespacedNameAst.getIn(['namespace', 'name']);
 }
 
 function variableNameForMemberExpression(memberExpressionAst) {
