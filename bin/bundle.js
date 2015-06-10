@@ -17,8 +17,7 @@ var chalk = require('chalk');
 var fs = require('fs');
 var rw = require('rw');
 
-require("babel/register");
-var translator = require('../jsx-translator.js');
+var translator = require('../lib/jsx-translator.js');
 
 var translationsFilename = process.argv[3];
 var translations = JSON.parse(rw.readFileSync(translationsFilename, "utf8"));

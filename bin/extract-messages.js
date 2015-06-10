@@ -17,8 +17,7 @@ if (process.argv.length < 3
 var chalk = require('chalk');
 var fs = require('fs');
 
-require("babel/register");
-var translator = require('../jsx-translator.js');
+var translator = require('../lib/jsx-translator.js');
 
 
 var files = process.argv.slice(2);

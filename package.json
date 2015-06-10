@@ -1,6 +1,6 @@
 {
-  "name": "jsxlate",
-  "version": "0.1.0",
+  "name": "i18n-jsx",
+  "version": "0.1.1",
   "description": "Automatic message extraction and translation for JSX files",
   "main": "index.js",
   "bin": {
@@ -10,7 +10,8 @@
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js",
-    "build": "mkdir -p ./lib && babel --optional runtime ./jsx-translator.js > lib/jsx-translator.js && babel ./components.jsx > lib/components.js"
+    "build": "mkdir -p ./lib && babel --optional runtime ./jsx-translator.js > lib/jsx-translator.js && babel ./components.jsx > lib/components.js",
+    "prepublish": "mkdir -p ./lib && babel --optional runtime ./jsx-translator.js > lib/jsx-translator.js && babel ./components.jsx > lib/components.js"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [
