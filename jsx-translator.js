@@ -107,6 +107,10 @@ function extractMessage(ast) {
 module.exports._extractMessage = extractMessage;
 
 
+function escape(str) {
+    return str.replace(/\n/g, '\\n').replace(/"/g, '\\"');
+}
+
 /*****************************************************************************
     Validating messages during extraction
 *****************************************************************************/
@@ -703,22 +707,22 @@ module.exports.freeVariablesInMessageAst = freeVariablesInMessageAst;
 
 function transformMessageNode(ast) {
     var message = extractMessage(ast);
+    var escapedMessage = escape(message);
     if (isElementMarker(ast)) {
         var freeVariables = freeVariablesInMessageAst(ast).toJS().join(', ');
-        // TODO: strip all the namespaces here!
-        var fallbackDiv = ast
+        var fallbackSpan = ast
             .setIn(['openingElement', 'name', 'name'], 'span')
             .setIn(['closingElement', 'name', 'name'], 'span');
-        var keypaths = allKeypathsInAst(fallbackDiv);
-        fallbackDiv = keypaths.reduce((ast, keypath) => {
-            var node = fallbackDiv.getIn(keypath);
+        var keypaths = allKeypathsInAst(fallbackSpan);
+        fallbackSpan = keypaths.reduce((ast, keypath) => {
+            var node = fallbackSpan.getIn(keypath);
             if (isElement(node)) {
                 ast = ast.updateIn(keypath, () => removeDesignation(node));
             }
             return ast;
-        }, fallbackDiv);
-        var fallback = `function() { return ${generate(fallbackDiv)}; }`;
-        return `<I18N message="${message}" context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
+        }, fallbackSpan);
+        var fallback = `function() { return ${generate(fallbackSpan)}; }`;
+        return `<I18N message={"${escapedMessage}"} context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
     } else {
         return `i18n('${message}')`;
     }

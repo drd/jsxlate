@@ -30,11 +30,12 @@ class App extends React.Component {
         this.setState({locale: event.target.value});
     }
 
-    render() {
+    render(thing = {}) {
         var thing = i18n('awesome?');
+        var ugh = /ugh/;
         return <div>
             <header>
-                <h1><I18N>Translated {thing} Application</I18N></h1>
+                <h1><I18N>Translated <span:hello className="hello">{thing}</span:hello> Application</I18N></h1>
                 <I18N>Choose locale:</I18N> <select onChange={this.localeChanged.bind(this)}>
                     <option value="en">English</option>
                     <option value="es">Spanish</option>
@@ -60,9 +61,11 @@ class Stupid extends React.Component {
 
 class Page extends React.Component {
     render() {
-        return <I18N>Hello, <Stupid /> world!</I18N>;
+        return <I18N>Hello, <Stupid foo="bar" bar={{foo: 'bar'}}/> world!</I18N>;
     }
 }
 
 
 React.render(<App/>, document.getElementById('root'));
+
+export default App;

@@ -213,19 +213,30 @@ exports.testDetectFreeVariables = function(test) {
 var messagesToBeTransformed = I.List([
     [
         '<I18N>Hello, world. <Component />{foo}<p>{bar.baz}</p></I18N>',
-        '<I18N message="Hello, world. <Component />{foo}<p>{bar.baz}</p>" context={this} args={[Component, foo, bar]}' +
+        '<I18N message={"Hello, world. <Component />{foo}<p>{bar.baz}</p>"} context={this} args={[Component, foo, bar]}' +
           ' fallback={function() { return <span>Hello, world. <Component />{foo}<p>{bar.baz}</p></span>; }}/>'
     ],
 
     [
         '<I18N>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</I18N>',
-        '<I18N message="Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}" context={this} args={[Component, boochies]}' +
-          ' fallback={function() { return <span>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</span>; }}/>'
+        '<I18N message={"Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}"} context={this} args={[Component, boochies]}' +
+          ' fallback={function() { return <span>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</span>; }}/>'
+    ],
+
+    [
+        '<I18N>Hello, \n"world".</I18N>',
+        '<I18N message={"Hello, \\n\\\"world\\\"."} context={this} args={[]}' +
+          ' fallback={function() { return (\n    <span>Hello, \n"world".</span>\n); }}/>'
     ],
 
     [
         "i18n('Well golly gee')",
         "i18n('Well golly gee')"
+    ],
+
+    [
+        "i18n('Well \"golly\" gee')",
+        "i18n('Well \"golly\" gee')"
     ]
 ]);
 
@@ -240,5 +251,3 @@ exports.testMessageNodeTransformation = function(test) {
     });
     test.done();
 };
-
-

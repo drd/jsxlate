@@ -1,12 +1,12 @@
 {
-  "name": "i18n-jsx",
-  "version": "0.1.1",
+  "name": "jsxlate",
+  "version": "0.1.2",
   "description": "Automatic message extraction and translation for JSX files",
   "main": "index.js",
   "bin": {
     "extract-messages": "./bin/extract-messages.js",
     "translate": "./bin/translate.js",
-    "bundle": "./bin/bundle.js"
+    "bundle-messages": "./bin/bundle-messages.js"
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js",
@@ -34,9 +34,9 @@
     "react": "^0.13.2"
   },
   "devDependencies": {
+    "babel-loader": "^5.1.3",
     "node-inspector": "^0.10.1",
     "nodeunit": "^0.9.0",
-    "babel-loader": "^5.1.3",
     "webpack": "^1.9.5"
   }
 }

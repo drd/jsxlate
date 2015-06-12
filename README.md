@@ -6,7 +6,7 @@ Translators are presented with a sanitized version of JSX that allows them to re
 
 ## Messages
 
-Messages take one of two forms: string literals or JSX elements. 
+Messages take one of two forms: string literals or JSX elements.
 
 1. String messages are marked with a specially-named identity function: `i18n(“Hello!”)`
 2. JSX messages are marked with a specially-named React component: `<I18N>Hello, <em>world!</em></I18N>`
@@ -19,7 +19,7 @@ A script is included that extracts messages from JSX files:
 bin/extract MyComponent.jsx > messages.json
 ```
 
-The resulting JSON file can be merged with existing translations using the [json](http://trentm.com/json/) utility, and then given to translators using a tool such as Transifex. 
+The resulting JSON file can be merged with existing translations using the [json](http://trentm.com/json/) utility, and then given to translators using a tool such as Transifex.
 
 ## Translating JSX sources
 
