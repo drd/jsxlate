@@ -2,7 +2,7 @@
 "use strict";
 
 function showHelpAndExit() {
-    console.log("Usage: bundle -t TRANSLATIONS [FILES]");
+    console.log("Usage: bundle-messages -t TRANSLATIONS [FILES]");
     console.log("Prints a JS module with messages in FILES mapped to render functions.");
     process.exit();
 }
