@@ -1,6 +1,6 @@
-# JSX Translator
+# jsxlate
 
-This program aids in internationalizing React applications by extracting messages from JSX sources and then rewriting the sources with translated messages. The advantage of this approach is that translators can be shown full sentences, rich in context.
+This program aids in internationalizing React applications by extracting messages from JSX sources and then rewriting the messages into bundles of translatable units. The advantage of this approach is that translators can be shown full sentences, rich in context.
 
 Translators are presented with a sanitized version of JSX that allows them to rearrange markup but prevents them from seeing anything irrelevant or modifying anything dangerous. The develop can allow translators to change certain HTML tag attributes, if, for example, links needs to be changed to point to language-specific resources. Translators can also change add or remove simple HTML tags in case, for instance, a single italicized phrase in the source language becomes two italicized phrases in the destination language.
 
@@ -8,7 +8,7 @@ Translators are presented with a sanitized version of JSX that allows them to re
 
 Messages take one of two forms: string literals or JSX elements.
 
-1. String messages are marked with a specially-named identity function: `i18n(“Hello!”)`
+1. String messages are marked with a specially-named identity function: `i18n("Hello!")`
 2. JSX messages are marked with a specially-named React component: `<I18N>Hello, <em>world!</em></I18N>`
 
 ## Extracting messages
@@ -16,18 +16,24 @@ Messages take one of two forms: string literals or JSX elements.
 A script is included that extracts messages from JSX files:
 
 ```
-bin/extract MyComponent.jsx > messages.json
+bin/extract-messages MyComponent.jsx > messages.json
 ```
 
 The resulting JSON file can be merged with existing translations using the [json](http://trentm.com/json/) utility, and then given to translators using a tool such as Transifex.
 
-## Translating JSX sources
+## Bundling translated messages
 
-Once you get your translations back from the translators, you can use the second included script to translate your sources:
+Once you get your translations back from the translators, you can use the second included script to generate a translations bundle:
 
 ```
-bin/translate -t messages.json < MyComponent.jsx > fr/MyComponent.jsx
+bin/bundle-messages -t messages-fr.json [FILES] > i18n/bundle-fr.js
 ```
+
+This module exports an object that has translator functions for the corresponding locale.
+
+## Integrating with your App
+
+See the simple example app included. Expect this to change.
 
 ## Sanitizing and reconstituting JSX messages
 
