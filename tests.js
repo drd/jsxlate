@@ -125,6 +125,8 @@ var shouldNotBeExtractable = [
     'i18n()',
     'i18n("Too many", "arguments")',
     '<I18N><a target="_blank">Unsafe attributes but no designation.</a></I18N>',
+    '<I18N><Doubled/>two of the same Component type without designations<Doubled/></I18N>',
+    '<I18N><Doubled:doubled/>two of the same Component type with the same designations<Doubled:doubled/></I18N>',
     '<I18N>{"string literal"}</I18N>',
     '<I18N>{arbitrary.expression()}</I18N>',
     '<I18N>{("non"+"simple").memberExpression}</I18N>',

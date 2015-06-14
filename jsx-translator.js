@@ -137,6 +137,9 @@ function validateJsxElement(ast) {
     // Throws if definitions are duplicated:
     namedExpressionDefinitions(ast);
 
+    // Throws if component type/designation is duplicated
+    reactComponentsByNameAndDesignation(ast);
+
     if (hasUnsafeAttributes(ast) && ! elementDesignation(ast) && ! isReactComponent(ast)) {
         throw new InputError(
             "Element needs a designation: " + generateOpening(ast));
@@ -481,6 +484,14 @@ function countOfReactComponentsByName(ast) {
     return countOfItemsByItem(names);
 }
 
+function countOfReactComponentsByNameAndDesignation(ast) {
+    var namesAndDesignations = allKeypathsInAst(ast)
+        .map(keypath => ast.getIn(keypath))
+        .filter(isReactComponent)
+        .map(elementNameAndDesignation);
+    return countOfItemsByItem(namesAndDesignations);
+}
+
 function countOfNamedExpressionsByName(ast) {
     var names = allKeypathsInAst(ast)
         .map(keypath => ast.getIn(keypath))
@@ -601,6 +612,22 @@ function nameAndExpressionForNamedExpression(ast) {
     return [generate(ast), ast];
 }
 
+
+function reactComponentsByNameAndDesignation(ast) {
+    let invalidComponents = I.Map(countOfReactComponentsByNameAndDesignation(ast))
+        .filter((v, k) => v > 1)
+        .map((v, k) => {
+            let [type, designation] = k.split(':');
+            if (designation === undefined) {
+                return `${v} instances of ${type} without a designation`;
+            } else {
+                return `${v} instances of ${type} with the designation "${designation}"`;
+            }
+        });
+    if (invalidComponents.count()) {
+        throw new InputError(`There are ${invalidComponents.join(', ')}: ` + generate(ast));
+    }
+}
 
 
 /****************************************************************************
@@ -1027,6 +1054,12 @@ function elementDesignation(jsxElementAst) {
         // The element has an i18n-designation attribute or else has no designation.
         return attributeWithName(jsxElementAst, 'i18n-designation');
     }
+}
+
+function elementNameAndDesignation(jsxElementAst) {
+    let designation = elementDesignation(jsxElementAst),
+        name = elementName(jsxElementAst);
+    return designation ? `${name}:${designation}` : name;
 }
 
 function removeDesignation(jsxElementAst) {
