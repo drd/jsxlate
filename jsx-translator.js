@@ -42,12 +42,12 @@ NOTES:
 
 assertion:
 Ensure can't go from self-closing to not or vice-versa in translation.
-Ensure no tag with designation has member expression for tag name.
+Ensure no tag with id has member expression for tag name.
 
 TODO:
 - Bail out if the translation has non-safe attributes; refactor attribute functions.
 - spread attribute
-- Various heuristics for omitting i18n-designation.
+- Various heuristics for omitting i18n-id.
 - strip leading whitespace? -- rules appear complicated
 - Disallow <script>, dangerouslySetInnerHTML, etc.
 */
@@ -137,12 +137,12 @@ function validateJsxElement(ast) {
     // Throws if definitions are duplicated:
     namedExpressionDefinitions(ast);
 
-    // Throws if component type/designation is duplicated
-    reactComponentsByNameAndDesignation(ast);
+    // Throws if component type/id is duplicated
+    reactComponentsByNameAndId(ast);
 
-    if (hasUnsafeAttributes(ast) && ! elementDesignation(ast) && ! isReactComponent(ast)) {
+    if (hasUnsafeAttributes(ast) && ! elementId(ast) && ! isReactComponent(ast)) {
         throw new InputError(
-            "Element needs a designation: " + generateOpening(ast));
+            "Element needs a id: " + generateOpening(ast));
     }
 
     // Disallow direct nesting of message marker tags:
@@ -165,7 +165,7 @@ function validateJsxExpressionContainer(ast) {
 /****************************************************************************
     Sanitizing messages during extraction.
     Sanitization makes a message presentable for translators. Currently,
-    that means removing unsafe attributes, and making sure element designations
+    that means removing unsafe attributes, and making sure element ids
     are written with the namespace syntax and not the attribute syntax.
 *****************************************************************************/
 
@@ -176,7 +176,7 @@ function sanitize (ast) {
 }
 
 function sanitizeJsxElement (ast) {
-    return withSafeAttributesOnly(rewriteDesignationToNamespaceSyntax(ast))
+    return withSafeAttributesOnly(rewriteIdToNamespaceSyntax(ast))
         .update('children', children => children.map(sanitize));
 }
 
@@ -186,13 +186,13 @@ function withSafeAttributesOnly (jsxElementAst) {
         attributes.filter(a => attributeIsSafe(name, a)));
 }
 
-function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
+function rewriteIdToNamespaceSyntax (jsxElementAst) {
     var name = elementName(jsxElementAst);
-    var designation = attributeWithName(jsxElementAst, 'i18n-designation');
-    if (designation) {
+    var id = attributeWithName(jsxElementAst, 'i18n-id');
+    if (id) {
         var withNamespace = setJsxElementName(jsxElementAst,
-            makeNamespaceAst(name, designation));
-        return removeAttributeWithName(withNamespace, 'i18n-designation');
+            makeNamespaceAst(name, id));
+        return removeAttributeWithName(withNamespace, 'i18n-id');
     }
     else {
         return jsxElementAst;
@@ -243,7 +243,7 @@ function transformMessageNode(ast) {
         fallbackSpan = keypaths.reduce((ast, keypath) => {
             var node = fallbackSpan.getIn(keypath);
             if (isElement(node)) {
-                ast = ast.updateIn(keypath, () => removeDesignation(node));
+                ast = ast.updateIn(keypath, () => removeId(node));
             }
             return ast;
         }, fallbackSpan);
@@ -484,12 +484,12 @@ function countOfReactComponentsByName(ast) {
     return countOfItemsByItem(names);
 }
 
-function countOfReactComponentsByNameAndDesignation(ast) {
-    var namesAndDesignations = allKeypathsInAst(ast)
+function countOfReactComponentsByNameAndId(ast) {
+    var namesAndIds = allKeypathsInAst(ast)
         .map(keypath => ast.getIn(keypath))
         .filter(isReactComponent)
-        .map(elementNameAndDesignation);
-    return countOfItemsByItem(namesAndDesignations);
+        .map(elementNameAndId);
+    return countOfItemsByItem(namesAndIds);
 }
 
 function countOfNamedExpressionsByName(ast) {
@@ -529,17 +529,17 @@ function reconstituteJsxElement(translatedAst, definitions) {
     }
 
     var result;
-    var designation = elementDesignation(translatedAst);
-    if (designation) {
-        var originalAttributes = definitions.get(designation);
-        if (!originalAttributes) { throw new InputError("Translation contains designation '" + designation + "', which is not in the original."); }
+    var id = elementId(translatedAst);
+    if (id) {
+        var originalAttributes = definitions.get(id);
+        if (!originalAttributes) { throw new InputError("Translation contains id '" + id + "', which is not in the original."); }
 
         result = updateAttributes(translatedAst,
             translationAttributes => attributesFromMap(
                 attributeMap(originalAttributes).merge(
                 attributeMap(translationAttributes))));
 
-        result = removeDesignation(result);
+        result = removeId(result);
     } else {
         result = translatedAst;
     }
@@ -589,9 +589,9 @@ function namedExpressionDefinitionsInJsxElement(ast) {
     if (hiddenAttributes.isEmpty()) {
         attributeDefinition = I.List();
     } else {
-        var designation = elementDesignation(ast);
+        var id = elementId(ast);
         attributeDefinition = I.List([
-            I.List( [designation, hiddenAttributes] )
+            I.List( [id, hiddenAttributes] )
         ]);
     }
 
@@ -613,15 +613,15 @@ function nameAndExpressionForNamedExpression(ast) {
 }
 
 
-function reactComponentsByNameAndDesignation(ast) {
-    let invalidComponents = I.Map(countOfReactComponentsByNameAndDesignation(ast))
+function reactComponentsByNameAndId(ast) {
+    let invalidComponents = I.Map(countOfReactComponentsByNameAndId(ast))
         .filter((v, k) => v > 1)
         .map((v, k) => {
-            let [type, designation] = k.split(':');
-            if (designation === undefined) {
-                return `${v} instances of ${type} without a designation`;
+            let [type, id] = k.split(':');
+            if (id === undefined) {
+                return `${v} instances of ${type} without a id`;
             } else {
-                return `${v} instances of ${type} with the designation "${designation}"`;
+                return `${v} instances of ${type} with the id "${id}"`;
             }
         });
     if (invalidComponents.count()) {
@@ -1026,7 +1026,7 @@ function elementNameAst(jsxElementAst) {
     var type = nameAst.get('type');
 
     if (type === 'JSXNamespacedName') {
-        // The element is of the form <name:designation>
+        // The element is of the form <name:id>
         return nameAst.get('namespace');
     }
     else if (type === 'JSXIdentifier' || type === 'JSXMemberExpression') {
@@ -1042,30 +1042,30 @@ function elementName(jsxElementAst) {
     return generate(elementNameAst(jsxElementAst));
 }
 
-function elementDesignation(jsxElementAst) {
+function elementId(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
     if (type === 'JSXNamespacedName') {
-        // The element is of the form <name:designation>
+        // The element is of the form <name:id>
         return generate(nameAst.get('name'));
     }
     else {
-        // The element has an i18n-designation attribute or else has no designation.
-        return attributeWithName(jsxElementAst, 'i18n-designation');
+        // The element has an i18n-id attribute or else has no id.
+        return attributeWithName(jsxElementAst, 'i18n-id');
     }
 }
 
-function elementNameAndDesignation(jsxElementAst) {
-    let designation = elementDesignation(jsxElementAst),
+function elementNameAndId(jsxElementAst) {
+    let id = elementId(jsxElementAst),
         name = elementName(jsxElementAst);
-    return designation ? `${name}:${designation}` : name;
+    return id ? `${name}:${id}` : name;
 }
 
-function removeDesignation(jsxElementAst) {
+function removeId(jsxElementAst) {
     var renamed = setJsxElementName(jsxElementAst,
             elementNameAst(jsxElementAst));
-    return removeAttributeWithName(renamed, 'i18n-designation');
+    return removeAttributeWithName(renamed, 'i18n-id');
 }
 
 function setJsxElementName (jsxElementAst, nameAst) {

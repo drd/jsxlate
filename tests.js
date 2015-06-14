@@ -9,8 +9,8 @@ var extractions = {
     'i18n("world")': ['world'],
     '<I18N><a href="foo">tag with only safe attributes</a></I18N>': ['<a href="foo">tag with only safe attributes</a>'],
     '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': ['<a:link href="foo">tag with unsafe attributes</a:link>'],
-    '<I18N><a href="foo" target="_blank" i18n-designation="link">tag with unsafe attributes</a></I18N>': ['<a:link href="foo">tag with unsafe attributes</a:link>'],
-    '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': ['<SelfClosing:foo />'],
+    '<I18N><a href="foo" target="_blank" i18n-id="link">tag with unsafe attributes</a></I18N>': ['<a:link href="foo">tag with unsafe attributes</a:link>'],
+    '<I18N><SelfClosing i18n-id="foo" attr="attr" /></I18N>': ['<SelfClosing:foo />'],
     '<I18N><SelfClosing /></I18N>': ['<SelfClosing />'],
     '<I18N><SelfClosing:a /><SelfClosing:b /></I18N>': ['<SelfClosing:a /><SelfClosing:b />'],
     '<I18N><Member.Name /></I18N>': ['<Member.Name />'],
@@ -57,8 +57,8 @@ var expectedResultsFromTranslation = {
     'i18n("world")': "'byd';",
     '<I18N><a href="foo">tag with only safe attributes</a></I18N>': '<I18N><a href="bar">Mae tag sydd <span>wedi</span> dim ond priodoleddau sy\'n ddiogel</a></I18N>;',
     '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': '<I18N><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></I18N>;',
-    '<I18N><a href="foo" target="_blank" i18n-designation="link">tag with unsafe attributes</a></I18N>': '<I18N><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></I18N>;',
-    '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': '<I18N>Translated: <SelfClosing attr="attr" /></I18N>;',
+    '<I18N><a href="foo" target="_blank" i18n-id="link">tag with unsafe attributes</a></I18N>': '<I18N><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></I18N>;',
+    '<I18N><SelfClosing i18n-id="foo" attr="attr" /></I18N>': '<I18N>Translated: <SelfClosing attr="attr" /></I18N>;',
     '<I18N><SelfClosing /></I18N>': '<I18N>Translated: <SelfClosing /></I18N>;',
     '<I18N><Member.Name /></I18N>': '<I18N>Translated: <Member.Name /></I18N>;',
     '<I18N>Cat: {nested}</I18N>': "<I18N>Cat : {nested}</I18N>;",
@@ -90,8 +90,8 @@ var expectedResultsForTranslationBundles = {
     'i18n("world")': "function() { return 'byd'; }",
     '<I18N><a href="foo">tag with only safe attributes</a></I18N>': 'function() { return <span><a href="bar">Mae tag sydd <span>wedi</span> dim ond priodoleddau sy\'n ddiogel</a></span>; }',
     '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
-    '<I18N><a href="foo" target="_blank" i18n-designation="link">tag with unsafe attributes</a></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
-    '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing attr="attr" /></span>; }',
+    '<I18N><a href="foo" target="_blank" i18n-id="link">tag with unsafe attributes</a></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
+    '<I18N><SelfClosing i18n-id="foo" attr="attr" /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing attr="attr" /></span>; }',
     '<I18N><SelfClosing /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing /></span>; }',
     '<I18N><Member.Name /></I18N>': 'function(Member) { return <span>Translated: <Member.Name /></span>; }',
     '<I18N>Cat: {nested}</I18N>': "function(nested) { return <span>Cat : {nested}</span>; }",
@@ -125,9 +125,9 @@ var shouldNotBeExtractable = [
     'i18n("Not" + "just a string" + "literal")',
     'i18n()',
     'i18n("Too many", "arguments")',
-    '<I18N><a target="_blank">Unsafe attributes but no designation.</a></I18N>',
-    '<I18N><Doubled/>two of the same Component type without designations<Doubled/></I18N>',
-    '<I18N><Doubled:doubled/>two of the same Component type with the same designations<Doubled:doubled/></I18N>',
+    '<I18N><a target="_blank">Unsafe attributes but no id.</a></I18N>',
+    '<I18N><Doubled/>two of the same Component type without ids<Doubled/></I18N>',
+    '<I18N><Doubled:doubled/>two of the same Component type with the same ids<Doubled:doubled/></I18N>',
     '<I18N>{"string literal"}</I18N>',
     '<I18N>{arbitrary.expression()}</I18N>',
     '<I18N>{("non"+"simple").memberExpression}</I18N>',
@@ -135,7 +135,7 @@ var shouldNotBeExtractable = [
     '<I18N>{sameName}{sameName}</I18N>',
     '<I18N>{same.name}{same.name}</I18N>',
     '<I18N>{sameName}<a:sameName target="_blank">...</a:sameName></I18N>',
-    '<I18N>{sameName}<a i18n-designation="sameName" target="_blank">...</a></I18N>',
+    '<I18N>{sameName}<a i18n-id="sameName" target="_blank">...</a></I18N>',
 ]
 
 exports.testErrorsInExtraction = function (test) {
@@ -157,7 +157,7 @@ function render () {
 // Translations for above source that should cause errors:
 var invalidTranslations = [
     '<a target="_blank">Unsafe attribute</a> <Component />{foo}{bar.baz}',
-    '<a:made-up-designation></a:made-up-designation><Component />{foo}{bar.baz}',
+    '<a:made-up-id></a:made-up-id><Component />{foo}{bar.baz}',
     '{random + expression + in + placeholder}<Component />{foo}{bar.baz}',
     '{non.existant.name}<Component />{foo}{bar.baz}',
     '<Component /> Duplicated expressions: {foo}{foo}{bar.baz}',
@@ -221,7 +221,7 @@ var messagesToBeTransformed = I.List([
     ],
 
     [
-        '<I18N>Hello, world. <Component.SubComponent i18n-designation="comp.sub" snoochie={boochies} />{this.bar.baz}</I18N>',
+        '<I18N>Hello, world. <Component.SubComponent i18n-id="comp.sub" snoochie={boochies} />{this.bar.baz}</I18N>',
         '<I18N message={"Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}"} context={this} args={[Component, boochies]}' +
           ' fallback={function() { return <span>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</span>; }}/>'
     ],
