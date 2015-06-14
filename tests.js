@@ -12,6 +12,7 @@ var extractions = {
     '<I18N><a href="foo" target="_blank" i18n-designation="link">tag with unsafe attributes</a></I18N>': ['<a:link href="foo">tag with unsafe attributes</a:link>'],
     '<I18N><SelfClosing i18n-designation="foo" attr="attr" /></I18N>': ['<SelfClosing:foo />'],
     '<I18N><SelfClosing /></I18N>': ['<SelfClosing />'],
+    '<I18N><SelfClosing:a /><SelfClosing:b /></I18N>': ['<SelfClosing:a /><SelfClosing:b />'],
     '<I18N><Member.Name /></I18N>': ['<Member.Name />'],
     '<I18N><a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a></I18N>': ['<a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a>'],
     '<I18N>Cat: {hat}</I18N>': ['Cat: {hat}'],

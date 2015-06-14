@@ -7,8 +7,11 @@ const CONTEXT_TYPES = Object.freeze({
 });
 
 
+var messages = {}, locale;
+
+
 function i18n(original) {
-    var translated = i18n.messages[original];
+    let translated = i18n.messages[original];
     return translated ? translated() : original;
 }
 
