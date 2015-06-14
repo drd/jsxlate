@@ -3,7 +3,7 @@
 /*****************************************************************************
 This program extracts translateable messages from JSX files,
 sanitizes them for showing to translators, reconstitutes the sanitized
-translations based on the original input, and generates JSX files
+translations based on the original input, and generates translation bundles
 with the messages replaced with translated ones. Messages can be
 not just strings but JSX elements.
 
@@ -26,6 +26,8 @@ Outline:
 * Extracting
   - Validating
   - Sanitizing
+* Transforming
+  - Free variables
 * Translating
   - Validating
   - Reconstituting
@@ -195,6 +197,142 @@ function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
 }
 
 
+/****************************************************************************
+
+    Message node transformation
+
+    This is the process of converting a message node in the source file
+    to a message node capable of retrieving the correct translation for its
+    message. It is used by the transform-loader.
+
+    To wit,
+    render() {
+        var name = this.props.user.firstName;
+        return <div><I18N>Hello, {name}, you handsome devil!</I18N></div>;
+    }
+
+    is transformed to (with whitespace reformatted):
+    render() {
+        var name = this.props.user.firstName;
+        return <div>
+            <I18N message="Hello, {name}, you handsome devil"
+                  context={this}
+                  args={[name]}
+                  fallback={() => <I18N>Hello, {name}, you handsome devil!</I18N>}
+                  />
+        </div>;
+    }
+
+    The I18N component looks up the translation for the current
+    locale, and if that is not available, still renders the original (fallback).
+
+****************************************************************************/
+
+function transformMessageNode(ast) {
+    var message = extractMessage(ast);
+    var escapedMessage = escape(message);
+    if (isElementMarker(ast)) {
+        var freeVariables = freeVariablesInMessageAst(ast).toJS().join(', ');
+        var fallbackSpan = ast
+            .setIn(['openingElement', 'name', 'name'], 'span')
+            .setIn(['closingElement', 'name', 'name'], 'span');
+        var keypaths = allKeypathsInAst(fallbackSpan);
+        fallbackSpan = keypaths.reduce((ast, keypath) => {
+            var node = fallbackSpan.getIn(keypath);
+            if (isElement(node)) {
+                ast = ast.updateIn(keypath, () => removeDesignation(node));
+            }
+            return ast;
+        }, fallbackSpan);
+        var fallback = `function() { return ${generate(fallbackSpan)}; }`;
+        return `<I18N message={"${escapedMessage}"} context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
+    } else {
+        return `i18n('${message}')`;
+    }
+}
+module.exports._transformMessageNode = transformMessageNode;
+
+module.exports.transformMessageNodes = function transformMessageNodes(src) {
+    function transform(ast, keypath) {
+        var message = ast.getIn(keypath);
+        return ast.setIn(keypath,
+            parseExpression(transformMessageNode(message)));
+    }
+
+    var ast = parse(src);
+    var keypaths = keypathsForMessageNodesInAst(ast);
+    return generate(keypaths.reduceRight(transform, ast));
+}
+
+
+/****************************************************************************
+
+    Free variables
+
+    It is necessary to find all free variables in the message node, because
+    the bundle modules can not have the same lexical closure without them
+    being passed in.
+
+*****************************************************************************/
+
+function variableNameForReactComponent(componentAst) {
+    return ({
+        'JSXMemberExpression': variableNameForMemberExpression,
+        'JSXNamespacedName': variableNameForNamespacedName,
+        'JSXIdentifier': variableNameForIdentifier
+    }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
+}
+
+function variableNameForIdentifier(identifierAst) {
+    return identifierAst.get('name');
+}
+
+function variableNameForNamespacedName(namespacedNameAst) {
+    return namespacedNameAst.getIn(['namespace', 'name']);
+}
+
+function variableNameForMemberExpression(memberExpressionAst) {
+    var node = memberExpressionAst;
+    while (! (isIdentifierOrJSXIdentifier(node) || isThisExpression(node))) {
+        node = node.get('object');
+    }
+    // if a node is an Identifier or JSXIdentifier will always have a name
+    // so assume it is a thisExpression elsewise and return undefined, which
+    // will be omitted.
+    return node.get('name');
+}
+
+function variableNameForCallExpression(callExpressionAst) {
+    return callExpressionAst.getIn(['callee', 'name']);
+}
+
+function variableNameForJsxExpressionContainer(expressionContainerAst) {
+    var expressionAst = expressionContainerAst.get('expression');
+    return ({
+        'Identifier': variableNameForIdentifier,
+        'MemberExpression': variableNameForMemberExpression,
+        'CallExpression': variableNameForCallExpression,
+        'ObjectExpression': empty,
+        'JSXEmptyExpression': empty
+    }[expressionAst.get('type')])(expressionAst);
+}
+
+function variableNameForNode(nodeAst) {
+    return ({
+        'JSXElement': variableNameForReactComponent,
+        'JSXExpressionContainer': variableNameForJsxExpressionContainer,
+    }[nodeAst.get('type')])(nodeAst);
+}
+
+function freeVariablesInMessageAst(messageAst) {
+    var keypaths = keypathsForFreeVariablesInAst(messageAst);
+    return keypaths
+        .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
+        .filter(identity)
+        .toSet();
+}
+module.exports.freeVariablesInMessageAst = freeVariablesInMessageAst;
+
 
 /*****************************************************************************
 
@@ -209,12 +347,15 @@ function rewriteDesignationToNamespaceSyntax (jsxElementAst) {
     2) Validate it to make sure the translator hasn't done something naughty
     3) Reconstitute what was removed when sanitizing during extraction
 
-*****************************************************************************/
+    Translation may produce either a bundle of translated messages to be
+    looked up by the <I18N> component (translateMessagesToBundle), or emit
+    an entirely translated JSX file (translateMessages).
 
+*****************************************************************************/
 
 /*
     Given a source code string and a translations dictionary,
-    return the source code as a string with the messages translated.
+    return a mapping of messages to translation functions.
 */
 
 module.exports.translateMessagesToBundle = function (src, translations) {
@@ -235,6 +376,11 @@ module.exports.translateMessagesToBundle = function (src, translations) {
     var keypaths = keypathsForMessageNodesInAst(ast);
     return keypaths.reduceRight(substitute, bundle).toJS();
 }
+
+/*
+    Given a source code string and a translations dictionary,
+    return the source code as a string with the messages translated.
+*/
 
 module.exports.translateMessages = function (src, translations) {
     // Substitute at a single keypath based on translations:
@@ -275,6 +421,10 @@ function translateMessage (message, translationString) {
         message);
 }
 
+/*
+    Given a message AST and translation string,
+    return a function that will emit translated DOM.
+*/
 function translatedRendererForMessage (message, translationString) {
     var translation = parseExpression(
         unprintTranslation(translationString, message));
@@ -608,140 +758,6 @@ function keypathsForMessageNodesInAst(ast) {
     return keypaths;
 }
 module.exports._keypathsForMessageNodesInAst = keypathsForMessageNodesInAst;
-
-
-/****************************************************************************
-
-    Free variables
-
-*****************************************************************************/
-
-function variableNameForReactComponent(componentAst) {
-    return ({
-        'JSXMemberExpression': variableNameForMemberExpression,
-        'JSXNamespacedName': variableNameForNamespacedName,
-        'JSXIdentifier': variableNameForIdentifier
-    }[componentAst.getIn(['openingElement', 'name', 'type'])])(componentAst.getIn(['openingElement', 'name']));
-}
-
-function variableNameForIdentifier(identifierAst) {
-    return identifierAst.get('name');
-}
-
-function variableNameForNamespacedName(namespacedNameAst) {
-    return namespacedNameAst.getIn(['namespace', 'name']);
-}
-
-function variableNameForMemberExpression(memberExpressionAst) {
-    var node = memberExpressionAst;
-    while (! (isIdentifierOrJSXIdentifier(node) || isThisExpression(node))) {
-        node = node.get('object');
-    }
-    // if a node is an Identifier or JSXIdentifier will always have a name
-    // so assume it is a thisExpression elsewise and return undefined, which
-    // will be omitted.
-    return node.get('name');
-}
-
-function variableNameForCallExpression(callExpressionAst) {
-    return callExpressionAst.getIn(['callee', 'name']);
-}
-
-function variableNameForJsxExpressionContainer(expressionContainerAst) {
-    var expressionAst = expressionContainerAst.get('expression');
-    return ({
-        'Identifier': variableNameForIdentifier,
-        'MemberExpression': variableNameForMemberExpression,
-        'CallExpression': variableNameForCallExpression,
-        'ObjectExpression': empty,
-        'JSXEmptyExpression': empty
-    }[expressionAst.get('type')])(expressionAst);
-}
-
-function variableNameForNode(nodeAst) {
-    return ({
-        'JSXElement': variableNameForReactComponent,
-        'JSXExpressionContainer': variableNameForJsxExpressionContainer,
-    }[nodeAst.get('type')])(nodeAst);
-}
-
-function freeVariablesInMessageAst(messageAst) {
-    var keypaths = keypathsForFreeVariablesInAst(messageAst);
-    return keypaths
-        .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
-        .filter(identity)
-        .toSet();
-}
-module.exports.freeVariablesInMessageAst = freeVariablesInMessageAst;
-
-/****************************************************************************
-
-    Message node mangling
-
-    This is the process of converting a message node in the source file
-    to a message node capable of retrieving the correct translation for its
-    message.
-
-    To wit,
-    render() {
-        var name = this.props.user.firstName;
-        return <div><I18N>Hello, {name}, you handsome devil!</I18N></div>;
-    }
-
-    is transformed to (with whitespace reformatted):
-    render() {
-        var name = this.props.user.firstName;
-        return <div>
-            <I18N message="Hello, {name}, you handsome devil"
-                  context={this}
-                  args={[name]}
-                  fallback={() => <I18N>Hello, {name}, you handsome devil!</I18N>}
-                  />
-        </div>;
-    }
-
-    This enables the I18N component to look up the translation for the current
-    locale, and if that is not available, still render the original.
-
-****************************************************************************/
-
-function transformMessageNode(ast) {
-    var message = extractMessage(ast);
-    var escapedMessage = escape(message);
-    if (isElementMarker(ast)) {
-        var freeVariables = freeVariablesInMessageAst(ast).toJS().join(', ');
-        var fallbackSpan = ast
-            .setIn(['openingElement', 'name', 'name'], 'span')
-            .setIn(['closingElement', 'name', 'name'], 'span');
-        var keypaths = allKeypathsInAst(fallbackSpan);
-        fallbackSpan = keypaths.reduce((ast, keypath) => {
-            var node = fallbackSpan.getIn(keypath);
-            if (isElement(node)) {
-                ast = ast.updateIn(keypath, () => removeDesignation(node));
-            }
-            return ast;
-        }, fallbackSpan);
-        var fallback = `function() { return ${generate(fallbackSpan)}; }`;
-        return `<I18N message={"${escapedMessage}"} context={this} args={[${freeVariables}]} fallback={${fallback}}/>`;
-    } else {
-        return `i18n('${message}')`;
-    }
-}
-module.exports._transformMessageNode = transformMessageNode;
-
-module.exports.transformMessageNodes = function transformMessageNodes(src) {
-    function transform(ast, keypath) {
-        var message = ast.getIn(keypath);
-        return ast.setIn(keypath,
-            parseExpression(transformMessageNode(message)));
-    }
-
-    var ast = parse(src);
-    var keypaths = keypathsForMessageNodesInAst(ast);
-    return generate(keypaths.reduceRight(transform, ast));
-}
-
-
 
 
 /****************************************************************************
