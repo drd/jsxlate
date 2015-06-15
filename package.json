@@ -6,6 +6,7 @@
   "bin": {
     "extract-messages": "./bin/extract-messages.js",
     "translate": "./bin/translate.js",
+    "transform": "./bin/transform.js",
     "bundle-messages": "./bin/bundle-messages.js"
   },
   "scripts": {

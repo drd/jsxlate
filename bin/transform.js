@@ -20,7 +20,7 @@ var translator = require('../lib/jsx-translator.js');
 var input = rw.readFileSync("/dev/stdin", "utf8");
 
 try {
-    console.log(translator.mangleMessageNodes(input));
+    console.log(translator.transformMessageNodes(input));
 } catch (e) {
     console.error(translator.errorMessageForError(e));
     process.exit(1);
