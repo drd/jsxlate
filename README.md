@@ -7,7 +7,9 @@ Translators are presented with a sanitized version of JSX that allows them to re
 ## A brief glossary of terms
 
 *Message*: A user-visible, translateable unit of text, possibly containing nested tags and React components.
+
 *Marker*: A JavaScript function (`i18n`) or React Component (`<I18N>`) that is used to demarcate _messages_.
+
 *Bundle*: A mapping of _message_ to translation for a given locale. Each translation is a function that returns either a _string_ or _React DOM_.
 
 ## Messages
