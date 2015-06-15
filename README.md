@@ -59,57 +59,57 @@ We sanitize two aspects of JSX messages: JavaScript expressions, and attributes.
 
 In order to make sure that messages are friendly for translators, only variables and properties are allowed in JavaScript expressions:
 
-```
+```js
 <I18N>My name is {name}</I18N>
 <I18N>My favorite color is {favorites.color}</I18N>
 ```
 
 Now, attributes that aren't relevant to translators are removed. But when we remove attributes, we need to know where to put them back. Since translators can add and remove tags, we must give a special *id* to the tag whose attributes were removed:
 
-```
+```js
 <I18N><a:my-link href="example.com" target="_blank">Example</a:my-link></I18N>
         ^^^^^^^^                                              ^^^^^^^^
 ```
 
 This produces the following extracted message:
 
-```
+```js
 <a:my-link href="example.com">Example</a:my-link>
 ```
 
 Note that `target="_blank"` is missing. Now the translator can rearrange at will:
 
-```
+```js
 <i>Cliquez sur-moi: <a:my-link href="example.fr">Exemple</a:my-link></i>
 ```
 
 When we translate the sources using this translation, we get the following:
 
-```
+```js
 <I18N><i>Cliquez sur-moi: <a href="example.fr" target="_blank">Exemple</a></i>
 ```
 
 There is an alternative syntax if you want your untranslated sources to be
 executable, since the syntax used above would interfere with that. You can say:
 
-```
+```js
 <a i18n-id="foo"></a>
 ```
 
 And this will be shown to translators as:
 
-```
+```js
 <a:foo></a:foo>
 ```
 
 This is also useful if your React Component is a property of a module:
 
-```
+```js
 <I18N><label>Full name: <Form.Input i18n-id="full-name" name="fullName"/></label></I18N>
 ```
 
 Will be shown to translators as:
 
-```
+```js
 <I18N><label>Full name: <Form.Input:full-name/></label></I18N>
 ```
