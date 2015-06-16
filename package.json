@@ -11,8 +11,8 @@
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js",
-    "build": "mkdir -p ./lib && babel --optional runtime ./jsx-translator.js > lib/jsx-translator.js && babel ./components.jsx > lib/components.js",
-    "prepublish": "mkdir -p ./lib && babel --optional runtime ./jsx-translator.js > lib/jsx-translator.js && babel ./components.jsx > lib/components.js"
+    "build": "mkdir -p ./lib && babel --optional runtime ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.js",
+    "prepublish": "mkdir -p ./lib && babel --optional runtime ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.js"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [

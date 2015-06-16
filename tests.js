@@ -1,6 +1,6 @@
 "use strict";
 
-var translator = require('./jsx-translator');
+var translator = require('./jsxlate');
 var I = require('immutable');
 
 var extractions = {

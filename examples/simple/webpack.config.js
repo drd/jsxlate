@@ -1,7 +1,6 @@
 var webpack = require('webpack');
 require("babel/register");
 
-var translator = require('../../jsx-translator');
 
 module.exports = {
     entry: {

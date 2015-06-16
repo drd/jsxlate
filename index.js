@@ -1,4 +1,4 @@
-var translator = require('./lib/jsx-translator');
+var translator = require('./lib/jsxlate');
 var components = require('./lib/components');
 
 module.exports = {

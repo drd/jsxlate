@@ -1,5 +1,5 @@
 import React from 'react';
-import {I18N, i18n, CONTEXT_TYPES} from '../../components';
+import {I18N, i18n, CONTEXT_TYPES, setLocale, setMessages} from '../../components';
 
 import spanish from './bundle-es';
 import french from './bundle-fr';
@@ -18,16 +18,18 @@ class App extends React.Component {
         this.state = {locale: 'en'};
     }
 
-    getChildContext() {
-        i18n.messages = messages[this.state.locale];
-        return {
-            locale: this.state.locale,
-            messages: messages[this.state.locale]
-        }
+    componentWillMount() {
+        this.setLocale(this.state.locale);
     }
 
     localeChanged(event) {
-        this.setState({locale: event.target.value});
+        this.setLocale(event.target.value);
+    }
+
+    setLocale(locale) {
+        setLocale(locale);
+        setMessages(messages[locale]);
+        this.setState({locale})
     }
 
     render(thing = {}) {

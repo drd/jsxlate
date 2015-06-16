@@ -17,8 +17,7 @@ if (process.argv.length != 4
 
 var rw = require('rw');
 
-require("babel/register");
-var translator = require('../lib/jsx-translator.js');
+var translator = require('../lib/jsxlate.js');
 
 
 var translationsFilename = process.argv[3];

@@ -24,17 +24,23 @@ Messages take one of two forms: string literals or JSX elements.
 A script is included that extracts messages from JSX files:
 
 ```
-bin/extract-messages MyComponent.jsx > messages.json
+$(npm bin)/extract-messages MyComponent.jsx > messages.json
 ```
 
 The resulting JSON file can be merged with existing translations using the [json](http://trentm.com/json/) utility, and then given to translators using a tool such as Transifex.
+
+Or, extract all the messages in your entire tree:
+
+```
+$(npm bin)/extract-messages $(find -name '*.js?') > messages.json
+```
 
 ## Bundling translated messages
 
 Once you get your translations back from the translators, you can use the second included script to generate a translations bundle:
 
 ```
-node_modules/.bin/bundle-messages -t messages-fr.json [FILES] > i18n/bundle-fr.js
+$(npm bin)/bundle-messages -t messages-fr.json [FILES] > i18n/bundle-fr.js
 ```
 
 This module exports an object that has translator functions for the corresponding locale.
@@ -46,7 +52,7 @@ The developer will mark up messages using the function `i18n()` or the component
 Using `bin/transform`:
 
 ```
-find -name '*.js?' -exec node_modules/.bin/transform < \{\}; > out/\{\};
+for f in $(find -name '*.js?'); do $(npm bin)/transform < $f > out/$f; done
 ```
 
 ## Integrating with your App

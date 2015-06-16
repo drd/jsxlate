@@ -18,7 +18,7 @@ var chalk = require('chalk');
 var fs = require('fs');
 var rw = require('rw');
 
-var translator = require('../lib/jsx-translator.js');
+var translator = require('../lib/jsxlate.js');
 
 var translationsFilename = process.argv[3];
 var translations = JSON.parse(rw.readFileSync(translationsFilename, "utf8"));

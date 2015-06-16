@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 "use strict";
 
 function showHelpAndExit() {
@@ -14,7 +15,7 @@ if (process.argv.length != 2
 
 var rw = require('rw');
 
-var translator = require('../lib/jsx-translator.js');
+var translator = require('../lib/jsxlate.js');
 
 
 var input = rw.readFileSync("/dev/stdin", "utf8");

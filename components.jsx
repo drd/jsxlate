@@ -7,18 +7,30 @@ const CONTEXT_TYPES = Object.freeze({
 });
 
 
-var messages = {}, locale;
+var state = {
+    messages: {},
+    locale: ''
+};
+
+
+function setMessages(messages) {
+    state.messages = messages;
+}
+
+function setLocale(locale) {
+    state.locale = locale;
+}
 
 
 function i18n(original) {
-    let translated = i18n.messages[original];
+    let translated = state.messages[original];
     return translated ? translated() : original;
 }
 
 
 class I18N extends React.Component {
     render() {
-        let renderer = this.context.messages[this.props.message];
+        let renderer = state.messages[this.props.message];
         if (renderer) {
             return renderer.apply(this.props.context, this.props.args);
         }
@@ -29,4 +41,4 @@ class I18N extends React.Component {
 I18N.contextTypes = CONTEXT_TYPES;
 
 
-export default {CONTEXT_TYPES, i18n, I18N};
+export default {CONTEXT_TYPES, i18n, I18N, setLocale, setMessages};
