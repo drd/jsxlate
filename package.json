@@ -1,6 +1,6 @@
 {
   "name": "jsxlate",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Automatic message extraction and translation for JSX files",
   "main": "index.js",
   "bin": {
@@ -27,7 +27,8 @@
     "react",
     "translation",
     "i18n",
-    "l10n"
+    "l10n",
+    "internationalization"
   ],
   "dependencies": {
     "babel": "^5.4.4",
