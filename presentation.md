@@ -65,7 +65,7 @@
 - `let locale = require('./i18n/bundle-' + locale);`
 - use `componentWillMount`, `setMessages`, `setLocale`
 
-### use `transform` or `transform-loader`
+### use `transform` or `jsxlate-loader`
 
 - the call sites of `i18n()` and `<I18N>` must be transformed to hook into the translations
 - show webpack config
@@ -107,7 +107,7 @@
 -- [ example ]
 
 - speed!
--- express transform-loader as a babel plugin?
+-- express jsxlate-loader as a babel plugin?
 -- many optimizations possible throughout the codebase
 -- ugh, seriously, node profiling tools :(
 

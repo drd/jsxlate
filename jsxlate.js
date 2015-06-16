@@ -206,7 +206,7 @@ function rewriteIdToNamespaceSyntax (jsxElementAst) {
 
     This is the process of converting a message node in the source file
     to a message node capable of retrieving the correct translation for its
-    message. It is used by the transform-loader.
+    message. It is used by jsxlate-loader.
 
     To wit,
     render() {

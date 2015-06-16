@@ -15,14 +15,14 @@ if (process.argv.length != 2
 
 var rw = require('rw');
 
-var translator = require('../lib/jsxlate.js');
+var jsxlate = require('../lib/jsxlate.js');
 
 
 var input = rw.readFileSync("/dev/stdin", "utf8");
 
 try {
-    console.log(translator.transformMessageNodes(input));
+    console.log(jsxlate.transformMessageNodes(input));
 } catch (e) {
-    console.error(translator.errorMessageForError(e));
+    console.error(jsxlate.errorMessageForError(e));
     process.exit(1);
 }

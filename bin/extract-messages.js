@@ -18,7 +18,7 @@ if (process.argv.length < 3
 var chalk = require('chalk');
 var fs = require('fs');
 
-var translator = require('../lib/jsxlate.js');
+var jsxlate = require('../lib/jsxlate.js');
 
 
 var files = process.argv.slice(2);
@@ -27,10 +27,10 @@ var messages = {};
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
     try {
-        var messagesInFile = translator.extractMessages(buffer);
+        var messagesInFile = jsxlate.extractMessages(buffer);
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
-        console.error(translator.errorMessageForError(e));
+        console.error(jsxlate.errorMessageForError(e));
         process.exit(1);
     }
     messagesInFile.forEach(function (message) {

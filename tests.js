@@ -1,6 +1,6 @@
 "use strict";
 
-var translator = require('./jsxlate');
+var jsxlate = require('./jsxlate');
 var I = require('immutable');
 
 var extractions = {
@@ -25,14 +25,14 @@ exports.testExtraction = function (test) {
     Object.keys(extractions).forEach(input => {
         test.ok(
             I.is(I.fromJS(extractions[input]),
-                 I.fromJS(translator.extractMessages(input))),
+                 I.fromJS(jsxlate.extractMessages(input))),
                  `
                  Incorrect extraction for input
                  ${input}
                  Expected
                  ${extractions[input]}
                  but got
-                 ${translator.extractMessages(input)}
+                 ${jsxlate.extractMessages(input)}
                  `);
     });
     test.done();
@@ -69,17 +69,17 @@ var expectedResultsFromTranslation = {
 
 exports.testTranslation = function (test) {
     Object.keys(expectedResultsFromTranslation).forEach(original => {
-        try { translator.translateMessages(original, translations) } catch (e) {console.error(e)};
+        try { jsxlate.translateMessages(original, translations) } catch (e) {console.error(e)};
         test.ok(
             I.is(I.fromJS(expectedResultsFromTranslation[original]),
-                 I.fromJS(translator.translateMessages(original, translations))),
+                 I.fromJS(jsxlate.translateMessages(original, translations))),
                  `
                  Incorrect translation for original
                  ${original}
                  Expected
                  ${expectedResultsFromTranslation[original]}
                  but got
-                 ${translator.translateMessages(original, translations)}
+                 ${jsxlate.translateMessages(original, translations)}
                  `);
     })
     test.done();
@@ -102,19 +102,19 @@ var expectedResultsForTranslationBundles = {
 exports.testTranslationToRenderer = function (test) {
     debugger;
     Object.keys(expectedResultsForTranslationBundles).forEach(original => {
-        var messageAst = translator._parseExpression(original);
-        var message = translator._extractMessage(messageAst);
-        try { translator.translatedRendererForMessage(messageAst, translations[message]) } catch (e) {console.error(e)};
+        var messageAst = jsxlate._parseExpression(original);
+        var message = jsxlate._extractMessage(messageAst);
+        try { jsxlate.translatedRendererForMessage(messageAst, translations[message]) } catch (e) {console.error(e)};
         test.ok(
             (expectedResultsForTranslationBundles[original] ==
-                translator.translatedRendererForMessage(messageAst, translations[message])),
+                jsxlate.translatedRendererForMessage(messageAst, translations[message])),
                  `
                  Incorrect translation function for original
                  ${original}
                  Expected
                  ${expectedResultsForTranslationBundles[original]}
                  but got
-                 ${translator.translatedRendererForMessage(messageAst, translations[message])}
+                 ${jsxlate.translatedRendererForMessage(messageAst, translations[message])}
                  `);
     })
     test.done();
@@ -140,7 +140,7 @@ var shouldNotBeExtractable = [
 
 exports.testErrorsInExtraction = function (test) {
     shouldNotBeExtractable.forEach(message => {
-        test.throws(() => translator.extractMessages(message), message);
+        test.throws(() => jsxlate.extractMessages(message), message);
     });
     test.done();
 }
@@ -167,10 +167,10 @@ var invalidTranslations = [
 var correctTranslation = 'Helo, byd. <Component />{foo}{bar.baz}';
 
 exports.testErrorsInTranslation = function (test) {
-    var extraction = translator.extractMessages(toBeTranslated)[0];
+    var extraction = jsxlate.extractMessages(toBeTranslated)[0];
 
     function translate(translation) {
-        translator.translateMessages(toBeTranslated, {[extraction]: translation})
+        jsxlate.translateMessages(toBeTranslated, {[extraction]: translation})
     }
 
     test.doesNotThrow(() => translate(correctTranslation),
@@ -197,15 +197,15 @@ var messagesWithFreeVariables = I.List([
 
 exports.testDetectFreeVariables = function(test) {
     messagesWithFreeVariables.forEach(([message, variables]) => {
-        var ast = translator._parse(message);
-        var keypaths = translator._keypathsForMessageNodesInAst(ast);
+        var ast = jsxlate._parse(message);
+        var keypaths = jsxlate._keypathsForMessageNodesInAst(ast);
         keypaths.forEach((keypath) => {
             var messageAst = ast.getIn(keypath);
             test.ok(
                 I.is(
-                    translator.freeVariablesInMessageAst(messageAst),
+                    jsxlate.freeVariablesInMessageAst(messageAst),
                     variables),
-                    `${translator.freeVariablesInMessageAst(messageAst)} did not equal ${variables}.`
+                    `${jsxlate.freeVariablesInMessageAst(messageAst)} did not equal ${variables}.`
                 );
         });
     })
@@ -245,11 +245,11 @@ var messagesToBeTransformed = I.List([
 
 exports.testMessageNodeTransformation = function(test) {
     messagesToBeTransformed.forEach(([message, transformed]) => {
-        var ast = translator._parse(message);
-        var keypaths = translator._keypathsForMessageNodesInAst(ast);
+        var ast = jsxlate._parse(message);
+        var keypaths = jsxlate._keypathsForMessageNodesInAst(ast);
         keypaths.forEach((keypath) => {
-            test.ok(transformed === translator._transformMessageNode(ast.getIn(keypath)),
-            `${translator._transformMessageNode(ast.getIn(keypath))} did not equal ${transformed}.`);
+            test.ok(transformed === jsxlate._transformMessageNode(ast.getIn(keypath)),
+            `${jsxlate._transformMessageNode(ast.getIn(keypath))} did not equal ${transformed}.`);
         });
     });
     test.done();

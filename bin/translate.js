@@ -17,7 +17,7 @@ if (process.argv.length != 4
 
 var rw = require('rw');
 
-var translator = require('../lib/jsxlate.js');
+var jsxlate = require('../lib/jsxlate.js');
 
 
 var translationsFilename = process.argv[3];
@@ -26,8 +26,8 @@ var translations = JSON.parse(rw.readFileSync(translationsFilename, "utf8"));
 var input = rw.readFileSync("/dev/stdin", "utf8");
 
 try {
-    console.log(translator.translateMessages(input, translations));
+    console.log(jsxlate.translateMessages(input, translations));
 } catch (e) {
-    console.error(translator.errorMessageForError(e));
+    console.error(jsxlate.errorMessageForError(e));
     process.exit(1);
 }

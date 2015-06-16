@@ -18,7 +18,7 @@ var chalk = require('chalk');
 var fs = require('fs');
 var rw = require('rw');
 
-var translator = require('../lib/jsxlate.js');
+var jsxlate = require('../lib/jsxlate.js');
 
 var translationsFilename = process.argv[3];
 var translations = JSON.parse(rw.readFileSync(translationsFilename, "utf8"));
@@ -29,10 +29,10 @@ var bundle = {};
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
     try {
-        var translationsForFile = translator.translateMessagesToBundle(buffer, translations);
+        var translationsForFile = jsxlate.translateMessagesToBundle(buffer, translations);
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
-        console.error(translator.errorMessageForError(e));
+        console.error(jsxlate.errorMessageForError(e));
         process.exit(1);
     }
     Object.keys(translationsForFile).forEach(function (message) {
