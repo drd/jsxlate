@@ -1,0 +1,55 @@
+<html>
+    <head>
+        <title>Translation Example</title>
+        <meta charset="utf-8"/>
+        <style>
+            body {
+                background-color: #ddd;
+                font-family: Helvetica;
+                margin: 0;
+            }
+
+            #root {
+                width: 80%;
+                margin: 0 auto;
+                padding: 3em;
+                background: white;
+            }
+
+            #translations, #extractions {
+                width: 45%;
+                display: inline-block;
+                vertical-align: top;
+            }
+
+            textarea {
+                width: 90%;
+                height: 24rem;
+                font-size: 1rem;
+                font-family: Courier;
+            }
+
+            input {
+                width: 60%;
+                padding: .5rem;
+            }
+
+            pre {
+                background-color: #eee;
+                padding: 1.5rem;
+                overflow: scroll;
+                max-height: 24rem;
+            }
+
+            .error {
+                color: #c33;
+                background-color: #ffe7e7;
+                padding: .5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"/>
+        <script src="out/app.js"></script>
+    </body>
+</html>
