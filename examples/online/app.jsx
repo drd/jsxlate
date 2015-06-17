@@ -33,7 +33,7 @@ class App extends React.Component {
     render(thing = {}) {
         return <div>
             <header>
-                <h1>Online Translation</h1>
+                <h1>Online Translation!</h1>
             </header>
             <main>
                 <MessageExtractor input={this.state.input}
@@ -121,4 +121,4 @@ class MessageTranslator extends React.Component {
 
 React.render(<App/>, document.getElementById('root'));
 
-export default App;
+export default {App, MessageTranslator, MessageExtractor};

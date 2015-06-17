@@ -1,23 +1,21 @@
 <html>
     <head>
-        <title>Translation Example</title>
+        <title>Online Translation</title>
         <meta charset="utf-8"/>
         <style>
             body {
                 background-color: #ddd;
                 font-family: Helvetica;
-                margin: 0;
+                margin: 0 2em;
             }
 
             #root {
-                width: 80%;
-                margin: 0 auto;
                 padding: 3em;
                 background: white;
             }
 
             #translations, #extractions {
-                width: 45%;
+                width: 50%;
                 display: inline-block;
                 vertical-align: top;
             }
@@ -25,12 +23,14 @@
             textarea {
                 width: 90%;
                 height: 24rem;
-                font-size: 1rem;
+                font-size: .9rem;
                 font-family: Courier;
             }
 
+            ul { padding: 0; }
+
             input {
-                width: 60%;
+                width: 100%;
                 padding: .5rem;
             }
 
@@ -38,7 +38,9 @@
                 background-color: #eee;
                 padding: 1.5rem;
                 overflow: scroll;
+                font-size: .9rem;
                 max-height: 24rem;
+                font-family: Courier;
             }
 
             .error {

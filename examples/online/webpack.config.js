@@ -29,8 +29,8 @@ module.exports = {
             { test: /\.json$/, loaders: ['json-loader']},
             { test: /\.js$/, exclude: /node_modules/, loaders: ['babel?optional=runtime'] },
             // Pass *.jsx files through jsx-loader transform
-            { test: /\.jsx$/, exclude: /(components|messages)\.jsx/, loaders: ['babel?optional=runtime', 'jsxlate-loader'] },
-            { test: /(components|messages)\.jsx$/, loaders: ['babel']}
+            { test: /\.jsx$/, exclude: /(components|messages)\.jsx/, loaders: ['react-hot', 'babel?optional=runtime', 'jsxlate-loader'] },
+            { test: /(components|messages)\.jsx$/, loaders: ['react-hot', 'babel']}
         ]
     }
 }
