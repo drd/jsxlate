@@ -1,5 +1,5 @@
 import React from 'react';
-import {I18N, i18n, CONTEXT_TYPES, setLocale, setMessages} from '../../components';
+import {I18N, i18n, setLocale, setMessages} from '../../components';
 
 import spanish from './bundle-es';
 import french from './bundle-fr';
@@ -13,17 +13,11 @@ const messages = {
 
 
 class App extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {locale: 'en'};
-    }
 
-    componentWillMount() {
-        this.setLocale(this.state.locale);
-    }
-
-    localeChanged(event) {
-        this.setLocale(event.target.value);
+    componentWillUpdate(nextProps, nextState) {
+        if (nextProps.locale !== this.props.locale) {
+            this.setLocale(nextProps.locale);
+        }
     }
 
     setLocale(locale) {
@@ -34,11 +28,10 @@ class App extends React.Component {
 
     render(thing = {}) {
         var thing = i18n('awesome?');
-        var ugh = /ugh/;
         return <div>
             <header>
                 <h1><I18N>Translated <span:hello className="hello">{thing}</span:hello> Application</I18N></h1>
-                <I18N>Choose locale:</I18N> <select onChange={this.localeChanged.bind(this)}>
+                <I18N>Choose locale:</I18N> <select onChange={this.props.setLocale}>
                     <option value="en">English</option>
                     <option value="es">Spanish</option>
                     <option value="fr">French</option>
@@ -51,23 +44,34 @@ class App extends React.Component {
     }
 }
 
-App.childContextTypes = CONTEXT_TYPES;
 
-
-class Stupid extends React.Component {
+class Awesome extends React.Component {
     render() {
-        return <I18N>STUPID</I18N>;
+        return <I18N>AWESOME</I18N>;
     }
 }
 
 
 class Page extends React.Component {
     render() {
-        return <I18N>Hello, <Stupid foo="bar" bar={{foo: 'bar'}}/> world!</I18N>;
+        return <I18N>Hello, <Awesome foo="bar" bar={{foo: 'bar'}}/> world!</I18N>;
+    }
+}
+
+class Wrap extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {locale: 'en'};
+    }
+    setLocale(e) {
+        this.setState({locale: e.target.value});
+    }
+    render() {
+        return <App locale={this.state.locale} setLocale={this.setLocale.bind(this)} />
     }
 }
 
 
-React.render(<App/>, document.getElementById('root'));
+React.render(<Wrap/>, document.getElementById('root'));
 
-export default App;
+export default {App, Awesome, Page};

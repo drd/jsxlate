@@ -4,12 +4,16 @@ require("babel/register");
 
 module.exports = {
     entry: {
-        app: './app.jsx'
+        app: [
+            './app.jsx',
+            'webpack-dev-server/client?http://localhost:3000',
+            'webpack/hot/dev-server'
+        ]
     },
     output: {
         filename: 'app.js',
         path: __dirname + '/out',
-        publicPath: '/js'
+        publicPath: '/out'
     },
     devtool: 'eval',
     plugins: [
@@ -23,8 +27,8 @@ module.exports = {
         loaders: [
             { test: /\.js$/, exclude: /node_modules/, loaders: ['babel'] },
             // Pass *.jsx files through jsx-loader transform
-            { test: /\.jsx$/, exclude: /(components|messages)\.jsx/, loaders: ['babel', 'jsxlate-loader'] },
-            { test: /(components|messages)\.jsx$/, loaders: ['babel']}
+            { test: /\.jsx$/, exclude: /(components|messages)\.jsx/, loaders: ['react-hot', 'babel', 'jsxlate-loader'] },
+            { test: /(components|messages)\.jsx$/, loaders: ['react-hot', 'babel']}
         ]
     }
 }

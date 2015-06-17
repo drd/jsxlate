@@ -1,7 +1,7 @@
 {
-    "Translated {thing} Application": "Demande traduit {thing}",
-    "Choose locale:": "Choisissez lieu:",
-    "Hello, <Stupid /> world!": "Bonjour le monde <Stupid/>!",
-    "STUPID": "STUPIDE",
-    "awesome?": "terrifiant?"
+  "awesome?": "Impressionnant?",
+  "Translated <span:hello>{thing}</span:hello> Application": "Application Traduite <span:hello>{thing}</span:hello>",
+  "Choose locale:": "Choisir une localité:",
+  "AWESOME": "GÉNIAL",
+  "Hello, <Awesome /> world!": "Bonjour, monde <Awesome />!"
 }
