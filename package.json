@@ -37,7 +37,9 @@
     "escodegen": "drd/escodegen#wallaby",
     "acorn-jsx": "^1.0.1",
     "immutable": "^3.7.3",
-    "rw": "^0.1.4"
+    "rw": "^0.1.4",
+    "minimist": "^1.1.1",
+    "walk": "^2.3.9"
   },
   "peerDependencies": {
     "react": "^0.13.2"
