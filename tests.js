@@ -17,7 +17,7 @@ var extractions = {
     '<I18N><a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a></I18N>': ['<a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a>'],
     '<I18N>Cat: {hat}</I18N>': ['Cat: {hat}'],
     '<I18N>And now {a.member.expression}</I18N>': ['And now {a.member.expression}'],
-    'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
+    'var {nested, ...rested} = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
     '<p><I18N>1: {same.name.different.message}</I18N> <I18N>2: {same.name.different.message}</I18N></p>': ['1: {same.name.different.message}', '2: {same.name.different.message}'],
     '<I18N><Pluralize on={count}><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize></I18N>': [
         '<Pluralize on={count}><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize>']

@@ -56,7 +56,7 @@ import {Format} from './components.jsx';
 
 Error.stackTraceLimit = Infinity;
 
-var acorn = require('acorn-jsx');
+var babel = require('babel');
 var escodegen = require('escodegen-wallaby');
 var I = require('immutable');
 
@@ -942,7 +942,7 @@ function duplicatedValues(list) {
 *****************************************************************************/
 
 function _convert(key, sequence) {
-    if (this[key].constructor === acorn.Node) {
+    if (this[key].constructor === babel.acorn.Node) {
         return I.Map(this[key])
     }
     return Array.isArray(this[key]) ? sequence.toList() : sequence.toOrderedMap();
@@ -965,12 +965,12 @@ function acornAstToNestedObjects(ast, p) {
         return ast;
     } else if (ast.constructor === Array) {
         return ast.map(acornAstToNestedObjects)
-    } else if (ast.constructor === acorn.Node || ast.constructor === Object) {
+    } else if (ast.constructor === babel.acorn.Node || ast.constructor === Object) {
         return Object.entries(ast).reduce((acc, [key, value]) => {
             acc[key] = acornAstToNestedObjects(value, ast);
             return acc;
         }, {});
-    } else if (ast.constructor === acorn.SourceLocation) {
+    } else if (ast.constructor === babel.acorn.SourceLocation) {
         return {
             start: {
                 line: ast.start.line,
@@ -987,7 +987,7 @@ function acornAstToNestedObjects(ast, p) {
 }
 
 function parse(src) {
-    var parsed = acorn.parse(src, {
+    var parsed = babel.parse(src, {
         ecmaVersion: 6,
         sourceType: 'module',
         plugins: {jsx: true},
