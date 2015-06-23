@@ -10,11 +10,16 @@
 --- transform the source
 -- syntax of messages
 --- show examples of valid/invalid messages
+-- integrate with React Intl
 - configuration
 -- for e.g. translator-accessible attributes
 -- change name of marker function/component
 - support ICU MessageFormat syntax for:
 -- pluralization
+--- syntax validation
+----- Pluralize contains Match
+----- all necessary forms are present
+--- extraction
 -- gender
 -- ordinal
 - add i18n-comment, i18n-context, i18n-domain supporting attributes
@@ -29,6 +34,8 @@
 
 # DONE
 
+- pluralization
+-- <Pluralize> / <Match> shown to translators, no ICU MessageFormat
 - rename `i18n-designation` attribute to `i18n-id`
 - tests and validation for multiple React components of same type within same marker
 -- will require `i18n-id` attributes if multiple

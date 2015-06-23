@@ -52,6 +52,8 @@ TODO:
 - Disallow <script>, dangerouslySetInnerHTML, etc.
 */
 
+import {Format} from './components.jsx';
+
 Error.stackTraceLimit = Infinity;
 
 var acorn = require('acorn-jsx');
@@ -64,6 +66,8 @@ var I = require('immutable');
 */
 var allowedAttributesByElementName = {
     'a': ['href'],
+    'Pluralize': ['on'],
+    'Match': ['when']
 }
 
 
@@ -616,10 +620,13 @@ function nameAndExpressionForNamedExpression(ast) {
 function reactComponentsByNameAndId(ast) {
     let invalidComponents = I.Map(countOfReactComponentsByNameAndId(ast))
         .filter((v, k) => v > 1)
+        // Exclude Format components
+        // TODO: a more sane way of handling this
+        .filter((v, k) => { return Format.indexOf(k.split(':')[0]) === -1 })
         .map((v, k) => {
             let [type, id] = k.split(':');
             if (id === undefined) {
-                return `${v} instances of ${type} without a id`;
+                return `${v} instances of ${type} without an id`;
             } else {
                 return `${v} instances of ${type} with the id "${id}"`;
             }
@@ -812,7 +819,7 @@ function printMessage (ast) {
         return ast.getIn(['arguments', 0, 'value']);
     }
     else if (isElementMarker(ast)) {
-        return ast.get('children').map(printJsxChild).join('');
+        return ast.get('children').map(printJsxChild).join('').trim();
     }
     else {
         throw new Error("Internal error: message is not string literal or JSX element: " + generate(ast));
@@ -996,7 +1003,7 @@ function parseExpression(src) {
 module.exports._parseExpression = parseExpression;
 
 function generate(ast) {
-    return escodegen.generate(ast.toJS());
+    return escodegen.generate(ast.toJS()).trim();
 }
 
 function generateOpening(jsxExpressionAst) {

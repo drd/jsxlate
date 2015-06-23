@@ -1,2 +1,2 @@
-examples/simple/out
+examples/*/out
 node_modules

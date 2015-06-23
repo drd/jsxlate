@@ -19,6 +19,8 @@ var extractions = {
     '<I18N>And now {a.member.expression}</I18N>': ['And now {a.member.expression}'],
     'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
     '<p><I18N>1: {same.name.different.message}</I18N> <I18N>2: {same.name.different.message}</I18N></p>': ['1: {same.name.different.message}', '2: {same.name.different.message}'],
+    '<I18N><Pluralize on={count}><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize></I18N>': [
+        '<Pluralize on={count}><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize>']
 }
 
 exports.testExtraction = function (test) {
@@ -131,11 +133,7 @@ var shouldNotBeExtractable = [
     '<I18N>{"string literal"}</I18N>',
     '<I18N>{arbitrary.expression()}</I18N>',
     '<I18N>{("non"+"simple").memberExpression}</I18N>',
-    '<I18N>{computed["memberExpression"]}</I18N>',
-    '<I18N>{sameName}{sameName}</I18N>',
-    '<I18N>{same.name}{same.name}</I18N>',
-    '<I18N>{sameName}<a:sameName target="_blank">...</a:sameName></I18N>',
-    '<I18N>{sameName}<a i18n-id="sameName" target="_blank">...</a></I18N>',
+    '<I18N>{computed["memberExpression"]}</I18N>'
 ]
 
 exports.testErrorsInExtraction = function (test) {
@@ -220,16 +218,20 @@ var messagesToBeTransformed = I.List([
           ' fallback={function() { return <span>Hello, world. <Component />{foo}<p>{bar.baz}</p></span>; }}/>'
     ],
 
+    // this test ensures whitespace is handled properly
     [
-        '<I18N>Hello, world. <Component.SubComponent i18n-id="comp.sub" snoochie={boochies} />{this.bar.baz}</I18N>',
-        '<I18N message={"Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}"} context={this} args={[Component, boochies]}' +
-          ' fallback={function() { return <span>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</span>; }}/>'
+        `<I18N>
+            <div>Hello, world. <Component.SubComponent i18n-id="comp.sub" snoochie={boochies} />{this.bar.baz}</div>
+        </I18N>`,
+        '<I18N message={"<div>Hello, world. <Component.SubComponent:comp.sub />{this.bar.baz}</div>"} context={this} args={[Component, boochies]}' +
+          ' fallback={function() { return <span>\n            <div>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</div>\n        </span>; }}/>'
     ],
 
+    // whitespace + escaping quotes
     [
         '<I18N>Hello, \n"world".</I18N>',
         '<I18N message={"Hello, \\n\\\"world\\\"."} context={this} args={[]}' +
-          ' fallback={function() { return (\n    <span>Hello, \n"world".</span>\n); }}/>'
+          ' fallback={function() { return <span>Hello, \n"world".</span>; }}/>'
     ],
 
     [

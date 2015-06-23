@@ -3,5 +3,8 @@
   "Translated <span:hello>{thing}</span:hello> Application": "Translated <span:hello>{thing}</span:hello> Application",
   "Choose locale:": "Choose locale:",
   "AWESOME": "AWESOME",
-  "Hello, <Awesome /> world!": "Hello, <Awesome /> world!"
+  "Hello, <Awesome /> world!": "Hello, <Awesome /> world!",
+  "<Pluralize on={this.state.count}>\n                <Match when=\"=0\">You have no items in your cart</Match>\n                <Match when=\"one\">You have one item in your cart</Match>\n                <Match when=\"other\">You have {this.state.count} items in your cart</Match>\n            </Pluralize>": "\n    <Pluralize on={this.state.count}>\n                <Match when=\"=0\">You have no items in your cart</Match>\n                <Match when=\"one\">You have one item in your cart</Match>\n                <Match when=\"other\">You have {this.state.count} items in your cart</Match>\n            </Pluralize>",
+  "More": "More",
+  "Less": "Less"
 }
