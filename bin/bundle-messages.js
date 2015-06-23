@@ -2,15 +2,19 @@
 "use strict";
 
 function showHelpAndExit() {
-    console.log("Usage: bundle-messages -t TRANSLATIONS [FILES]");
-    console.log("Prints a JS module with messages in FILES mapped to render functions.");
+    console.log("Usage: bundle-messages -t TRANSLATIONS [-o OUTPUT] ...FILES/DIRECTORIES");
+    console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped")
+    console.log("to render functions.");
+    console.log("If -o is passed, writes to OUTPUT instead of stdout.")
     process.exit();
 }
 
-if (process.argv.length < 5
-    || process.argv[2] != "-t"
-    || ~process.argv.indexOf("-h")
-    || ~process.argv.indexOf("--help")) {
+var argv = require('minimist')(process.argv.slice(2), {
+    string: 'toh',
+    alias: {t: 'translations', o: 'output', h: 'help'}
+});
+
+if (!(argv._.length && argv.t) || argv.h) {
     showHelpAndExit();
 }
 
@@ -18,13 +22,14 @@ var chalk = require('chalk');
 var fs = require('fs');
 var rw = require('rw');
 
+var filesFromMixedPaths = require('./filesFromMixedPaths');
 var jsxlate = require('../lib/jsxlate.js');
 
-var translationsFilename = process.argv[3];
-var translations = JSON.parse(rw.readFileSync(translationsFilename, "utf8"));
 
-var files = process.argv.slice(4);
+var translations = JSON.parse(rw.readFileSync(argv.t, "utf8"));
+var files = filesFromMixedPaths(argv._);
 var bundle = {};
+
 
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
@@ -40,9 +45,19 @@ files.forEach(function (filename) {
     });
 });
 
+
 var bundleEntries = Object.keys(bundle).map(function (message) {
     return "\n\t" + JSON.stringify(message) + ': ' + bundle[message]
 });
 
-console.log('var React = require("react");');
-console.log('module.exports = {' + bundleEntries + '\n};\n');
+var bundle = (
+    'var React = require("react");\nmodule.exports = {'
+    + bundleEntries
+    + '\n};\n'
+);
+
+if (argv.o) {
+    fs.writeFileSync(argv.o, bundle);
+} else {
+    console.log(bundle);
+}
