@@ -31,15 +31,15 @@ $(npm bin)/extract-messages MyComponent.jsx > messages.json
 
 The resulting JSON file can be merged with existing translations using the [json](http://trentm.com/json/) utility, and then given to translators using a tool such as Transifex.
 
-Or, extract all the messages in your entire tree:
+Or, extract all the messages in your entire tree (rooted in `src`):
 
 ```
-$(npm bin)/extract-messages $(find -name '*.js?') > messages.json
+$(npm bin)/extract-messages $(find src/ -name '*.js?') > messages.json
 ```
 
 ## Bundling translated messages
 
-Once you get your translations back from the translators, you can use the second included script to generate a translations bundle:
+Once you get your translations back from the translators (as `messages-fr.json`), you can use the `bundle-messages` script to generate a translations bundle:
 
 ```
 $(npm bin)/bundle-messages -t messages-fr.json [FILES] > i18n/bundle-fr.js
@@ -49,7 +49,7 @@ This module exports an object that has translator functions for the correspondin
 
 ## Transforming the source
 
-The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime. These transformations can be done at build time with `bin/transform` or, if you are using [webpack](http://webpack.github.io), the `transform-loader` is provided.
+The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime. These transformations can be done at build time with `bin/transform` or, if you are using [webpack](http://webpack.github.io),  [jsxlate-loader](http://github.com/drd/jsxlate-loader) is provided as a separate npm package. Setup is shown in `examples/simple`.
 
 Using `bin/transform`:
 
@@ -116,7 +116,7 @@ This is also useful if your React Component is a property of a module:
 <I18N><label>Full name: <Form.Input i18n-id="full-name" name="fullName"/></label></I18N>
 ```
 
-Will be shown to translators as:
+This will be shown to translators as:
 
 ```js
 <I18N><label>Full name: <Form.Input:full-name/></label></I18N>
