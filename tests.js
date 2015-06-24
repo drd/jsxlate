@@ -244,6 +244,11 @@ var messagesToBeTransformed = I.List([
     [
         "i18n('Well \"golly\" gee')",
         "i18n('Well \"golly\" gee')"
+    ],
+
+    [
+        "i18n('Well \\'golly\\' gee')",
+        "i18n('Well \\'golly\\' gee')"
     ]
 ]);
 
