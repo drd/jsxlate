@@ -25,6 +25,7 @@ var extractions = {
 
 exports.testExtraction = function (test) {
     Object.keys(extractions).forEach(input => {
+        try { jsxlate.extractMessages(input) } catch(e) { console.error(e); }
         test.ok(
             I.is(I.fromJS(extractions[input]),
                  I.fromJS(jsxlate.extractMessages(input))),
@@ -52,6 +53,7 @@ var translations = {
     'hatters': 'hetwyr',
     'And now {a.member.expression}': 'Ac yn awr {a.member.expression}',
     '<Re /><Ordering />': '<Ordering /><Re />',
+    'Check out: <Component />': '<Component/> checked out!'
 }
 
 var expectedResultsFromTranslation = {
@@ -67,6 +69,7 @@ var expectedResultsFromTranslation = {
     '<I18N>And now {a.member.expression}</I18N>': '<I18N>Ac yn awr {a.member.expression}</I18N>;',
     'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': "var nested = 'hetwyr';\n<I18N>Cat : {nested}</I18N>;",
     '<I18N><Re /><Ordering /></I18N>': '<I18N><Ordering /><Re /></I18N>;',
+    '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': '<I18N><Component gnar={3 * shnar} /> checked out!</I18N>;'
 }
 
 exports.testTranslation = function (test) {
@@ -102,7 +105,6 @@ var expectedResultsForTranslationBundles = {
 }
 
 exports.testTranslationToRenderer = function (test) {
-    debugger;
     Object.keys(expectedResultsForTranslationBundles).forEach(original => {
         var messageAst = jsxlate._parseExpression(original);
         var message = jsxlate._extractMessage(messageAst);

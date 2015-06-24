@@ -319,6 +319,7 @@ function variableNameForJsxExpressionContainer(expressionContainerAst) {
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
         'CallExpression': variableNameForCallExpression,
+        'BinaryExpression': empty,
         'ObjectExpression': empty,
         'JSXEmptyExpression': empty
     }[expressionAst.get('type')])(expressionAst);
@@ -568,7 +569,7 @@ function reconstituteJsxExpressionContainer(translatedAst, definitions) {
 function namedExpressionDefinitions(ast) {
     var listOfPairs = _namedExpressionDefinitions(ast);
     var names = listOfPairs.map(p => p.first());
-    var dupes = duplicatedValues(names);
+    var dupes = duplicatedValues(names.filter(identity));
     if ( ! dupes.isEmpty()) {
         throw new InputError(
             "Message has two named expressions with the same name: "
@@ -589,15 +590,10 @@ function namedExpressionDefinitionsInJsxElement(ast) {
     var hiddenAttributes = attributes(ast)
         .filterNot(attrib => attributeIsSafe(elementName(ast), attrib));
 
-    var attributeDefinition;
-    if (hiddenAttributes.isEmpty()) {
-        attributeDefinition = I.List();
-    } else {
-        var id = elementId(ast);
-        attributeDefinition = I.List([
-            I.List( [id, hiddenAttributes] )
-        ]);
-    }
+    var id = elementId(ast);
+    var attributeDefinition = I.List([
+        I.List( [id, hiddenAttributes] )
+    ]);
 
     return attributeDefinition.concat(
         ast.get('children').flatMap(_namedExpressionDefinitions));
@@ -1053,14 +1049,25 @@ function elementId(jsxElementAst) {
     var nameAst = jsxElementAst.getIn(['openingElement', 'name']);
     var type = nameAst.get('type');
 
+    var id;
+
     if (type === 'JSXNamespacedName') {
         // The element is of the form <name:id>
-        return generate(nameAst.get('name'));
-    }
-    else {
+        id = generate(nameAst.get('name'));
+    } else {
         // The element has an i18n-id attribute or else has no id.
-        return attributeWithName(jsxElementAst, 'i18n-id');
+        id = attributeWithName(jsxElementAst, 'i18n-id');
     }
+    if (!id && nameAst.get('name') === 'Match') {
+        var onAttr = attributeWithName(jsxElementAst, 'when')
+        if (onAttr) {
+            id = 'Match:' + onAttr;
+        }
+    }
+    if (!id && isReactComponent(jsxElementAst) && !isElementMarker(jsxElementAst)) {
+        id = nameAst.get('name');
+    }
+    return id;
 }
 
 function elementNameAndId(jsxElementAst) {
