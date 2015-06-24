@@ -1058,13 +1058,16 @@ function elementId(jsxElementAst) {
         // The element has an i18n-id attribute or else has no id.
         id = attributeWithName(jsxElementAst, 'i18n-id');
     }
+    // if there is no explicit i18n-id, generate an appropriate one in certain situations:
     if (!id && nameAst.get('name') === 'Match') {
-        var onAttr = attributeWithName(jsxElementAst, 'when')
-        if (onAttr) {
-            id = 'Match:' + onAttr;
+        // <Match when=""/>
+        var whenAttr = attributeWithName(jsxElementAst, 'when')
+        if (whenAttr) {
+            id = 'Match:' + whenAttr;
         }
     }
     if (!id && isReactComponent(jsxElementAst) && !isElementMarker(jsxElementAst)) {
+        // A unique, non-Marker React Component may also have sanitized attributes
         id = nameAst.get('name');
     }
     return id;

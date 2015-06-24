@@ -1,0 +1,10 @@
+{
+  "awesome?": "Impressionnant?",
+  "Translated <span:hello>{thing}</span:hello> Application": "Application Traduite <span:hello>{thing}</span:hello>",
+  "Choose locale:": "Choisir une localité:",
+  "AWESOME": "GÉNIAL",
+  "Hello, <Awesome /> world!": "Bonjour, monde <Awesome />!",
+  "<Pluralize on={this.state.count}>\n                <Match when=\"=0\">You have no items in your cart</Match>\n                <Match when=\"one\">You have one item in your cart</Match>\n                <Match when=\"other\">You have {this.state.count} items in your cart</Match>\n            </Pluralize>": "<Pluralize on={this.state.count}>\n                <Match when=\"=0\">You have no items in your cart</Match>\n                <Match when=\"one\">You have one item in your cart</Match>\n                <Match when=\"other\">You have {this.state.count} items in your cart</Match>\n            </Pluralize>",
+  "More": "More",
+  "Less": "Less"
+}

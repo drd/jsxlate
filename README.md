@@ -73,6 +73,8 @@ We sanitize two aspects of JSX messages: JavaScript expressions, and attributes.
 In order to make sure that messages are friendly for translators, only variables and properties are allowed in JavaScript expressions:
 
 ```js
+let {I18N} = require('jsxlate').components;
+
 <I18N>My name is {name}</I18N>
 <I18N>My favorite color is {favorites.color}</I18N>
 ```
@@ -126,3 +128,44 @@ This will be shown to translators as:
 ```js
 <I18N><label>Full name: <Form.Input:full-name/></label></I18N>
 ```
+
+## Pluralization
+
+Introduce pluralization on a variable with the `<Pluralize>` component, and match ICU MessageFormat
+plural forms with the `<Match>` component:
+
+```js
+let {I18N, Pluralize, Match} = require('jsxlate').components;
+
+<I18N><Pluralize on={this.state.count}>
+    <Match when="one">You have one!</Match>
+    <Match when="other">You have {this.state.count}!</Match>
+</Pluralize></I18N>
+```
+
+If you want to match specific numbers, you can do that as well:
+
+```
+<I18N><Pluralize on={this.state.count}>
+    <Match when="=0">You have zilch!</Match>
+    <Match when="one">You have one!</Match>
+    <Match when="other">You have {this.state.count}!</Match>
+</Pluralize></I18N>
+```
+
+## Examples
+
+Various examples are provided. `node server.js` will start a webpack dev server for each.
+
+### Simple
+
+Shows how to use `i18n`, `I18N`, `Pluralize`, and `Match`.
+
+### Online
+
+This example shows that all of the translation machinery can be run in-browser, and also
+provides a playground for message extraction and translation.
+
+### React Intl
+
+Integrates with React Intl for number and date formatting.
