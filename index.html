@@ -1,0 +1,97 @@
+<html lang="en">
+    <head>
+        <meta name="charset" content="utf-8"/>
+        <title>jsxlate</title>
+        <link href='http://fonts.googleapis.com/css?family=Alfa+Slab+One|Fira+Sans:300' rel='stylesheet' type='text/css'>
+        <link rel="stylesheet" href="css/style.css"/>
+        <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/styles/github.min.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script>
+    </head>
+    <body>
+        <header>
+            <h1>jsxlate</h1>
+            <h2>automated extraction and translation of React components</h2>
+        </header>
+
+        <main>
+            <section>
+                <h3>The tool for translating React applications</h3>
+
+                <p>This program aids in internationalizing <a href="http://facebook.github.io/react">React</a> applications by extracting messages from JSX sources and then rewriting the messages into bundles of translatable units. The advantage of this approach is that translators can be shown full sentences, rich in context.</p>
+
+                <p>Translators are presented with a sanitized version of JSX that allows them to rearrange markup but prevents them from seeing anything irrelevant or modifying anything dangerous. The developer can allow translators to change certain HTML tag attributes, if, for example, links needs to be changed to point to language-specific resources. Translators can also change add or remove simple HTML tags in case, for instance, a single italicized phrase in the source language becomes two italicized phrases in the destination language.</p>
+            </section>
+
+            <section>
+                <h3>How does it work?</h3>
+
+                <p>First, mark up your strings:</p>
+
+                <pre><code class="javascript">
+import React from 'react';
+import {I18N} from 'jsxlate/components';
+
+class Translated extends React.Component {
+    render() {
+        return &lt;I18N&gt;Hello, world.&lt;/I18N&gt;;
+    }
+}
+                </code></pre>
+
+                <p>Extract your messages:</p>
+
+                <pre><code class="bash">
+$ extract-messages app.jsx > messages.json
+# output:
+{
+    "Hello, world.": "Hello, world."
+}
+                </code></pre>
+
+                <p>Translate your messages:</p>
+
+                <pre><code class="bash">
+$ cp messages.json translations-es.json && $EDITOR translations-es.json
+{
+    "Hello, world.": "Hola, mundo."
+}
+                </code></pre>
+
+                <p>Bundle your translations:</p>
+                <pre><code class="bash">
+$ bundle-messages -t translations-es.json -o bundle-es.jsx app.jsx
+{
+    "Hello, world.": "Hello, world."
+}
+                </code></pre>
+
+                <p>And finally, load your bundle:</p>
+                <pre><code class="javascript">
+import React from 'react';
+import {setMessages} from 'jsxlate/components';
+import bundle from './bundle-es.jsx';
+
+class App extends React.Component {
+    setLocale(locale) {
+        if (locale == 'es') {
+            setMessages(bundle);
+        } else {
+            setMessages({});
+        }
+
+    }
+}
+                </code></pre>
+            </section>
+        </main>
+
+        <footer>
+            <nav>
+                <ul>
+                    <li><a href="http://github.com/drd/jsxlate">Github</a></li>
+                </ul>
+            </nav>
+        </footer>
+    </body>
+</html>
