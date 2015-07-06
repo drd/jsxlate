@@ -22,6 +22,7 @@ function shouldIgnore(path, ignore) {
 }
 
 module.exports = function filesFromMixedPaths(paths, options) {
+    options = options || {};
     var files = [];
     var directories = [];
     var ignore = ignoreList(options.ignore);
