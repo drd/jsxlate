@@ -18,6 +18,7 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+// TODO: default locale should be empty, not fake-English
 var state = {
     messages: {},
     locale: { name: 'en', pluralFn: function pluralFn(c) {
@@ -62,10 +63,11 @@ var I18N = (function (_React$Component) {
 })(_react2['default'].Component);
 
 var Match = (function (_React$Component2) {
-    function Match(props) {
+    function Match() {
         _classCallCheck(this, Match);
 
-        _get(Object.getPrototypeOf(Match.prototype), 'constructor', this).call(this, props);
+        _get(Object.getPrototypeOf(Match.prototype), 'constructor', this).apply(this, arguments);
+
         this._isMatch = true;
     }
 

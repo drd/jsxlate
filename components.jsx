@@ -1,6 +1,7 @@
 import React from 'react';
 
 
+// TODO: default locale should be empty, not fake-English
 var state = {
     messages: {},
     locale: {name: 'en', pluralFn: (c) => c === 1 ? 'one' : 'other'}
@@ -34,10 +35,7 @@ class I18N extends React.Component {
 
 
 class Match extends React.Component {
-    constructor(props) {
-        super(props);
-        this._isMatch = true;
-    }
+    _isMatch = true;
 
     render() {
         return <span>{this.props.children}</span>;
@@ -79,6 +77,7 @@ class Pluralize extends React.Component {
         return match;
     }
 }
+
 
 Pluralize.propTypes = {
     on: React.PropTypes.number,
