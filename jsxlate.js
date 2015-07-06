@@ -205,6 +205,72 @@ function rewriteIdToNamespaceSyntax (jsxElementAst) {
 
 
 /****************************************************************************
+    Linting strings
+    Find strings in files that likely should be marked for translation but
+    which are not currently wrapped in <I18N> tags.
+    Currently this includes any literal child of a JSX element, or any
+    JSX attribute which has been whitelisted for translators.
+*****************************************************************************/
+
+function allPrefixes(list) {
+    return list.butLast().reduce(function(prefixes, entry) {
+        return prefixes.push(prefixes.last().push(entry));
+    }, I.fromJS([[]]));
+}
+
+
+function hasMarkerAncestor(path, ast) {
+    return allPrefixes(path)
+        .reverse()
+        .some(p => isElementMarker(ast.getIn(p)));
+}
+
+function hasElementAncestor(path, ast) {
+    return allPrefixes(path)
+        .reverse()
+        .some(p => isJsxElement(ast.getIn(p)));
+}
+
+function isImmediateChild(path, ast) {
+    // path is of the form [..., 'children', <index>, <node> ]
+    return path.get(-2) === 'children';
+}
+
+function isValueOfSafeAttribute(path, ast) {
+    if (path.size < 4) {
+        return false;
+    }
+
+    // path = [ ..., element, openingElement, attributes, index, node, literal]
+    let prefixes = allPrefixes(path);
+    let elementAst = ast.getIn(prefixes.get(-4));
+    if (!isElement(elementAst)) {
+        return false;
+    }
+
+    let attributeAst = ast.getIn(prefixes.get(-1));
+    let name = elementName(elementAst);
+    return attributeIsSafe(name, attributeAst);
+}
+
+function isInterestingString(path, ast) {
+    return isImmediateChild(path, ast) || isValueOfSafeAttribute(path, ast);
+}
+
+module.exports.findUntranslatedStrings = function findUntranslatedStrings(src) {
+    var ast = parse(src);
+    return allKeypathsInAst(ast)
+        .filter(path => isNonWhitespaceStringLiteral(ast.getIn(path)))
+        .filter(path => isInterestingString(path, ast))
+        .filter(path => hasElementAncestor(path, ast))
+        .filterNot(path => hasMarkerAncestor(path, ast))
+        .map(path => ast.getIn(path))
+}
+
+
+
+
+/****************************************************************************
 
     Message node transformation
 
@@ -678,6 +744,12 @@ var isStringLiteral = matcher({
     value: isString
 });
 
+var isNonWhitespaceStringLiteral = matcher({
+    type: "Literal",
+    value: s => isString(s) && !/^\s+$/m.test(s)
+});
+
+
 var isJsxExpressionContainer = matcher({
     type: "JSXExpressionContainer"
 });
@@ -1143,4 +1215,3 @@ function removeAttributeWithName(jsxElementAst, name) {
         attributes => attributes
         .filterNot(attrib => attributeName(attrib) === name));
 }
-

@@ -6,6 +6,7 @@ This program aids in internationalizing React applications by extracting message
 
 Translators are presented with a sanitized version of JSX that allows them to rearrange markup but prevents them from seeing anything irrelevant or modifying anything dangerous. The developer can allow translators to change certain HTML tag attributes, if, for example, links needs to be changed to point to language-specific resources. Translators can also change add or remove simple HTML tags in case, for instance, a single italicized phrase in the source language becomes two italicized phrases in the destination language.
 
+
 ## A brief glossary of terms
 
 *Message*: A user-visible, translateable unit of text, possibly containing nested tags and React components.
@@ -14,6 +15,7 @@ Translators are presented with a sanitized version of JSX that allows them to re
 
 *Bundle*: A mapping of _message_ to translation for a given locale. Each translation is a function that returns either a _string_ or _React DOM_.
 
+
 ## Messages
 
 Messages take one of two forms: string literals or JSX elements.
@@ -21,7 +23,10 @@ Messages take one of two forms: string literals or JSX elements.
 1. String messages are marked with a specially-named identity function: `i18n("Hello!")`
 2. JSX messages are marked with a specially-named React component: `<I18N>Hello, <em>world!</em></I18N>`
 
-## Extracting messages
+
+## Provided Tools
+
+### Extracting messages
 
 A script is included that extracts messages from JSX files:
 
@@ -42,7 +47,7 @@ $(npm bin)/extract-messages -m messages.json -o messages.json src/module/
 ```
 
 
-## Bundling translated messages
+### Bundling translated messages
 
 Once you get your translations back from the translators (as `messages-fr.json`), you can use the `bundle-messages` script to generate a translations bundle:
 
@@ -52,15 +57,33 @@ $(npm bin)/bundle-messages -t messages-fr.json -o i18n/bundle-fr.js src/
 
 This module exports an object that has translator functions for the corresponding locale.
 
-## Transforming the source
 
-The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime. These transformations can be done at build time with `bin/transform` or, if you are using [webpack](http://webpack.github.io),  [jsxlate-loader](http://github.com/drd/jsxlate-loader) is provided as a separate npm package. Setup is shown in `examples/simple`.
+### Transforming the source
+
+The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime.
+
+The preferred method is to use [webpack](http://webpack.github.io) as your bundling tool and [jsxlate-loader](http://github.com/drd/jsxlate-loader) in your loader pipeline. Setup is shown in `examples/simple`.
+
+
+We also provide `bin/transform` for integration with other build/bundling setups.
 
 Using `bin/transform`:
 
 ```
 for f in $(find -name '*.js?'); do $(npm bin)/transform < $f > out/$f; done
 ```
+
+
+### Discovering untranslated strings
+
+We provide a tool, `bin/jsxlate-lint`, which will do its best to discover strings that should likely be marked for extraction, but which are currently not. It only looks for strings appearing in JSX elements, because there is no simple heuristic for strings appearing in plain JavaScript source. If anyone wants to contribute a data-flow analyzer to see if strings are interpolated into the markup, that contribution would be welcome ;)
+
+Using `bin/jsxlate-lint`:
+
+```
+$(npm bin)/jsxlate-lint src/ -I *bundle*.js -I *untranslated/*.js
+```
+
 
 ## Integrating with your App
 

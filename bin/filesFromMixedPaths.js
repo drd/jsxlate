@@ -1,12 +1,30 @@
+"use strict";
+
 var fs = require('fs');
 var path = require('path');
 var walk = require('walk');
+var globToRegExp = require('glob-to-regexp');
 
 var jsOrJsxRegex = /^[^.](.+?)\.jsx?$/i;
 
-module.exports = function filesFromMixedPaths(paths) {
+function ignoreList(ignores) {
+    ignores = ignores || [];
+    // minimist, why do you give me two different types
+    // depending on the input? :(
+    ignores = ignores.split ? ignores.split(',') : ignores;
+    return ignores.map(function(i) {
+        return globToRegExp(i);
+    });
+}
+
+function shouldIgnore(path, ignore) {
+    return ignore.some(function(i) { return i.test(path); });
+}
+
+module.exports = function filesFromMixedPaths(paths, options) {
     var files = [];
     var directories = [];
+    var ignore = ignoreList(options.ignore);
 
     paths.forEach(function(path) {
         var lstat = fs.lstatSync(path);
@@ -38,5 +56,7 @@ module.exports = function filesFromMixedPaths(paths) {
         walk.walkSync(dirPath, options);
     });
 
-    return files;
+    return files.filter(function(path) {
+        return !shouldIgnore(path, ignore)
+    });
 };

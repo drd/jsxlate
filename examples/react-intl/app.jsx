@@ -39,6 +39,7 @@ class App extends React.Component {
                 </select>
             </header>
             <main>
+                <a href="blah">{'blah'}</a>
                 <Page />
             </main>
         </div>
