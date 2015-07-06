@@ -318,11 +318,8 @@ function variableNameForJsxExpressionContainer(expressionContainerAst) {
     return ({
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
-        'CallExpression': variableNameForCallExpression,
-        'BinaryExpression': empty,
-        'ObjectExpression': empty,
-        'JSXEmptyExpression': empty
-    }[expressionAst.get('type')])(expressionAst);
+        'CallExpression': variableNameForCallExpression
+    }[expressionAst.get('type')] || empty)(expressionAst);
 }
 
 function variableNameForNode(nodeAst) {

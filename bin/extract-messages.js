@@ -14,7 +14,7 @@ var argv = require('minimist')(process.argv.slice(2), {
     alias: {m: 'merge', o: 'output', h: 'help'}
 });
 
-if (!argv._.length || argv.h) {
+if (argv._.length === 0 || argv.h) {
     showHelpAndExit();
 }
 
@@ -24,15 +24,15 @@ var fs = require('fs');
 var filesFromMixedPaths = require('./filesFromMixedPaths');
 var jsxlate = require('../lib/jsxlate.js');
 
-var files = filesFromMixedPaths(argv._);
+var paths = filesFromMixedPaths(argv._);
 var messages = {};
 
-files.forEach(function (filename) {
-    var buffer = fs.readFileSync(filename, "utf8");
+paths.forEach(function (path) {
+    var buffer = fs.readFileSync(path, "utf8");
     try {
         var messagesInFile = jsxlate.extractMessages(buffer);
     } catch (e) {
-        console.error(chalk.bold.red("\nError in file " + filename + ":"));
+        console.error(chalk.bold.red("\nError in file " + path + ":"));
         console.error(jsxlate.errorMessageForError(e));
         process.exit(1);
     }
