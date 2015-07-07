@@ -487,8 +487,8 @@ module.exports.translateMessages = function (src, translations) {
 function translateMessage (message, translationString) {
     var translation = parseExpression(
         unprintTranslation(translationString, message));
-    return reconstitute(
-        validateTranslation(translation, message),
+    return validateTranslation(
+        reconstitute(translation, message),
         message);
 }
 
@@ -499,8 +499,8 @@ function translateMessage (message, translationString) {
 function translatedRendererForMessage (message, translationString) {
     var translation = parseExpression(
         unprintTranslation(translationString, message));
-    var reconstituted = reconstitute(
-        validateTranslation(translation, message),
+    var reconstituted = validateTranslation(
+        reconstitute(translation, message),
         message);
     var reconstitutedAsSpan = reconstituted
         .setIn(['openingElement', 'name', 'name'], 'span')
@@ -595,7 +595,6 @@ function reconstituteJsxElement(translatedAst, definitions) {
     if (hasUnsafeAttributes(translatedAst)) {
         throw new InputError("Translation includes unsafe attribute: " + generateOpening(translatedAst));
     }
-
     var result;
     var id = elementId(translatedAst);
     if (id) {
@@ -652,7 +651,6 @@ function _namedExpressionDefinitions(ast) {
 function namedExpressionDefinitionsInJsxElement(ast) {
     var hiddenAttributes = attributes(ast)
         .filterNot(attrib => attributeIsSafe(elementName(ast), attrib));
-
     var id = elementId(ast);
     var attributeDefinition = I.List([
         I.List( [id, hiddenAttributes] )
@@ -1137,7 +1135,7 @@ function elementId(jsxElementAst) {
     }
     if (!id && isReactComponent(jsxElementAst) && !isElementMarker(jsxElementAst)) {
         // A unique, non-Marker React Component may also have sanitized attributes
-        id = nameAst.get('name');
+        id = elementName(jsxElementAst);
     }
     return id;
 }

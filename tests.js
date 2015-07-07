@@ -53,7 +53,8 @@ var translations = {
     'hatters': 'hetwyr',
     'And now {a.member.expression}': 'Ac yn awr {a.member.expression}',
     '<Re /><Ordering />': '<Ordering /><Re />',
-    'Check out: <Component />': '<Component/> checked out!'
+    'Check out: <Component />': '<Component/> checked out!',
+    '<span:stat><ReactIntl.FormattedNumber /></span:stat>opportunities': '<span:stat><ReactIntl.FormattedNumber /></span:stat>oportunidades'
 }
 
 var expectedResultsFromTranslation = {
@@ -69,12 +70,13 @@ var expectedResultsFromTranslation = {
     '<I18N>And now {a.member.expression}</I18N>': '<I18N>Ac yn awr {a.member.expression}</I18N>;',
     'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': "var nested = 'hetwyr';\n<I18N>Cat : {nested}</I18N>;",
     '<I18N><Re /><Ordering /></I18N>': '<I18N><Ordering /><Re /></I18N>;',
-    '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': '<I18N><Component gnar={3 * shnar} /> checked out!</I18N>;'
+    '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': '<I18N><Component gnar={3 * shnar} /> checked out!</I18N>;',
+    '<I18N><span:stat className="stat"><ReactIntl.FormattedNumber value={count} /></span:stat>opportunities</I18N>': '<I18N><span className="stat"><ReactIntl.FormattedNumber value={count} /></span>oportunidades</I18N>;'
 }
 
 exports.testTranslation = function (test) {
     Object.keys(expectedResultsFromTranslation).forEach(original => {
-        try { jsxlate.translateMessages(original, translations) } catch (e) {console.error(e)};
+        try { jsxlate.translateMessages(original, translations) } catch (e) { console.error(e); };
         test.ok(
             I.is(I.fromJS(expectedResultsFromTranslation[original]),
                  I.fromJS(jsxlate.translateMessages(original, translations))),
@@ -108,7 +110,7 @@ exports.testTranslationToRenderer = function (test) {
     Object.keys(expectedResultsForTranslationBundles).forEach(original => {
         var messageAst = jsxlate._parseExpression(original);
         var message = jsxlate._extractMessage(messageAst);
-        try { jsxlate.translatedRendererForMessage(messageAst, translations[message]) } catch (e) {console.error(e)};
+        try { jsxlate.translatedRendererForMessage(messageAst, translations[message]) } catch (e) { console.error(e); };
         test.ok(
             (expectedResultsForTranslationBundles[original] ==
                 jsxlate.translatedRendererForMessage(messageAst, translations[message])),
