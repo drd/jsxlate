@@ -7,7 +7,8 @@
     "extract-messages": "./bin/extract-messages.js",
     "translate": "./bin/translate.js",
     "transform": "./bin/transform.js",
-    "bundle-messages": "./bin/bundle-messages.js"
+    "bundle-messages": "./bin/bundle-messages.js",
+    "jsxlate-lint": "./bin/jsxlate-lint.js"
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js",
