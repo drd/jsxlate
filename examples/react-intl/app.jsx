@@ -101,7 +101,7 @@ let Wrap = React.createClass({
     },
 
     render() {
-        return <App locale={this.state.locale} setLocale={this.setLocale.bind(this)} />
+        return <App locale={this.state.locale} setLocale={this.setLocale} />
     }
 })
 
