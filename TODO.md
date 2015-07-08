@@ -31,6 +31,8 @@
 - optimization
 -- express transform-loader as a babel plugin?
 -- look into ways of not using allKeypathsInAst
+- prevent collisions between source/react child strings by bucketing messages
+
 
 # DONE
 

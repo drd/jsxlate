@@ -53,7 +53,18 @@ var I18N = (function (_React$Component) {
         value: function render() {
             var renderer = state.messages[this.props.message];
             if (renderer) {
-                return renderer.apply(this.props.context, this.props.args);
+                var rendered = renderer.apply(this.props.context, this.props.args);
+                // TODO: this check would be unnecessary if collisions between
+                // source and react child strings were impossible.
+                if (toString.call(rendered) === '[object String]') {
+                    return _react2['default'].createElement(
+                        'span',
+                        null,
+                        rendered
+                    );
+                } else {
+                    return rendered;
+                }
             }
             return this.props.fallback.call(this.props.context);
         }
