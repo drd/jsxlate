@@ -22,6 +22,7 @@
 --- extraction
 -- gender
 -- ordinal
+- add tagName prop to <I18N> component to handle tricky situations like <option>
 - add i18n-comment, i18n-context, i18n-domain supporting attributes
 -- and output to .po files
 - “translator mode” support
