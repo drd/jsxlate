@@ -53,7 +53,7 @@ var translations = {
     'hatters': 'hetwyr',
     'And now {a.member.expression}': 'Ac yn awr {a.member.expression}',
     '<Re /><Ordering />': '<Ordering /><Re />',
-    'Check out: <Component />': '<Component/> checked out!',
+    'Check out: <Component />': '<Component/> "checked" out!',
     '<span:stat><ReactIntl.FormattedNumber /></span:stat>opportunities': '<span:stat><ReactIntl.FormattedNumber /></span:stat>oportunidades'
 }
 
@@ -70,7 +70,7 @@ var expectedResultsFromTranslation = {
     '<I18N>And now {a.member.expression}</I18N>': '<I18N>Ac yn awr {a.member.expression}</I18N>;',
     'var nested = i18n("hatters"); <I18N>Cat: {nested}</I18N>': "var nested = 'hetwyr';\n<I18N>Cat : {nested}</I18N>;",
     '<I18N><Re /><Ordering /></I18N>': '<I18N><Ordering /><Re /></I18N>;',
-    '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': '<I18N><Component gnar={3 * shnar} /> checked out!</I18N>;',
+    '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': '<I18N><Component gnar={3 * shnar} /> "checked" out!</I18N>;',
     '<I18N><span:stat className="stat"><ReactIntl.FormattedNumber value={count} /></span:stat>opportunities</I18N>': '<I18N><span className="stat"><ReactIntl.FormattedNumber value={count} /></span>oportunidades</I18N>;'
 }
 
@@ -94,7 +94,7 @@ exports.testTranslation = function (test) {
 
 var expectedResultsForTranslationBundles = {
     '<I18N>Hello</I18N>': 'function() { return <span>Helo</span>; }',
-    'i18n("world")': "function() { return 'byd'; }",
+    'i18n("world")': 'function() { return "byd"; }',
     '<I18N><a href="foo">tag with only safe attributes</a></I18N>': 'function() { return <span><a href="bar">Mae tag sydd <span>wedi</span> dim ond priodoleddau sy\'n ddiogel</a></span>; }',
     '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
     '<I18N><a href="foo" target="_blank" i18n-id="link">tag with unsafe attributes</a></I18N>': 'function() { return <span><a target="_blank" href="bar">tag gyda phriodoleddau anniogel</a></span>; }',
@@ -103,6 +103,7 @@ var expectedResultsForTranslationBundles = {
     '<I18N><Member.Name /></I18N>': 'function(Member) { return <span>Translated: <Member.Name /></span>; }',
     '<I18N>Cat: {nested}</I18N>': "function(nested) { return <span>Cat : {nested}</span>; }",
     '<I18N>And now {a.member.expression}</I18N>': 'function(a) { return <span>Ac yn awr {a.member.expression}</span>; }',
+    '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': 'function(Component, shnar) { return <span><Component gnar={3 * shnar} /> "checked" out!</span>; }',
     '<I18N><Re /><Ordering /></I18N>': 'function(Re, Ordering) { return <span><Ordering /><Re /></span>; }',
 }
 

@@ -24,13 +24,13 @@ JSX elements are marked with a special React component:
 Outline:
 
 * Extracting
-  - Validating
-  - Sanitizing
+    - Validating
+    - Sanitizing
 * Transforming
-  - Free variables
+    - Free variables
 * Translating
-  - Validating
-  - Reconstituting
+    - Validating
+    - Reconstituting
 * Finding definitions of named expressions
 * Finding nodes
 * Printing and unprinting
@@ -48,6 +48,7 @@ TODO:
 - Bail out if the translation has non-safe attributes; refactor attribute functions.
 - spread attribute
 - Various heuristics for omitting i18n-id.
+    + Only one React Component of a type
 - strip leading whitespace? -- rules appear complicated
 - Disallow <script>, dangerouslySetInnerHTML, etc.
 */
@@ -379,12 +380,29 @@ function variableNameForCallExpression(callExpressionAst) {
     return callExpressionAst.getIn(['callee', 'name']);
 }
 
+function variableNameForSubExpression(subExpressionAst) {
+    return ({
+        'Identifier': variableNameForIdentifier,
+        'MemberExpression': variableNameForMemberExpression,
+        'CallExpression': variableNameForCallExpression,
+        'BinaryExpression': variableNamesForBinaryExpression
+    }[subExpressionAst.get('type')] || empty)(subExpressionAst);
+}
+
+function variableNamesForBinaryExpression(binaryExpressionAst) {
+    return I.List([
+        variableNameForSubExpression(binaryExpressionAst.get('left')),
+        variableNameForSubExpression(binaryExpressionAst.get('right'))
+    ]);
+}
+
 function variableNameForJsxExpressionContainer(expressionContainerAst) {
     var expressionAst = expressionContainerAst.get('expression');
     return ({
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
-        'CallExpression': variableNameForCallExpression
+        'CallExpression': variableNameForCallExpression,
+        'BinaryExpression': variableNamesForBinaryExpression
     }[expressionAst.get('type')] || empty)(expressionAst);
 }
 
@@ -399,6 +417,7 @@ function freeVariablesInMessageAst(messageAst) {
     var keypaths = keypathsForFreeVariablesInAst(messageAst);
     return keypaths
         .map(keypath => variableNameForNode(messageAst.getIn(keypath)))
+        .flatten()
         .filter(identity)
         .toSet();
 }
@@ -497,18 +516,27 @@ function translateMessage (message, translationString) {
     return a function that will emit translated DOM.
 */
 function translatedRendererForMessage (message, translationString) {
-    var translation = parseExpression(
-        unprintTranslation(translationString, message));
-    var reconstituted = validateTranslation(
-        reconstitute(translation, message),
-        message);
-    var reconstitutedAsSpan = reconstituted
-        .setIn(['openingElement', 'name', 'name'], 'span')
-        .setIn(['closingElement', 'name', 'name'], 'span');
-
+    var renderExpression;
+    var unprinted = unprintTranslation(translationString, message);
+    if (isStringMarker(message)) {
+        renderExpression = unprinted;
+    } else {
+        try {
+            var translation = parseExpression(unprinted);
+        } catch(e) {
+            throw InputError("Invalid translation: " + JSON.stringify(translationString));
+        }
+        var reconstituted = validateTranslation(
+            reconstitute(translation, message),
+            message);
+        var reconstitutedAsSpan = reconstituted
+            .setIn(['openingElement', 'name', 'name'], 'span')
+            .setIn(['closingElement', 'name', 'name'], 'span');
+        var renderExpression = generate(reconstitutedAsSpan);
+    }
     var freeVariables = freeVariablesInMessageAst(message);
     var wrapped =
-        `function(${freeVariables.join(', ')}) { return ${generate(reconstitutedAsSpan)}; }`;
+        `function(${freeVariables.join(', ')}) { return ${renderExpression}; }`;
     return wrapped;
 }
 module.exports.translatedRendererForMessage = translatedRendererForMessage;
