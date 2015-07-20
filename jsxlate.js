@@ -58,6 +58,7 @@ import {Format} from './components.jsx';
 Error.stackTraceLimit = Infinity;
 
 var babel = require('babel');
+require('babel/polyfill');
 var escodegen = require('escodegen-wallaby');
 var I = require('immutable');
 
@@ -1040,7 +1041,7 @@ function _convert(key, sequence) {
 }
 
 
-
+module.exports.acornAstToNestedObjects = acornAstToNestedObjects;
 function acornAstToNestedObjects(ast, p) {
     // This is sadly necessary because Immutable does not support
     // converting objects with non-Object constructors in fromJS().
@@ -1058,7 +1059,9 @@ function acornAstToNestedObjects(ast, p) {
         return ast.map(acornAstToNestedObjects)
     } else if (ast.constructor === babel.acorn.Node || ast.constructor === Object) {
         return Object.entries(ast).reduce((acc, [key, value]) => {
-            acc[key] = acornAstToNestedObjects(value, ast);
+            if (!key.startsWith('__')) {
+                acc[key] = acornAstToNestedObjects(value, ast);
+            }
             return acc;
         }, {});
     } else if (ast.constructor === babel.acorn.SourceLocation) {

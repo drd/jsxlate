@@ -12,8 +12,8 @@
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js",
-    "build": "mkdir -p ./lib && babel --optional runtime ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.jsx",
-    "prepublish": "mkdir -p ./lib && babel --optional runtime ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.jsx"
+    "build": "mkdir -p ./lib && babel ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.jsx",
+    "prepublish": "mkdir -p ./lib && babel ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.jsx"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [
@@ -33,7 +33,7 @@
   ],
   "dependencies": {
     "babel": "^5.6.4",
-    "babel-runtime": "^5.6.4",
+    "babel-runtime": "^5.7.0",
     "chalk": "^1.1.0",
     "escodegen": "drd/escodegen#wallaby",
     "glob-to-regexp": "0.0.2",
