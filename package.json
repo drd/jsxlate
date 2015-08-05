@@ -32,8 +32,9 @@
     "internationalization"
   ],
   "dependencies": {
-    "babel": "^5.6.4",
-    "babel-runtime": "^5.7.0",
+    "babel": "5.6.14",
+    "babel-core": "5.6.19",
+    "babel-runtime": "5.6.19",
     "chalk": "^1.1.0",
     "escodegen": "drd/escodegen#wallaby",
     "glob-to-regexp": "0.0.2",
@@ -47,7 +48,6 @@
   },
   "devDependencies": {
     "babel-loader": "^5.1.4",
-    "babel-runtime": "^5.6.4",
     "node-inspector": "^0.10.1",
     "nodeunit": "^0.9.0",
     "react-hot-loader": "^1.2.7",
