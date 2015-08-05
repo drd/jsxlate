@@ -195,6 +195,11 @@ var messagesWithFreeVariables = I.List([
     [
         '<I18N>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</I18N>',
         I.Set(['Component', 'boochies'])
+    ],
+
+    [
+        '<I18N>Hello, world. <Component.SubComponent snoochie={{boochie: poochies, [foo]: bar}} />{this.bar.baz}</I18N>',
+        I.Set(['Component', 'poochies', 'foo', 'bar'])
     ]
 ]);
 

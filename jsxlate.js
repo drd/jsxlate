@@ -397,13 +397,22 @@ function variableNamesForBinaryExpression(binaryExpressionAst) {
     ]);
 }
 
+function variableNamesForObjectExpression(objectExpressionAst) {
+    let valueNames = objectExpressionAst.get('properties')
+        .map(p => variableNameForSubExpression(p.get('value')));
+    let keyNames = objectExpressionAst.get('properties')
+        .map(p => p.get('computed') && variableNameForSubExpression(p.get('key')));
+    return valueNames.concat(keyNames);
+}
+
 function variableNameForJsxExpressionContainer(expressionContainerAst) {
     var expressionAst = expressionContainerAst.get('expression');
     return ({
         'Identifier': variableNameForIdentifier,
         'MemberExpression': variableNameForMemberExpression,
         'CallExpression': variableNameForCallExpression,
-        'BinaryExpression': variableNamesForBinaryExpression
+        'BinaryExpression': variableNamesForBinaryExpression,
+        'ObjectExpression': variableNamesForObjectExpression
     }[expressionAst.get('type')] || empty)(expressionAst);
 }
 
