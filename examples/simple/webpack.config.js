@@ -15,7 +15,7 @@ module.exports = {
         path: __dirname + '/out',
         publicPath: '/out'
     },
-    devtool: 'eval',
+    devtool: 'source-map',
     plugins: [
         new webpack.HotModuleReplacementPlugin()
     ],

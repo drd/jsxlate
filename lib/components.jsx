@@ -18,6 +18,8 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
+require('babel/polyfill');
+
 // TODO: default locale should be empty, not fake-English
 var state = {
     messages: {},

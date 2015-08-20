@@ -59,6 +59,7 @@ Error.stackTraceLimit = Infinity;
 
 var babel = require('babel');
 require('babel/polyfill');
+require('babel-runtime');
 var escodegen = require('escodegen-wallaby');
 var I = require('immutable');
 
