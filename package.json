@@ -12,8 +12,8 @@
   },
   "scripts": {
     "test": "babel-node node_modules/.bin/nodeunit tests.js",
-    "build": "mkdir -p ./lib && babel ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.jsx",
-    "prepublish": "mkdir -p ./lib && babel ./jsxlate.js > lib/jsxlate.js && babel ./components.jsx > lib/components.jsx"
+    "build": "./build.sh",
+    "prepublish": "./build.sh"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [
@@ -48,8 +48,6 @@
   },
   "devDependencies": {
     "babel-loader": "^5.1.4",
-    "jsxlate": "^0.2.14",
-    "jsxlate-loader": "^0.3.0",
     "node-inspector": "^0.10.1",
     "nodeunit": "^0.9.0",
     "react-hot-loader": "^1.2.7",
