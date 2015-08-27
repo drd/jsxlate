@@ -1071,7 +1071,7 @@ function acornAstToNestedObjects(ast, p) {
         return ast.map(acornAstToNestedObjects)
     } else if (ast.constructor === babel.acorn.Node || ast.constructor === Object) {
         return Object.entries(ast).reduce((acc, [key, value]) => {
-            if (!key.startsWith('__')) {
+            if (key.substr(0, 2) !== '__') {
                 acc[key] = acornAstToNestedObjects(value, ast);
             }
             return acc;

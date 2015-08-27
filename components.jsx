@@ -1,5 +1,4 @@
 import React from 'react';
-require('babel/polyfill');
 
 
 // TODO: default locale should be empty, not fake-English
