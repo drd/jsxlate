@@ -11,10 +11,9 @@
     "jsxlate-lint": "./bin/jsxlate-lint.js"
   },
   "scripts": {
-    "test": "babel-node node_modules/.bin/nodeunit tests.js",
     "build": "./build.sh",
     "prepublish": "./build.sh",
-    "test-plugin": "mocha --compilers js:babel/register"
+    "test": "mocha --compilers js:babel/register"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [
