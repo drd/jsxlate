@@ -84,5 +84,24 @@ describe('extraction', function() {
             ]);
         });
 
+        it('extracts strings with nested components with attributes', function() {
+            let messages = extract(`
+                React.createClass({
+                    render() {
+                        let name = this.props.name;
+                        return <div>
+                            <I18N>O, hai, <span className="boop">{name}</span>.</I18N>
+                            <I18N>You look <a href="#nice">nice</a> today, <strong>{this.props.subject}</strong>!</I18N>
+                        </div>;
+                    }
+                })
+            `);
+
+            expect(messages).to.eql([
+                'O, hai, <span>{name}</span>.',
+                'You look <a href="#nice">nice</a> today, <strong>{this.props.subject}</strong>!'
+            ]);
+        });
+
     })
 });
