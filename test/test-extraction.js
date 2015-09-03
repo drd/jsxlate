@@ -46,7 +46,7 @@ describe('extraction', function() {
             ]);
         });
 
-        it('extracts strings with expressions in them', function() {
+        it('extracts strings with expressions', function() {
             let messages = extract(`
                 React.createClass({
                     render() {
@@ -63,7 +63,26 @@ describe('extraction', function() {
                 'O, hai, {name}.',
                 'You look nice today, {this.props.subject}!'
             ]);
-        })
+        });
+
+        it('extracts strings with nested components', function() {
+            let messages = extract(`
+                React.createClass({
+                    render() {
+                        let name = this.props.name;
+                        return <div>
+                            <I18N>O, hai, <span>{name}</span>.</I18N>
+                            <I18N>You look <em>nice</em> today, <strong>{this.props.subject}</strong>!</I18N>
+                        </div>;
+                    }
+                })
+            `);
+
+            expect(messages).to.eql([
+                'O, hai, <span>{name}</span>.',
+                'You look <em>nice</em> today, <strong>{this.props.subject}</strong>!'
+            ]);
+        });
 
     })
 });

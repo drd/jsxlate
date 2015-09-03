@@ -43,7 +43,11 @@ function extractChild(child) {
         break;
 
         case 'JSXExpressionContainer':
-            return `{${extractExpression(child.expression)}}`;
+            return extractExpression(child.expression);
+        break;
+
+        case 'JSXElement':
+            return extractElement(child);
         break;
 
         default:
@@ -52,7 +56,12 @@ function extractChild(child) {
 }
 
 function extractExpression(expression) {
-    return memberExpressionName(expression);
+    return `{${memberExpressionName(expression)}}`;
+}
+
+function extractElement(element) {
+    let name = elementName(element);
+    return `<${name}>${extractElementMessage(element)}</${name}>`;
 }
 
 
