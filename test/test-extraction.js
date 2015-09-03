@@ -28,6 +28,23 @@ describe('extraction', function() {
     });
 
     describe('of jsx', function() {
-        
+        it('extracts simple strings', function() {
+            let messages = extract(`
+                React.createClass({
+                    render() {
+                        return <div>
+                            <I18N>O, hai.</I18N>
+                            <I18N>You look nice today!</I18N>
+                        </div>;
+                    }
+                })
+            `);
+
+            expect(messages).to.eql([
+                'O, hai.',
+                'You look nice today!'
+            ]);
+        })
+
     })
 });

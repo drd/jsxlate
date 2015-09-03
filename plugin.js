@@ -1,15 +1,5 @@
 var babel = require('babel');
 
-var codes = `
-let translated = i18n("derp");
-
-let Component = React.createClass({
-    render() {
-        return <I18N>Oh hello there, {this.props.name}.</I18N>;
-    }
-})
-`;
-
 
 function memberExpressionName(name) {
     let segments = [];
@@ -27,7 +17,7 @@ function memberExpressionName(name) {
 }
 
 function elementName(element) {
-    return element.openingElement.name;
+    let name = element.openingElement.name;
 
     if (name.type === 'JSXIdentifier') {
         return name.name;
@@ -37,7 +27,7 @@ function elementName(element) {
 }
 
 function isElementMarker(node) {
-    return elementName(node.openingElement.name) === 'I18N';
+    return elementName(node) === 'I18N';
 }
 
 function extractElementMessage(node) {
@@ -82,7 +72,7 @@ module.exports.extract = function extract(src) {
     }
 
     let plugin = function({Plugin, t}) {
-        return new Plugin('jsxlate', {
+        return new Plugin('extraction', {
             visitor: {
                 CallExpression(node, parent) {
                     if (node.callee.name === 'i18n') {
@@ -91,7 +81,7 @@ module.exports.extract = function extract(src) {
                 },
 
                 JSXElement(node, parent) {
-                    if (isElementMarker(node)) {
+                    if (isElementMarker(node)) {  // <I18N>
                         enterMarker();
                         messages.push(extractElementMessage(node));
                         leaveMarker();
