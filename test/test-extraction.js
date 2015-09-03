@@ -44,6 +44,25 @@ describe('extraction', function() {
                 'O, hai.',
                 'You look nice today!'
             ]);
+        });
+
+        it('extracts strings with expressions in them', function() {
+            let messages = extract(`
+                React.createClass({
+                    render() {
+                        let name = this.props.name;
+                        return <div>
+                            <I18N>O, hai, {name}.</I18N>
+                            <I18N>You look nice today, {this.props.subject}!</I18N>
+                        </div>;
+                    }
+                })
+            `);
+
+            expect(messages).to.eql([
+                'O, hai, {name}.',
+                'You look nice today, {this.props.subject}!'
+            ]);
         })
 
     })
