@@ -91,7 +91,7 @@ describe('extraction', function() {
                     render() {
                         let name = this.props.name;
                         return <div>
-                            <I18N>O, hai, <span className="boop">{name}</span>.</I18N>
+                            <I18N>O, hai, <span title="boop">{name}</span>.</I18N>
                             <I18N>You look <a href="#nice">nice</a> today, <strong>{this.props.subject}</strong>!</I18N>
                         </div>;
                     }
@@ -99,7 +99,7 @@ describe('extraction', function() {
             `);
 
             expect(messages).to.eql([
-                'O, hai, <span>{name}</span>.',
+                'O, hai, <span title="boop">{name}</span>.',
                 'You look <a href="#nice">nice</a> today, <strong>{this.props.subject}</strong>!'
             ]);
         });
@@ -110,5 +110,9 @@ describe('extraction', function() {
             expect(spy.callCount).to.equal(1);
             spy.restore();
         });
-    })
+
+        it('throws an error when an element has sanitized attributes but no i18n-id', function() {
+            expect(() => extract('<I18N>O, hai, <span className="boop">{name}</span>.</I18N>')).to.throw(Error);
+        });
+    });
 });
