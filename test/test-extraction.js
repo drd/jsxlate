@@ -1,5 +1,6 @@
 const mocha = require('mocha');
 const {expect} = require('chai');
+const sinon = require('sinon');
 
 const {extract} = require('../plugin');
 
@@ -103,5 +104,11 @@ describe('extraction', function() {
             ]);
         });
 
+        it('warns when it finds non-extractable whitelisted attributes', function() {
+            let spy = sinon.spy(console, 'warn');
+            extract('<I18N><a href={Router.url("about-us")}>click me</a></I18N>');
+            expect(spy.callCount).to.equal(1);
+            spy.restore();
+        });
     })
 });

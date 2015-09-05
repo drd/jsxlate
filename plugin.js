@@ -1,15 +1,15 @@
 var babel = require('babel');
+var escodegen = require('escodegen-wallaby')
 
-
-let tagExtractableAttributes = {
+let tagWhitelistedAttributes = {
     a:   ['href'],
     img: ['alt'],
     '*': ['title', 'placeholder', 'alt', 'summary']
 };
 
 
-function extractableAttributes(elementName) {
-    return (tagExtractableAttributes[elementName] || []).concat(tagExtractableAttributes['*']);
+function whitelistedAttributes(elementName) {
+    return (tagWhitelistedAttributes[elementName] || []).concat(tagWhitelistedAttributes['*']);
 }
 
 
@@ -61,7 +61,6 @@ function attributeValue(attribute) {
         break;
 
         default:
-            throw new Error("Extractable attributes must be literals.")
     }
 }
 
@@ -98,10 +97,21 @@ function extractExpression(expression) {
     return `{${memberExpressionName(expression)}}`;
 }
 
-function extractableAttribute(element, attribute) {
+function extractableAttributes(element) {
+    return element.openingElement.attributes.filter(
+        a => isExtractableAttribute(element, a)
+    );
+}
+
+function isExtractableAttribute(element, attribute) {
     let name = elementName(element);
-    let whitelistedAttributes = extractableAttributes(name);
-    return whitelistedAttributes.indexOf(attributeName(attribute)) !== -1;
+    let elementWhitelistedAttributes = whitelistedAttributes(name);
+    let value = attributeValue(attribute);
+    let attributeIsWhitelisted = elementWhitelistedAttributes.indexOf(attributeName(attribute)) !== -1;
+    if (attributeIsWhitelisted && !value) {
+        console.warn("Ignoring non-literal extractable attribute:", escodegen.generate(attribute));
+    }
+    return value && attributeIsWhitelisted;
 }
 
 function extractElementAttribute(attribute) {
@@ -109,16 +119,15 @@ function extractElementAttribute(attribute) {
 }
 
 function extractElementAttributes(element) {
-    let extractableAttributes = element.openingElement.attributes.filter(
-        a => extractableAttribute(element, a)
-    );
+    let attributesToExtract = extractableAttributes(element);
 
-    return extractableAttributes.length
-        ? ` ${extractableAttributes.map(extractElementAttribute).join(' ')}`
+    return attributesToExtract.length
+        ? ` ${attributesToExtract.map(extractElementAttribute).join(' ')}`
         : '';
 }
 
 function extractElement(element) {
+
     let name = elementName(element);
     let attributes = extractElementAttributes(element);
     return `<${name}${attributes}>${extractElementMessage(element)}</${name}>`;
@@ -164,13 +173,13 @@ module.exports.extract = function extract(src) {
                     }
                 },
 
-                JSXAttribute(node, parent) {
-                    if (!inMarker) {
-                        if (extractableAttribute(node)) {
-                            messages.push(extractAttribute(node))
-                        }
-                    }
-                }
+                // JSXAttribute(node, parent) {
+                //     if (!inMarker) {
+                //         if (extractableAttribute(node)) {
+                //             messages.push(extractAttribute(node))
+                //         }
+                //     }
+                // }
             }
         });
     };
