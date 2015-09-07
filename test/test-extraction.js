@@ -114,5 +114,9 @@ describe('extraction', function() {
         it('throws an error when an element has sanitized attributes but no i18n-id', function() {
             expect(() => extract('<I18N>O, hai, <span className="boop">{name}</span>.</I18N>')).to.throw(Error);
         });
+
+        it('does not require i18n-id on unique components', function() {
+            expect(() => extract('<I18N>O, hai, <Component beep="boop">{name}</Component>.</I18N>')).to.not.throw(Error);
+        });
     });
 });

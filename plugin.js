@@ -1,3 +1,5 @@
+"use strict";
+
 var babel = require('babel');
 var escodegen = require('escodegen-wallaby')
 
@@ -57,6 +59,12 @@ function isExtractableAttribute(element, attribute) {
 }
 
 
+// Reports if an element has any attributes to be sanitized
+function hasUnsafeAttributes(element) {
+    return sanitizedAttributes(element).length > 0;
+}
+
+
 /*
  *
  *   AST Manipulation
@@ -112,6 +120,12 @@ function attributeName(attribute) {
 }
 
 
+// Return if an element is a tag
+function isTag(element) {
+    return /^[a-z]|\-/.test(elementName(element));
+}
+
+
 // Return the value of a JSXAttribute
 // Currently only works for Literals.
 function attributeValue(attribute) {
@@ -136,19 +150,80 @@ function elementAttributes(element) {
 // Find and return the value of the i18n-id attribute of a JSXElement
 // NOTE: This throws an exception if it is not present on the element
 function findIdAttribute(element) {
-    let idAttribute = elementAttributes(element).filter(a => {
+    return elementAttributes(element).filter(a => {
         return attributeName(a).toLowerCase() === 'i18n-id'
     })[0];
-    if (!idAttribute) {
-        throw new Error("Element missing required i18n-id: " + escodegen.generate(element));
-    }
-    return attributeValue(idAttribute);
 }
 
 
 // Identify <I18N> tags
 function isElementMarker(node) {
     return elementName(node) === 'I18N';
+}
+
+
+/*
+ *
+ *   Message Validation
+ *
+ */
+
+function validateMessage(element) {
+    let context = {
+        root: element,
+        componentsWithoutIds: {}
+    };
+
+    validateChildren(element.children, context);
+
+    assertUniqueComponenets(context);
+}
+
+function assertUniqueComponenets(context) {
+    return Object.values(context.componentsWithoutIds).every(count => count === 1);
+}
+
+function validateJSXElement(element, context) {
+    if (isElementMarker(element)) {
+        // TODO: unified error handling showing source of exception
+        // and context, including line/character positions.
+        throw new Error("Found a nested element marker in " + escodegen.generate(context.root));
+    }
+    if (isTag(element) && hasUnsafeAttributes(element)) {
+        assertI18nId(element);
+    } else {
+        let name = elementName(element);
+        let count = context.componentsWithoutIds[name];
+        if (count === undefined) {
+            context.componentsWithoutIds[name] = 0;
+        } else {
+            context.componentsWithoutIds[name]++;
+        }
+    }
+
+    validateChildren(element.children, context);
+}
+
+function validateJSXExpressionContainer(container, context) {
+    return container.type === 'Identifier'
+        || container.type === 'ThisExpression'
+        || (container.type === 'MemberExpression'
+            && container.computed === false
+            && validateJSXExpressionContainer(container.object, context));
+}
+
+function validateChildren(children, context) {
+    children.forEach(child => {
+        switch(child.type) {
+            case 'JSXElement':
+                validateJSXElement(child, context);
+            break;
+
+            case 'JSXExpressionContainer':
+                validateJSXExpressionContainer(child, context);
+            break;
+        }
+    })
 }
 
 
@@ -240,6 +315,7 @@ module.exports.extract = function extract(src) {
                     enter(node, parent) {
                         if (isElementMarker(node)) {  // <I18N>...
                             enterMarker();
+                            validateMessage(node);
                             messages.push(extractElementMessage(node));
                         }
                     },
