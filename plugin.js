@@ -126,6 +126,12 @@ function isTag(element) {
 }
 
 
+// Return if an element is a custom component
+function isComponent(element) {
+    return !isTag(element);
+}
+
+
 // Return the value of a JSXAttribute
 // Currently only works for Literals.
 function attributeValue(attribute) {
@@ -176,11 +182,27 @@ function validateMessage(element) {
 
     validateChildren(element.children, context);
 
-    assertUniqueComponenets(context);
+    assertUniqueComponents(context);
 }
 
-function assertUniqueComponenets(context) {
-    return Object.values(context.componentsWithoutIds).every(count => count === 1);
+function assertUniqueComponents(context) {
+    let duplicated = [];
+    Object.keys(context.componentsWithoutIds).forEach(name => {
+        if (context.componentsWithoutIds[name] > 1) {
+            duplicated.push(name);
+        }
+    })
+    if (duplicated.length) {
+        throw new Error("Missing required i18n-id on duplicated component(s) " + duplicated.join(', '));
+    }
+}
+
+function assertI18nId(element) {
+    let openingElement = element.openingElement;
+    if (openingElement.name.type !== 'JSXNamespacedName'
+        && !openingElement.attributes.map(attributeName).includes('i18n-id')) {
+        throw new Error('Element missing required i18n-id: ' + escodegen(openingElement));
+    }
 }
 
 function validateJSXElement(element, context) {
@@ -191,14 +213,13 @@ function validateJSXElement(element, context) {
     }
     if (isTag(element) && hasUnsafeAttributes(element)) {
         assertI18nId(element);
-    } else {
+    } else if (isComponent(element)) {
         let name = elementName(element);
         let count = context.componentsWithoutIds[name];
         if (count === undefined) {
             context.componentsWithoutIds[name] = 0;
-        } else {
-            context.componentsWithoutIds[name]++;
         }
+        context.componentsWithoutIds[name]++;
     }
 
     validateChildren(element.children, context);

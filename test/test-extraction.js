@@ -103,7 +103,9 @@ describe('extraction', function() {
                 'You look <a href="#nice">nice</a> today, <strong>{this.props.subject}</strong>!'
             ]);
         });
+    });
 
+    describe('errors and warnings', function() {
         it('warns when it finds non-extractable whitelisted attributes', function() {
             let spy = sinon.spy(console, 'warn');
             extract('<I18N><a href={Router.url("about-us")}>click me</a></I18N>');
@@ -117,6 +119,10 @@ describe('extraction', function() {
 
         it('does not require i18n-id on unique components', function() {
             expect(() => extract('<I18N>O, hai, <Component beep="boop">{name}</Component>.</I18N>')).to.not.throw(Error);
+        });
+
+        it('requires i18n-id on duplicated components', function() {
+            expect(() => extract('<I18N>O, hai, <C beep="boop">{name}</C>, <C beep="boöp">{game}</C>.</I18N>')).to.throw(Error);
         });
     });
 });
