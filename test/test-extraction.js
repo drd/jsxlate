@@ -2,7 +2,7 @@ const mocha = require('mocha');
 const {expect} = require('chai');
 const sinon = require('sinon');
 
-const {extract} = require('../plugin');
+const {extract} = require('../src/extract');
 
 
 describe('extraction', function() {
