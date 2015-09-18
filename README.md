@@ -178,7 +178,7 @@ If you want to match specific numbers, you can do that as well:
 
 ## Examples
 
-Various examples are provided. `node server.js` will start a webpack dev server for each.
+Various examples are provided in the [jsxlate-loader repository](http://github.com/drd/jsxlate-loader). `node server.js` will start a webpack dev server for each.
 
 ### Simple
 
