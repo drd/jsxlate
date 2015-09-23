@@ -5,6 +5,7 @@ module.exports = {
     freeVariablesInMessage(element) {
         const variables = new Set();
         this.freeVariablesInChildren(element.children, variables);
+        variables.delete('this');
         return variables.toJSON();
     },
 
@@ -37,6 +38,15 @@ module.exports = {
         }
     },
 
+    freeVariablesInObjectExpression(expression, variables) {
+        expression.properties.forEach(property => {
+            this.freeVariablesInExpression(property.value, variables);
+            if (property.computed) {
+                this.freeVariablesInExpression(property.key, variables);
+            }
+        })
+    },
+
     freeVariablesInExpression(expression, variables) {
         switch(expression.type) {
             case 'Identifier':
@@ -49,7 +59,7 @@ module.exports = {
             break;
 
             case 'CallExpression':
-                variables.add(expression.callee.name);
+                this.freeVariablesInExpression(expression.callee, variables);
             break;
 
             case 'BinaryExpression':
@@ -58,7 +68,7 @@ module.exports = {
             break;
 
             case 'ObjectExpression':
-                // TODO
+                this.freeVariablesInObjectExpression(expression, variables);
             break;
 
             default:

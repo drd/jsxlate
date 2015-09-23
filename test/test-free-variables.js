@@ -9,6 +9,8 @@ const freeVariables = require('../src/free-variables');
 describe('freeVariables', function() {
     const examples = {
         '<I18N>{foo}</I18N>': ['foo'],
+        '<I18N>{this.foo}</I18N>': [],
+        '<I18N>{this.foo()}</I18N>': [],
         '<I18N><span foo={bar}>{foo}</span></I18N>': ['foo', 'bar']
     };
 
