@@ -2,7 +2,7 @@
   "name": "jsxlate",
   "version": "0.3.1",
   "description": "Automatic message extraction and translation for JSX files",
-  "main": "index.js",
+  "main": "./src/transform.js",
   "bin": {
     "extract-messages": "./bin/extract-messages.js",
     "translate": "./bin/translate.js",
