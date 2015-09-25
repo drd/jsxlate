@@ -1,6 +1,8 @@
 "use strict";
 
 var babel = require('babel');
+require('babel/polyfill');
+
 var escodegen = require('escodegen-wallaby');
 
 var ast = require('./ast');

@@ -1,6 +1,6 @@
 'use strict';
 
-var babel = require('babel');
+require('babel/polyfill');
 
 var ast = require('./ast');
 var extraction = require('./extraction');
@@ -16,7 +16,7 @@ module.exports = function (_ref) {
                 if (ast.isElementMarker(node)) {
                     var vars = freeVariables.freeVariablesInMessage(node);
                     var message = extraction.extractElementMessage(node);
-                    return t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('createElement')), [t.literal('I18N'), t.objectExpression([t.property('init', t.identifier('message'), t.literal(message)), t.property('init', t.identifier('context'), t.arrayExpression(vars.map(function (v) {
+                    return t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('createElement')), [t.identifier('I18N'), t.objectExpression([t.property('init', t.identifier('message'), t.literal(message)), t.property('init', t.identifier('context'), t.identifier('this')), t.property('init', t.identifier('args'), t.arrayExpression(vars.map(function (v) {
                         return t.identifier(v);
                     }))), t.property('init', t.identifier('fallback'), t.functionExpression(null, [], t.blockStatement([t.returnStatement(t.callExpression(t.memberExpression(t.identifier('React'), t.identifier('createElement')), [t.literal('span'), t.identifier('null'), t.arrayExpression(node.children)]))])))]), t.identifier('null')]);
                 }
