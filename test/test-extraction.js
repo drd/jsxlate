@@ -126,10 +126,10 @@ describe('extraction', function() {
 
     describe('errors and warnings', function() {
         it('warns when it finds non-extractable whitelisted attributes', function() {
-            let spy = sinon.spy(console, 'warn');
+            let stub = sinon.stub(console, 'warn');
             extract('<I18N><a href={Router.url("about-us")}>click me</a></I18N>');
-            expect(spy.callCount).to.equal(1);
-            spy.restore();
+            expect(stub.callCount).to.equal(1);
+            stub.restore();
         });
 
         it('throws an error when an element has sanitized attributes but no i18n-id', function() {
