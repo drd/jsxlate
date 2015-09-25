@@ -35,7 +35,7 @@ module.exports = {
     assertI18nId: function(element) {
         let openingElement = element.openingElement;
         if (openingElement.name.type !== 'JSXNamespacedName'
-            && !openingElement.attributes.map(attributeName).includes('i18n-id')) {
+            && !openingElement.attributes.map(ast.attributeName).includes('i18n-id')) {
             throw new Error('Element missing required i18n-id: ' + escodegen(openingElement));
         }
     },

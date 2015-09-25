@@ -88,11 +88,13 @@ module.exports = {
 
 
     // Find and return the value of the i18n-id attribute of a JSXElement
-    // NOTE: This throws an exception if it is not present on the element
     findIdAttribute: function(element) {
-        return this.elementAttributes(element).filter(a => {
+        let attribute = this.elementAttributes(element).find(a => {
             return this.attributeName(a).toLowerCase() === 'i18n-id'
-        })[0];
+        });
+        if (attribute) {
+            return this.attributeValue(attribute);
+        }
     },
 
 
