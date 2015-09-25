@@ -18,10 +18,11 @@ module.exports = function({Plugin, types: t}) {
                             t.identifier('createElement')
                         ),
                         [
-                            t.literal('I18N'),
+                            t.identifier('I18N'),
                             t.objectExpression([
                                 t.property('init', t.identifier('message'), t.literal(message)),
-                                t.property('init', t.identifier('context'), t.arrayExpression(
+                                t.property('init', t.identifier('context'), t.identifier('this')),
+                                t.property('init', t.identifier('args'), t.arrayExpression(
                                     vars.map(v => t.identifier(v))
                                 )),
                                 t.property('init', t.identifier('fallback'), t.functionExpression(
