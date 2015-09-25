@@ -58,6 +58,10 @@ module.exports = {
             name = `${name}:${i18nId}`;
         }
         let attributes = this.extractElementAttributes(element);
-        return `<${name}${attributes}>${this.extractElementMessage(element)}</${name}>`;
+        if (element.children.length) {
+            return `<${name}${attributes}>${this.extractElementMessage(element)}</${name}>`;
+        } else {
+            return `<${name}${attributes} />`;
+        }
     }
 };

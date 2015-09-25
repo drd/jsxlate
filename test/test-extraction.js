@@ -103,6 +103,25 @@ describe('extraction', function() {
                 'You look <a href="#nice">nice</a> today, <strong>{this.props.subject}</strong>!'
             ]);
         });
+
+        it('extracts strings with nested components with no children', function() {
+            let messages = extract(`
+                React.createClass({
+                    render() {
+                        let name = this.props.name;
+                        return <div>
+                            <I18N>Line, <br title="boop"/>Break.</I18N>
+                            <I18N>React <Components/>, am I right?</I18N>
+                        </div>;
+                    }
+                })
+            `);
+
+            expect(messages).to.eql([
+                'Line, <br title="boop" />Break.',
+                'React <Components />, am I right?'
+            ]);
+        });
     });
 
     describe('errors and warnings', function() {
