@@ -71,6 +71,10 @@ module.exports = {
                 this.freeVariablesInObjectExpression(expression, variables);
             break;
 
+            case 'Literal':
+                // noop
+            break;
+
             default:
                 console.log(expression);
         }
