@@ -83,13 +83,15 @@ module.exports = {
     },
 
     // Find and return the value of the i18n-id attribute of a JSXElement
-    // NOTE: This throws an exception if it is not present on the element
     findIdAttribute: function findIdAttribute(element) {
         var _this = this;
 
-        return this.elementAttributes(element).filter(function (a) {
+        var attribute = this.elementAttributes(element).find(function (a) {
             return _this.attributeName(a).toLowerCase() === 'i18n-id';
-        })[0];
+        });
+        if (attribute) {
+            return this.attributeValue(attribute);
+        }
     },
 
     // Identify <I18N> tags
