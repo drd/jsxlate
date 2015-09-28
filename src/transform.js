@@ -37,9 +37,8 @@ module.exports = function({Plugin, types: t}) {
                                                 ),
                                                 [
                                                     t.literal('span'),
-                                                    t.identifier('null'),
-                                                    t.arrayExpression(node.children)
-                                                ]
+                                                    t.identifier('null')
+                                                ].concat(node.children)
                                             )
                                         )
                                     ])
