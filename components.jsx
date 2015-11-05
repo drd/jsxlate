@@ -30,7 +30,7 @@ class I18N extends React.Component {
             let rendered = renderer.apply(this.props.context, this.props.args);
             // TODO: this check would be unnecessary if collisions between
             // source and react child strings were impossible.
-            if (toString.call(rendered) === '[object String]') {
+            if (Object.prototype.toString.call(rendered) === '[object String]') {
                 return <span>{rendered}</span>;
             } else {
                 return rendered;
@@ -42,13 +42,12 @@ class I18N extends React.Component {
 
 
 class Match extends React.Component {
-    _isMatch = true;
-
     render() {
         return <span>{this.props.children}</span>;
     }
 }
 
+Match._isMatch = true;
 Match.propTypes = {
     when: React.PropTypes.string
 };
@@ -57,7 +56,7 @@ Match.propTypes = {
 class Pluralize extends React.Component {
 
     classifyMatch(match) {
-        if (match.startsWith('=')) {
+        if (match && match.startsWith('=')) {
             return parseInt(match.slice(1), 10);
         } else {
             return match;
@@ -89,10 +88,10 @@ class Pluralize extends React.Component {
 Pluralize.propTypes = {
     on: React.PropTypes.number,
     children: (props, propName, componentName) => {
-        let nonTextChildren = props[propName].filter(c => toString.call(c) === '[object String]');
-        let nonMatchChildren = nonTextChildren.filter(c => c._isMatch);
+        let nonTextChildren = props[propName].filter(c => Object.prototype.toString.call(c) !== '[object String]');
+        let nonMatchChildren = nonTextChildren.filter(c => !c.type._isMatch);
         if (nonMatchChildren.length) {
-            return new Error("Pluralize given children other than a Match: " + nonMatchChildren);
+            return new Error("Pluralize given children other than a Match: " + nonMatchChildren.map(c => c.type.displayName || c.type.name || c.type));
         }
     }
 }
