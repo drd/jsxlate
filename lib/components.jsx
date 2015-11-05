@@ -56,7 +56,7 @@ var I18N = (function (_React$Component) {
                 var rendered = renderer.apply(this.props.context, this.props.args);
                 // TODO: this check would be unnecessary if collisions between
                 // source and react child strings were impossible.
-                if (toString.call(rendered) === '[object String]') {
+                if (Object.prototype.toString.call(rendered) === '[object String]') {
                     return _react2['default'].createElement(
                         'span',
                         null,
@@ -80,8 +80,6 @@ var Match = (function (_React$Component2) {
         _classCallCheck(this, Match);
 
         _get(Object.getPrototypeOf(Match.prototype), 'constructor', this).apply(this, arguments);
-
-        this._isMatch = true;
     }
 
     _createClass(Match, [{
@@ -98,6 +96,7 @@ var Match = (function (_React$Component2) {
     return Match;
 })(_react2['default'].Component);
 
+Match._isMatch = true;
 Match.propTypes = {
     when: _react2['default'].PropTypes.string
 };
@@ -114,7 +113,7 @@ var Pluralize = (function (_React$Component3) {
     _createClass(Pluralize, [{
         key: 'classifyMatch',
         value: function classifyMatch(match) {
-            if (match.startsWith('=')) {
+            if (match && match.startsWith('=')) {
                 return parseInt(match.slice(1), 10);
             } else {
                 return match;
@@ -153,13 +152,15 @@ Pluralize.propTypes = {
     on: _react2['default'].PropTypes.number,
     children: function children(props, propName, componentName) {
         var nonTextChildren = props[propName].filter(function (c) {
-            return toString.call(c) === '[object String]';
+            return Object.prototype.toString.call(c) !== '[object String]';
         });
         var nonMatchChildren = nonTextChildren.filter(function (c) {
-            return c._isMatch;
+            return !c.type._isMatch;
         });
         if (nonMatchChildren.length) {
-            return new Error('Pluralize given children other than a Match: ' + nonMatchChildren);
+            return new Error('Pluralize given children other than a Match: ' + nonMatchChildren.map(function (c) {
+                return c.type.displayName || c.type.name || c.type;
+            }));
         }
     }
 };
