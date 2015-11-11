@@ -10,9 +10,13 @@ const whitelisting = require('./whitelisting');
 
 module.exports = {
     extractElementMessage: function(node) {
+        return this._extractElementMessage(node).trim();
+    },
+
+    _extractElementMessage: function(node) {
         return node.children.reduce((message, c) => {
-            return message + this.extractChild(c)
-        }, '')
+            return message + this.extractChild(c);
+        }, '');
     },
 
     extractChild: function(child) {
@@ -55,11 +59,13 @@ module.exports = {
         let name = ast.elementName(element);
         if (whitelisting.hasUnsafeAttributes(element)) {
             let i18nId = ast.findIdAttribute(element);
-            name = `${name}:${i18nId}`;
+            if (i18nId) {
+                name = `${name}:${i18nId}`;
+            }
         }
         let attributes = this.extractElementAttributes(element);
         if (element.children.length) {
-            return `<${name}${attributes}>${this.extractElementMessage(element)}</${name}>`;
+            return `<${name}${attributes}>${this._extractElementMessage(element)}</${name}>`;
         } else {
             return `<${name}${attributes} />`;
         }

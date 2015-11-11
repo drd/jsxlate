@@ -139,6 +139,28 @@ describe('extraction', function() {
                 'React <Components />, am I right?'
             ]);
         });
+
+        it('does not assume an i18n-id is present when there are unsafe attributes', function() {
+            let messages = extract(`
+                <li><I18N><span i18n-id="stat" className="stat"><ReactIntl.FormattedNumber value={dailyVisitors}/></span>daily visitors</I18N></li>
+            `);
+
+            expect(messages).to.eql([
+                '<span:stat><ReactIntl.FormattedNumber /></span:stat>daily visitors'
+            ]);
+        });
+
+        it('deals correctly with whitespace', function() {
+            let messages = extract(`<p id="are-we-eligible" className="in-form-link">
+                <I18N>
+                    <a href="/info/Help/Organizations#Eligibility">Are we eligible?</a>
+                </I18N>
+            </p>`);
+
+            expect(messages).to.eql([
+                '<a href="/info/Help/Organizations#Eligibility">Are we eligible?</a>'
+            ]);
+        });
     });
 
     describe('errors and warnings', function() {
