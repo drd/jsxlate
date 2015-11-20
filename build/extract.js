@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var babel = require('babel');
 require('babel/polyfill');
@@ -15,7 +15,7 @@ module.exports.extract = function extract(src) {
 
     function enterMarker() {
         if (inMarker) {
-            throw new Error("Nested markers");
+            throw new Error('Nested markers');
         }
         inMarker = true;
     }
@@ -58,17 +58,17 @@ module.exports.extract = function extract(src) {
         });
     };
 
-    // JSXAttribute(node, parent) {
-    //     if (!inMarker) {
-    //         if (extractableAttribute(node)) {
-    //             messages.push(extractAttribute(node))
-    //         }
-    //     }
-    // }
     babel.transform(src, {
         plugins: [plugin]
     });
 
     return messages;
 };
+// JSXAttribute(node, parent) {
+//     if (!inMarker) {
+//         if (extractableAttribute(node)) {
+//             messages.push(extractAttribute(node))
+//         }
+//     }
+// }
 

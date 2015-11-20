@@ -35,7 +35,7 @@ module.exports = {
         } else if (name.type === 'JSXMemberExpression') {
             return this.memberExpressionName(name);
         } else {
-            throw new Error("unknown elementName type: " + name.type);
+            throw new Error('unknown elementName type: ' + name.type);
         }
     },
 
@@ -48,14 +48,13 @@ module.exports = {
         } else if (name.type === 'JSXNamespacedName') {
             return name.namespace.name + ':' + name.name.name;
         } else {
-            throw new Error("unknown attributeName type: " + name.type);
+            throw new Error('unknown attributeName type: ' + name.type);
         }
     },
 
     // Return if an element is a tag
     isTag: function isTag(element) {
-        return (/^[a-z]|\-/.test(this.elementName(element))
-        );
+        return /^[a-z]|\-/.test(this.elementName(element));
     },
 
     // Return if an element is a custom component

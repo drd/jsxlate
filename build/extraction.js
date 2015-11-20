@@ -11,6 +11,10 @@ var whitelisting = require('./whitelisting');
 
 module.exports = {
     extractElementMessage: function extractElementMessage(node) {
+        return this._extractElementMessage(node).trim();
+    },
+
+    _extractElementMessage: function _extractElementMessage(node) {
         var _this = this;
 
         return node.children.reduce(function (message, c) {
@@ -33,7 +37,7 @@ module.exports = {
                 break;
 
             default:
-                throw new Error("Unexpected child type: " + child.type);
+                throw new Error('Unexpected child type: ' + child.type);
         }
     },
 
@@ -55,11 +59,13 @@ module.exports = {
         var name = ast.elementName(element);
         if (whitelisting.hasUnsafeAttributes(element)) {
             var i18nId = ast.findIdAttribute(element);
-            name = name + ':' + i18nId;
+            if (i18nId) {
+                name = name + ':' + i18nId;
+            }
         }
         var attributes = this.extractElementAttributes(element);
         if (element.children.length) {
-            return '<' + name + attributes + '>' + this.extractElementMessage(element) + '</' + name + '>';
+            return '<' + name + attributes + '>' + this._extractElementMessage(element) + '</' + name + '>';
         } else {
             return '<' + name + attributes + ' />';
         }

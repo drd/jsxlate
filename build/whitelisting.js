@@ -52,7 +52,7 @@ module.exports = {
         var value = ast.attributeValue(attribute);
         var attributeIsWhitelisted = this.isWhitelistedAttribute(element, attribute);
         if (attributeIsWhitelisted && !value) {
-            console.warn("Ignoring non-literal extractable attribute:", escodegen.generate(attribute));
+            console.warn('Ignoring non-literal extractable attribute:', escodegen.generate(attribute));
         }
         return value && attributeIsWhitelisted;
     },

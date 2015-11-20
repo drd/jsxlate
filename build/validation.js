@@ -31,7 +31,7 @@ module.exports = {
             }
         });
         if (duplicated.length) {
-            throw new Error("Missing required i18n-id on duplicated component(s) " + duplicated.join(', '));
+            throw new Error('Missing required i18n-id on duplicated component(s) ' + duplicated.join(', '));
         }
     },
 
@@ -46,7 +46,7 @@ module.exports = {
         if (ast.isElementMarker(element)) {
             // TODO: unified error handling showing source of exception
             // and context, including line/character positions.
-            throw new Error("Found a nested element marker in " + escodegen.generate(context.root));
+            throw new Error('Found a nested element marker in ' + escodegen.generate(context.root));
         }
         if (ast.isTag(element) && whitelisting.hasUnsafeAttributes(element)) {
             this.assertI18nId(element);

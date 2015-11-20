@@ -29,8 +29,20 @@ module.exports = {
     },
 
     freeVariablesInElement: function freeVariablesInElement(element, variables) {
+        this.freeVariablesInElementName(element.openingElement.name, variables);
         this.freeVariablesInAttributes(element.openingElement.attributes, variables);
         this.freeVariablesInChildren(element.children, variables);
+    },
+
+    freeVariablesInElementName: function freeVariablesInElementName(name, variables) {
+        if (name.type === 'JSXIdentifier') {
+            if (name.name.toLowerCase() !== name.name) {
+                variables.add(name.name);
+            }
+        } else if (name.type === 'JSXMemberExpression') {
+            // FIXME
+            variables.add(ast.memberExpressionName(name).split('.')[0]);
+        }
     },
 
     freeVariablesInAttributes: function freeVariablesInAttributes(attributes, variables) {
