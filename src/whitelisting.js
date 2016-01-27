@@ -4,7 +4,7 @@
  *
  */
 
-const escodegen = require('escodegen-wallaby');
+import generate from 'babel-generator';
 
 const ast = require('./ast');
 
@@ -52,7 +52,7 @@ module.exports = {
         let value = ast.attributeValue(attribute);
         let attributeIsWhitelisted = this.isWhitelistedAttribute(element, attribute);
         if (attributeIsWhitelisted && !value) {
-            console.warn("Ignoring non-literal extractable attribute:", escodegen.generate(attribute));
+            console.warn("Ignoring non-literal extractable attribute:", generate(attribute).code);
         }
         return value && attributeIsWhitelisted;
     },

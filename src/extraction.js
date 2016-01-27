@@ -22,6 +22,8 @@ module.exports = {
     extractChild: function(child) {
         switch (child.type) {
             case 'Literal':
+            case 'StringLiteral':
+            case 'NumericLiteral':
                 return child.value;
             break;
 
@@ -31,6 +33,10 @@ module.exports = {
 
             case 'JSXElement':
                 return this.extractElement(child);
+            break;
+
+            case 'JSXText':
+                return child.value;
             break;
 
             default:

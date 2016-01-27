@@ -13,7 +13,7 @@
   "scripts": {
     "build": "./build.sh",
     "prepublish": "./build.sh",
-    "test": "mocha --compilers js:babel/register"
+    "test": "mocha --compilers js:babel-register"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [
@@ -32,9 +32,15 @@
     "internationalization"
   ],
   "dependencies": {
-    "babel": "^5.8.23",
-    "babel-core": "^5.8.23",
-    "babel-runtime": "^5.8.20",
+    "babel-cli": "^6.4.5",
+    "babel-core": "^6.4.5",
+    "babel-generator": "^6.4.5",
+    "babel-polyfill": "^6.3.14",
+    "babel-preset-es2015": "^6.3.13",
+    "babel-preset-react": "^6.3.13",
+    "babel-register": "^6.4.3",
+    "babel-traverse": "^6.4.5",
+    "babylon": "^6.4.5",
     "chalk": "^1.1.0",
     "escodegen": "drd/escodegen#wallaby",
     "glob-to-regexp": "0.0.2",

@@ -73,6 +73,8 @@ module.exports = {
 
         switch (value.type) {
             case 'Literal':
+            case 'StringLiteral':
+            case 'NumericLiteral':
                 return value.value;
             break;
 
@@ -97,6 +99,13 @@ module.exports = {
         }
     },
 
+    idOrComponentName(element) {
+        let id = this.findIdAttribute(element);
+        if (!id && this.isComponent(element)) {
+            id = this.elementName(element);
+        }
+        return id;
+    },
 
     // Identify <I18N> tags
     isElementMarker: function(node) {

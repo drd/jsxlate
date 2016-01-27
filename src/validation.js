@@ -9,15 +9,21 @@ const whitelisting = require('./whitelisting');
 
 
 module.exports = {
+    sanitizedAttributesOf(element) {
+        return this.validateMessage(element).componentsToSanitizedAttributes;
+    },
+
     validateMessage: function(element) {
         let context = {
             root: element,
-            componentsWithoutIds: {}
+            componentsWithoutIds: {},
+            componentsToSanitizedAttributes: {},
         };
 
         this.validateChildren(element.children, context);
-
         this.assertUniqueComponents(context);
+
+        return context;
     },
 
     assertUniqueComponents: function(context) {
@@ -46,15 +52,21 @@ module.exports = {
             // and context, including line/character positions.
             throw new Error("Found a nested element marker in " + escodegen.generate(context.root));
         }
-        if (ast.isTag(element) && whitelisting.hasUnsafeAttributes(element)) {
-            this.assertI18nId(element);
-        } else if (ast.isComponent(element)) {
-            let name = ast.elementName(element);
-            let count = context.componentsWithoutIds[name];
-            if (count === undefined) {
-                context.componentsWithoutIds[name] = 0;
+        if (whitelisting.hasUnsafeAttributes(element)) {
+            if (ast.isTag(element)) {
+                this.assertI18nId(element);
+            } else if (ast.isComponent(element)) {
+                let componentId = ast.findIdAttribute(element)
+                if (!componentId) {
+                    componentId = ast.elementName(element);
+                    let count = context.componentsWithoutIds[componentId];
+                    if (count === undefined) {
+                        context.componentsWithoutIds[componentId] = 0;
+                    }
+                    context.componentsWithoutIds[componentId]++;
+                }
             }
-            context.componentsWithoutIds[name]++;
+            context.componentsToSanitizedAttributes[ast.idOrComponentName(element)] = whitelisting.sanitizedAttributes(element);
         }
 
         this.validateChildren(element.children, context);

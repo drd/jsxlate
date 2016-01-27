@@ -1,4 +1,4 @@
-require('babel/polyfill');
+require('babel-polyfill');
 
 const ast = require('./ast');
 const extraction = require('./extraction');

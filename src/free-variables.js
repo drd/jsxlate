@@ -84,6 +84,8 @@ module.exports = {
             break;
 
             case 'Literal':
+            case 'StringLiteral':
+            case 'NumericLiteral':
                 // noop
             break;
 

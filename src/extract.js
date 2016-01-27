@@ -1,7 +1,13 @@
-"use strict";
+/*
+ *
+ *   Plugin for Message Extraction
+ *
+ */
 
-var babel = require('babel');
-require('babel/polyfill');
+
+var babel = require('babel-core');
+var jsx = require('babel-plugin-syntax-jsx');
+require('babel-polyfill');
 
 var escodegen = require('escodegen-wallaby')
 
@@ -25,17 +31,17 @@ module.exports.extract = function extract(src) {
         inMarker = false;
     }
 
-    let plugin = function({Plugin, t}) {
-        return new Plugin('extraction', {
+    let plugin = function({types: t}) {
+        return {
             visitor: {
-                CallExpression(node, parent) {
+                CallExpression({node}) {
                     if (node.callee.name === 'i18n') {
                         messages.push(node.arguments[0].value);
                     }
                 },
 
                 JSXElement: {
-                    enter(node, parent) {
+                    enter({node}) {
                         if (ast.isElementMarker(node)) {  // <I18N>...
                             enterMarker();
                             validation.validateMessage(node);
@@ -43,7 +49,7 @@ module.exports.extract = function extract(src) {
                         }
                     },
 
-                    exit(node, parent) {
+                    exit({node}) {
                         if (ast.isElementMarker(node)) {  // ...</I18N>
                             leaveMarker();
                         }
@@ -58,11 +64,11 @@ module.exports.extract = function extract(src) {
                 //     }
                 // }
             }
-        });
+        };
     };
 
     babel.transform(src, {
-        plugins: [plugin]
+        plugins: [jsx, plugin]
     });
 
     return messages;

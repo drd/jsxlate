@@ -1,4 +1,4 @@
-const babel = require('babel');
+const babylon = require('babylon');
 const mocha = require('mocha');
 const {expect} = require('chai');
 const sinon = require('sinon');
@@ -19,7 +19,7 @@ describe('freeVariables', function() {
 
     Object.entries(examples).forEach(([src, expectedVariables]) => {
         it(`in ${src}`, function() {
-            const expression = babel.parse(src).body[0].expression;
+            const expression = babylon.parse(src, {plugins: ['jsx']}).program.body[0].expression;
             const variables = freeVariables.freeVariablesInMessage(expression);
             expect(variables).to.have.members(expectedVariables);
         });
