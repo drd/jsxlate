@@ -1,7 +1,14 @@
 'use strict';
 
-var babel = require('babel');
-require('babel/polyfill');
+/*
+ *
+ *   Plugin for Message Extraction
+ *
+ */
+
+var babel = require('babel-core');
+var jsx = require('babel-plugin-syntax-jsx');
+require('babel-polyfill');
 
 var escodegen = require('escodegen-wallaby');
 
@@ -15,7 +22,7 @@ module.exports.extract = function extract(src) {
 
     function enterMarker() {
         if (inMarker) {
-            throw new Error('Nested markers');
+            throw new Error("Nested markers");
         }
         inMarker = true;
     }
@@ -25,19 +32,22 @@ module.exports.extract = function extract(src) {
     }
 
     var plugin = function plugin(_ref) {
-        var Plugin = _ref.Plugin;
-        var t = _ref.t;
+        var t = _ref.types;
 
-        return new Plugin('extraction', {
+        return {
             visitor: {
-                CallExpression: function CallExpression(node, parent) {
+                CallExpression: function CallExpression(_ref2) {
+                    var node = _ref2.node;
+
                     if (node.callee.name === 'i18n') {
                         messages.push(node.arguments[0].value);
                     }
                 },
 
                 JSXElement: {
-                    enter: function enter(node, parent) {
+                    enter: function enter(_ref3) {
+                        var node = _ref3.node;
+
                         if (ast.isElementMarker(node)) {
                             // <I18N>...
                             enterMarker();
@@ -45,8 +55,9 @@ module.exports.extract = function extract(src) {
                             messages.push(extraction.extractElementMessage(node));
                         }
                     },
+                    exit: function exit(_ref4) {
+                        var node = _ref4.node;
 
-                    exit: function exit(node, parent) {
                         if (ast.isElementMarker(node)) {
                             // ...</I18N>
                             leaveMarker();
@@ -55,20 +66,20 @@ module.exports.extract = function extract(src) {
                 }
 
             }
-        });
+        };
     };
 
+    // JSXAttribute(node, parent) {
+    //     if (!inMarker) {
+    //         if (extractableAttribute(node)) {
+    //             messages.push(extractAttribute(node))
+    //         }
+    //     }
+    // }
     babel.transform(src, {
-        plugins: [plugin]
+        plugins: [jsx, plugin]
     });
 
     return messages;
 };
-// JSXAttribute(node, parent) {
-//     if (!inMarker) {
-//         if (extractableAttribute(node)) {
-//             messages.push(extractAttribute(node))
-//         }
-//     }
-// }
 

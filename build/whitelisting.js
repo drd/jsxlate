@@ -1,17 +1,21 @@
+'use strict';
+
+var _babelGenerator = require('babel-generator');
+
+var _babelGenerator2 = _interopRequireDefault(_babelGenerator);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var ast = require('./ast');
+
+// Each tag can have a specific list of attributes to extract,
+// which is merged with the wildcard list.
 /*
  *
  *   Attribute whitelisting
  *
  */
 
-'use strict';
-
-var escodegen = require('escodegen-wallaby');
-
-var ast = require('./ast');
-
-// Each tag can have a specific list of attributes to extract,
-// which is merged with the wildcard list.
 var tagWhitelistedAttributes = {
     a: ['href'],
     img: ['alt'],
@@ -52,7 +56,7 @@ module.exports = {
         var value = ast.attributeValue(attribute);
         var attributeIsWhitelisted = this.isWhitelistedAttribute(element, attribute);
         if (attributeIsWhitelisted && !value) {
-            console.warn('Ignoring non-literal extractable attribute:', escodegen.generate(attribute));
+            console.warn("Ignoring non-literal extractable attribute:", (0, _babelGenerator2.default)(attribute).code);
         }
         return value && attributeIsWhitelisted;
     },

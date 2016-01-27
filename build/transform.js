@@ -1,6 +1,6 @@
 'use strict';
 
-require('babel/polyfill');
+require('babel-polyfill');
 
 var ast = require('./ast');
 var extraction = require('./extraction');

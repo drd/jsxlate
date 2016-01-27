@@ -1,10 +1,10 @@
+'use strict';
+
 /*
  *
  *   AST Manipulation
  *
  */
-
-'use strict';
 
 module.exports = {
     // Given an AST of either a MemberExpression or a JSXMemberExpression,
@@ -35,7 +35,7 @@ module.exports = {
         } else if (name.type === 'JSXMemberExpression') {
             return this.memberExpressionName(name);
         } else {
-            throw new Error('unknown elementName type: ' + name.type);
+            throw new Error("unknown elementName type: " + name.type);
         }
     },
 
@@ -48,13 +48,14 @@ module.exports = {
         } else if (name.type === 'JSXNamespacedName') {
             return name.namespace.name + ':' + name.name.name;
         } else {
-            throw new Error('unknown attributeName type: ' + name.type);
+            throw new Error("unknown attributeName type: " + name.type);
         }
     },
 
     // Return if an element is a tag
     isTag: function isTag(element) {
-        return /^[a-z]|\-/.test(this.elementName(element));
+        return (/^[a-z]|\-/.test(this.elementName(element))
+        );
     },
 
     // Return if an element is a custom component
@@ -69,6 +70,8 @@ module.exports = {
 
         switch (value.type) {
             case 'Literal':
+            case 'StringLiteral':
+            case 'NumericLiteral':
                 return value.value;
                 break;
 
@@ -91,6 +94,14 @@ module.exports = {
         if (attribute) {
             return this.attributeValue(attribute);
         }
+    },
+
+    idOrComponentName: function idOrComponentName(element) {
+        var id = this.findIdAttribute(element);
+        if (!id && this.isComponent(element)) {
+            id = this.elementName(element);
+        }
+        return id;
     },
 
     // Identify <I18N> tags

@@ -1,37 +1,41 @@
+'use strict';
+
 /*
  *
  *   Message Validation
  *
  */
 
-'use strict';
-
-var _Object$keys = require('babel-runtime/core-js/object/keys')['default'];
-
 var ast = require('./ast');
 var whitelisting = require('./whitelisting');
 
 module.exports = {
+    sanitizedAttributesOf: function sanitizedAttributesOf(element) {
+        return this.validateMessage(element).componentsToSanitizedAttributes;
+    },
+
     validateMessage: function validateMessage(element) {
         var context = {
             root: element,
-            componentsWithoutIds: {}
+            componentsWithoutIds: {},
+            componentsToSanitizedAttributes: {}
         };
 
         this.validateChildren(element.children, context);
-
         this.assertUniqueComponents(context);
+
+        return context;
     },
 
     assertUniqueComponents: function assertUniqueComponents(context) {
         var duplicated = [];
-        _Object$keys(context.componentsWithoutIds).forEach(function (name) {
+        Object.keys(context.componentsWithoutIds).forEach(function (name) {
             if (context.componentsWithoutIds[name] > 1) {
                 duplicated.push(name);
             }
         });
         if (duplicated.length) {
-            throw new Error('Missing required i18n-id on duplicated component(s) ' + duplicated.join(', '));
+            throw new Error("Missing required i18n-id on duplicated component(s) " + duplicated.join(', '));
         }
     },
 
@@ -46,17 +50,23 @@ module.exports = {
         if (ast.isElementMarker(element)) {
             // TODO: unified error handling showing source of exception
             // and context, including line/character positions.
-            throw new Error('Found a nested element marker in ' + escodegen.generate(context.root));
+            throw new Error("Found a nested element marker in " + escodegen.generate(context.root));
         }
-        if (ast.isTag(element) && whitelisting.hasUnsafeAttributes(element)) {
-            this.assertI18nId(element);
-        } else if (ast.isComponent(element)) {
-            var _name = ast.elementName(element);
-            var count = context.componentsWithoutIds[_name];
-            if (count === undefined) {
-                context.componentsWithoutIds[_name] = 0;
+        if (whitelisting.hasUnsafeAttributes(element)) {
+            if (ast.isTag(element)) {
+                this.assertI18nId(element);
+            } else if (ast.isComponent(element)) {
+                var componentId = ast.findIdAttribute(element);
+                if (!componentId) {
+                    componentId = ast.elementName(element);
+                    var count = context.componentsWithoutIds[componentId];
+                    if (count === undefined) {
+                        context.componentsWithoutIds[componentId] = 0;
+                    }
+                    context.componentsWithoutIds[componentId]++;
+                }
             }
-            context.componentsWithoutIds[_name]++;
+            context.componentsToSanitizedAttributes[ast.idOrComponentName(element)] = whitelisting.sanitizedAttributes(element);
         }
 
         this.validateChildren(element.children, context);

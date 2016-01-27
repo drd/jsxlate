@@ -1,17 +1,14 @@
 'use strict';
 
-var _Set = require('babel-runtime/core-js/set')['default'];
-
 var ast = require('./ast');
 
 module.exports = {
     freeVariablesInMessage: function freeVariablesInMessage(element) {
-        var variables = new _Set();
+        var variables = new Set();
         this.freeVariablesInChildren(element.children, variables);
-        variables['delete']('this');
+        variables.delete('this');
         return variables.toJSON();
     },
-
     freeVariablesInChildren: function freeVariablesInChildren(children, variables) {
         var _this = this;
 
@@ -27,13 +24,11 @@ module.exports = {
             }
         });
     },
-
     freeVariablesInElement: function freeVariablesInElement(element, variables) {
         this.freeVariablesInElementName(element.openingElement.name, variables);
         this.freeVariablesInAttributes(element.openingElement.attributes, variables);
         this.freeVariablesInChildren(element.children, variables);
     },
-
     freeVariablesInElementName: function freeVariablesInElementName(name, variables) {
         if (name.type === 'JSXIdentifier') {
             if (name.name.toLowerCase() !== name.name) {
@@ -44,7 +39,6 @@ module.exports = {
             variables.add(ast.memberExpressionName(name).split('.')[0]);
         }
     },
-
     freeVariablesInAttributes: function freeVariablesInAttributes(attributes, variables) {
         var _this2 = this;
 
@@ -52,13 +46,11 @@ module.exports = {
             return _this2.freeVariablesInAttribute(a, variables);
         });
     },
-
     freeVariablesInAttribute: function freeVariablesInAttribute(attribute, variables) {
         if (attribute.value.type === 'JSXExpressionContainer') {
             this.freeVariablesInExpression(attribute.value.expression, variables);
         }
     },
-
     freeVariablesInObjectExpression: function freeVariablesInObjectExpression(expression, variables) {
         var _this3 = this;
 
@@ -69,7 +61,6 @@ module.exports = {
             }
         });
     },
-
     freeVariablesInExpression: function freeVariablesInExpression(expression, variables) {
         switch (expression.type) {
             case 'Identifier':
@@ -95,6 +86,8 @@ module.exports = {
                 break;
 
             case 'Literal':
+            case 'StringLiteral':
+            case 'NumericLiteral':
                 // noop
                 break;
 

@@ -1,10 +1,10 @@
+'use strict';
+
 /*
  *
  *   Message Extraction
  *
  */
-
-'use strict';
 
 var ast = require('./ast');
 var whitelisting = require('./whitelisting');
@@ -25,6 +25,8 @@ module.exports = {
     extractChild: function extractChild(child) {
         switch (child.type) {
             case 'Literal':
+            case 'StringLiteral':
+            case 'NumericLiteral':
                 return child.value;
                 break;
 
@@ -36,8 +38,12 @@ module.exports = {
                 return this.extractElement(child);
                 break;
 
+            case 'JSXText':
+                return child.value;
+                break;
+
             default:
-                throw new Error('Unexpected child type: ' + child.type);
+                throw new Error("Unexpected child type: " + child.type);
         }
     },
 
