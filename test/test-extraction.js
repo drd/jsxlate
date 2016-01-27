@@ -121,6 +121,23 @@ describe('extraction', function() {
             ]);
         });
 
+        it('extracts strings with nested components with namespaced i18n-id', function() {
+            let messages = extract(`
+                React.createClass({
+                    render() {
+                        let name = this.props.name;
+                        return <div>
+                            <I18N><span:step-2 className="step-text">Step 2: </span:step-2>Add your organization to Idealist</I18N>
+                        </div>;
+                    }
+                })
+            `);
+
+            expect(messages).to.eql([
+                '<span:step-2>Step 2: </span:step-2>Add your organization to Idealist'
+            ]);
+        });
+
         it('extracts strings with nested components with no children', function() {
             let messages = extract(`
                 React.createClass({
