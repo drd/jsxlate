@@ -4,6 +4,8 @@
  *
  */
 
+import generate from 'babel-generator';
+
 const ast = require('./ast');
 const whitelisting = require('./whitelisting');
 
@@ -42,7 +44,7 @@ module.exports = {
         let openingElement = element.openingElement;
         if (openingElement.name.type !== 'JSXNamespacedName'
             && !openingElement.attributes.map(ast.attributeName).includes('i18n-id')) {
-            throw new Error('Element missing required i18n-id: ' + escodegen(openingElement));
+            throw new Error('Element missing required i18n-id: ' + generate(openingElement));
         }
     },
 
@@ -50,7 +52,7 @@ module.exports = {
         if (ast.isElementMarker(element)) {
             // TODO: unified error handling showing source of exception
             // and context, including line/character positions.
-            throw new Error("Found a nested element marker in " + escodegen.generate(context.root));
+            throw new Error("Found a nested element marker in " + generate(context.root));
         }
         if (whitelisting.hasUnsafeAttributes(element)) {
             if (ast.isTag(element)) {

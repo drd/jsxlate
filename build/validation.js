@@ -1,12 +1,17 @@
 'use strict';
 
-/*
- *
- *   Message Validation
- *
- */
+var _babelGenerator = require('babel-generator');
 
-var ast = require('./ast');
+var _babelGenerator2 = _interopRequireDefault(_babelGenerator);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var ast = require('./ast'); /*
+                             *
+                             *   Message Validation
+                             *
+                             */
+
 var whitelisting = require('./whitelisting');
 
 module.exports = {
@@ -42,7 +47,7 @@ module.exports = {
     assertI18nId: function assertI18nId(element) {
         var openingElement = element.openingElement;
         if (openingElement.name.type !== 'JSXNamespacedName' && !openingElement.attributes.map(ast.attributeName).includes('i18n-id')) {
-            throw new Error('Element missing required i18n-id: ' + escodegen(openingElement));
+            throw new Error('Element missing required i18n-id: ' + (0, _babelGenerator2.default)(openingElement));
         }
     },
 
@@ -50,7 +55,7 @@ module.exports = {
         if (ast.isElementMarker(element)) {
             // TODO: unified error handling showing source of exception
             // and context, including line/character positions.
-            throw new Error("Found a nested element marker in " + escodegen.generate(context.root));
+            throw new Error("Found a nested element marker in " + (0, _babelGenerator2.default)(context.root));
         }
         if (whitelisting.hasUnsafeAttributes(element)) {
             if (ast.isTag(element)) {

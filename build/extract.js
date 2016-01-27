@@ -10,8 +10,6 @@ var babel = require('babel-core');
 var jsx = require('babel-plugin-syntax-jsx');
 require('babel-polyfill');
 
-var escodegen = require('escodegen-wallaby');
-
 var ast = require('./ast');
 var extraction = require('./extraction');
 var validation = require('./validation');
