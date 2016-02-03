@@ -14,7 +14,9 @@ const ast = require('./ast');
 let tagWhitelistedAttributes = {
     a:   ['href'],
     img: ['alt'],
-    '*': ['title', 'placeholder', 'alt', 'summary']
+    '*': ['title', 'placeholder', 'alt', 'summary'],
+    'Pluralize': ['on'],
+    'Match': ['when'],
 };
 
 
@@ -40,7 +42,7 @@ module.exports = {
 
 
     isWhitelistedAttribute: function(element, attribute) {
-        let name = ast.elementName(element);
+        let name = ast.unNamespacedElementName(element);
         let elementWhitelistedAttributes = this.whitelistedAttributeNames(name);
         return elementWhitelistedAttributes.indexOf(ast.attributeName(attribute)) !== -1;
     },
@@ -54,7 +56,7 @@ module.exports = {
         if (attributeIsWhitelisted && !value) {
             console.warn("Ignoring non-literal extractable attribute:", generate(attribute).code);
         }
-        return value && attributeIsWhitelisted;
+        return attributeIsWhitelisted;
     },
 
 

@@ -5,10 +5,9 @@
  */
 
 
-var babel = require('babel-core');
-var jsx = require('babel-plugin-syntax-jsx');
 require('babel-polyfill');
 
+import parsing from './parsing';
 var ast = require('./ast');
 var extraction = require('./extraction');
 var validation = require('./validation');
@@ -33,7 +32,7 @@ module.exports.extract = function extract(src) {
         return {
             visitor: {
                 CallExpression({node}) {
-                    if (node.callee.name === 'i18n') {
+                    if (ast.isFunctionMarker(node)) {
                         messages.push(node.arguments[0].value);
                     }
                 },
@@ -65,9 +64,7 @@ module.exports.extract = function extract(src) {
         };
     };
 
-    babel.transform(src, {
-        plugins: [jsx, plugin]
-    });
+    parsing.transform(src, plugin);
 
     return messages;
 };

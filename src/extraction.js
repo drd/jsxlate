@@ -4,6 +4,8 @@
  *
  */
 
+import generate from 'babel-generator';
+
 const ast = require('./ast');
 const whitelisting = require('./whitelisting');
 
@@ -50,7 +52,14 @@ module.exports = {
 
 
     extractElementAttribute: function(attribute) {
-        return `${ast.attributeName(attribute)}="${ast.attributeValue(attribute)}"`;
+        if (ast.attributeValue(attribute)) {
+            return `${ast.attributeName(attribute)}="${ast.attributeValue(attribute)}"`;
+        } else {
+            // XXX: teeth-gnashing hack! :|
+            // TODO: extract should just generate a sanitized ast
+            // and codegen that!
+            return generate(attribute).code;
+        }
     },
 
     extractElementAttributes: function(element) {
