@@ -47,7 +47,23 @@ describe('extraction', function() {
     });
 
     it('warns on unextractable messages', function() {
+      var shouldNotBeExtractable = [
+          '<I18N>Nested <I18N>message markers.</I18N></I18N>',
+          'i18n("Not" + "just a string" + "literal")',
+          'i18n()',
+          'i18n("Too many", "arguments")',
+          '<I18N><a target="_blank">Unsafe attributes but no id.</a></I18N>',
+          '<I18N><Doubled/>two of the same Component type without ids<Doubled/></I18N>',
+          '<I18N><Doubled:doubled/>two of the same Component type with the same ids<Doubled:doubled/></I18N>',
+          '<I18N>{"string literal"}</I18N>',
+          '<I18N>{arbitrary.expression()}</I18N>',
+          '<I18N>{("non"+"simple").memberExpression}</I18N>',
+          '<I18N>{computed["memberExpression"]}</I18N>'
+      ];
 
+      shouldNotBeExtractable.forEach(msg => {
+        expect(() => extract(msg)).to.throw;
+      })
     });
 });
 
