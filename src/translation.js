@@ -8,51 +8,57 @@ const babylon = require('babylon');
 import generate from 'babel-generator';
 import traverse from 'babel-traverse';
 
-import ast from 'ast';
-const freeVariables = require('free-variables');
-import validation from 'validation';
+import ast from './ast';
+const freeVariables = require('./free-variables');
+import validation from './validation';
 
 
 const Translation = {
     translatedRendererFor(markerNode, translatedMessage, originalMessage) {
         try {
             let unprintedTranslation;
-            if (ast.isElementMarker(markerNode)) {
-                unprintedTranslation = `<I18N>${translatedMessage}</I18N>`;
+            let freeVars = [];
+            if (ast.isElement(markerNode)) {
+                const translated = babylon.parse(`<span>${translatedMessage}</span>`, {plugins: ['jsx']});
+                freeVars = freeVariables.freeVariablesInMessage(markerNode);
+                const reconstituted = Translation.reconstitute(markerNode, translated);
+                unprintedTranslation = generate(reconstituted, undefined, translatedMessage).code;
             } else {
-                unprintedTranslation = JSON.stringify(translatedMessage);
+                unprintedTranslation = JSON.stringify(translatedMessage) + ';';
             }
-            const translated = babylon.parse(unprintedTranslation, {plugins: ['jsx']});
-            const freeVars = freeVariables.freeVariablesInMessage(markerNode);
-            const reconstituted = Translation.reconstitute(markerNode, translated);
-            return Translation.renderer(freeVars, reconstituted.program.body[0].expression, markerNode);
+            return Translation.renderer(freeVars, unprintedTranslation, markerNode);
         } catch(exc) {
             return Translation.errorRenderer(originalMessage, exc)
         }
     },
 
     reconstitute(original, translated) {
+        traverse(original, {
+            noScope: true,
+            JSXElement({node}) {
+                ast.convertNamespacedNameToIdAttribute(node);
+            }
+        });
         const sanitized = validation.sanitizedAttributesOf(original);
-
         traverse(translated, {
             JSXElement({node}) {
+                ast.convertNamespacedNameToIdAttribute(node);
                 const id = ast.idOrComponentName(node);
                 if (sanitized[id]) {
                     sanitized[id].forEach(a => {
                         node.openingElement.attributes.push(a);
                     })
                 }
+                ast.removeIdAttribute(node);
             },
         });
 
         return translated;
     },
 
-    renderer(freeVariables, reconstituted, originalNode) {
+    renderer(freeVariables, translation, originalNode) {
         return (
-`function(${freeVariables.join(', ')}) {
-    return ${generate(reconstituted).code};
-}`
+`function(${freeVariables.join(', ')}) { return ${translation} }`
         );
     },
 

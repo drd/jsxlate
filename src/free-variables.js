@@ -2,9 +2,12 @@ const ast = require('./ast');
 
 
 module.exports = {
-    freeVariablesInMessage(element) {
+    freeVariablesInMessage(node) {
+        if (!ast.isElement(node)) {
+            return [];
+        }
         const variables = new Set();
-        this.freeVariablesInChildren(element.children, variables);
+        this.freeVariablesInChildren(node.children, variables);
         variables.delete('this');
         return variables.toJSON();
     },

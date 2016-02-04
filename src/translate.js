@@ -22,7 +22,7 @@ const Translate = {
                     CallExpression({node}) {
                         if (node.callee.name === 'i18n') {
                             const message = node.arguments[0].value;
-                            bundle[message] = translations[message];
+                            bundle[message] = translation.translatedRendererFor(node, translations[message], message);
                         }
                     },
 

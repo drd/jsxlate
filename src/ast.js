@@ -5,6 +5,9 @@
  */
 
 
+const types = require('babel-types');
+
+
 module.exports = {
     // Given an AST of either a MemberExpression or a JSXMemberExpression,
     // return a dotted string (e.g. "this.props.value")
@@ -111,6 +114,29 @@ module.exports = {
             element.openingElement.attributes = element.openingElement.attributes.filter(a => !this.isIdAttribute(a));
         }
         return element;
+    },
+
+    convertNamespacedNameToIdAttribute(element) {
+        if (element.openingElement.name.type === 'JSXNamespacedName') {
+            const newName = element.openingElement.name.namespace.name;
+            const i18nId = element.openingElement.name.name.name;
+            element.openingElement.name.type = 'JSXIdentifier';
+            element.openingElement.name.name = newName;
+            delete element.openingElement.name.object;
+
+            if (element.closingElement) {
+                element.closingElement.name.type = 'JSXIdentifier';
+                element.closingElement.name.name = newName;
+                delete element.closingElement.name.object;
+            }
+
+            element.openingElement.attributes.push(
+                types.JSXAttribute(
+                    types.JSXIdentifier('i18n-id'),
+                    types.StringLiteral(i18nId)
+                )
+            );
+        }
     },
 
     isIdAttribute(attribute) {
