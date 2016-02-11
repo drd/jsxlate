@@ -15,6 +15,14 @@ module.exports = {
         return this.validateMessage(element).componentsToSanitizedAttributes;
     },
 
+    validateTranslation(original, translation) {
+        const ogContext = this.validateMessage(original);
+        const trContext = this.validateMessage(translation);
+
+        console.log(ogContext.componentsWithoutIds)
+        console.log(trContext.componentsWithoutIds)
+    },
+
     validateMessage: function(element) {
         let context = {
             root: element,
@@ -43,7 +51,7 @@ module.exports = {
     assertI18nId: function(element) {
         let openingElement = element.openingElement;
         if (openingElement.name.type !== 'JSXNamespacedName'
-            && !openingElement.attributes.map(ast.attributeName).includes('i18n-id')) {
+            && !ast.findIdAttribute(element)) {
             throw new Error('Element missing required i18n-id: ' + generate(openingElement));
         }
     },

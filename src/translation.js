@@ -19,8 +19,9 @@ const Translation = {
             let unprintedTranslation;
             let freeVars = [];
             if (ast.isElement(markerNode)) {
-                const translated = babylon.parse(`<span>${translatedMessage}</span>`, {plugins: ['jsx']});
+                const translated = babylon.parse(`<I18N>${translatedMessage}</I18N>`, {plugins: ['jsx']});
                 freeVars = freeVariables.freeVariablesInMessage(markerNode);
+                validation.validateTranslation(markerNode, translated.program.body[0].expression);
                 const reconstituted = Translation.reconstitute(markerNode, translated);
                 unprintedTranslation = generate(reconstituted, undefined, translatedMessage).code;
             } else {
@@ -28,6 +29,9 @@ const Translation = {
             }
             return Translation.renderer(freeVars, unprintedTranslation, markerNode);
         } catch(exc) {
+            if (process.env.NODE_ENV === 'test') {
+                throw exc;
+            }
             return Translation.errorRenderer(originalMessage, exc)
         }
     },
@@ -42,6 +46,11 @@ const Translation = {
         const sanitized = validation.sanitizedAttributesOf(original);
         traverse(translated, {
             JSXElement({node}) {
+                if (ast.isElementMarker(node)) {
+                    validation.validateMessage(node);
+                    node.openingElement.name.name = 'span';
+                    node.closingElement.name.name = 'span';
+                }
                 ast.convertNamespacedNameToIdAttribute(node);
                 const id = ast.idOrComponentName(node);
                 if (sanitized[id]) {
@@ -52,7 +61,6 @@ const Translation = {
                 ast.removeIdAttribute(node);
             },
         });
-
         return translated;
     },
 

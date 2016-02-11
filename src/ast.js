@@ -150,6 +150,9 @@ module.exports = {
         if (attribute) {
             return this.attributeValue(attribute);
         }
+        if (element.openingElement.name.type === 'JSXNamespacedName') {
+            return element.openingElement.name.name.name;
+        }
     },
 
     idOrComponentName(element) {

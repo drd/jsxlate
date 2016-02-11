@@ -13,7 +13,7 @@
   "scripts": {
     "build": "./build.sh",
     "prepublish": "./build.sh",
-    "test": "mocha --compilers js:babel-register"
+    "test": "NODE_ENV=test mocha --compilers js:babel-register"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
   "contributors": [

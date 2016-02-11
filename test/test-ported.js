@@ -108,12 +108,39 @@ describe('translation', function() {
         });
     });
 
-    it('bundles', function() {
-
-    });
-
     it('warns on invalid translations', function() {
+        const originalSource = `
+        function render () {
+            return <p>
+                <I18N>Hello, world. <Component />{foo}{bar.baz}</I18N>
+            </p>
+        }
+        `;
 
+        // Translations for above source that should cause errors:
+        const invalidTranslations = [
+            '<a target="_blank">Unsafe attribute</a> <Component />{foo}{bar.baz}',
+            '<a:made-up-id></a:made-up-id><Component />{foo}{bar.baz}',
+            '{random + expression + in + placeholder}<Component />{foo}{bar.baz}',
+            '{non.existant.name}<Component />{foo}{bar.baz}',
+            '<Component /> Duplicated expressions: {foo}{foo}{bar.baz}',
+            'Missing component. {foo}{foo}{bar.baz}',
+            'Duplicated component. <Component /> <Component /> {foo}{foo}{bar.baz}',
+        ];
+        var correctTranslation = 'Helo, byd. <Component />{foo}{bar.baz}';
+
+        var extraction = extract(originalSource)[0];
+
+        function translateMessage(translation) {
+            translate.translateMessagesToBundle(originalSource, {[extraction]: translation})
+        }
+
+        expect(() => translateMessage(correctTranslation)).to.not.throw();
+
+        invalidTranslations.forEach(translation => {
+            console.log(translation);
+            expect(() => translateMessage(translation)).to.throw();
+        });
     });
 
     it('properly handles whitespace and quotes', function() {
