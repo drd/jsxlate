@@ -3,6 +3,7 @@
 var fs = require('fs');
 var path = require('path');
 var walk = require('walk');
+var expandTilde = require('expand-tilde');
 var globToRegExp = require('glob-to-regexp');
 
 var jsOrJsxRegex = /^[^.](.+?)\.jsx?$/i;
@@ -28,6 +29,7 @@ module.exports = function filesFromMixedPaths(paths, options) {
     var ignore = ignoreList(options.ignore);
 
     paths.forEach(function(path) {
+        path = expandTilde(path);
         var lstat = fs.lstatSync(path);
         if (lstat.isDirectory()) {
             directories.push(path);
