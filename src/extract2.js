@@ -47,7 +47,7 @@ function assertInput(condition, description) {
 // Code generation
 
 function generate(ast) {
-    return babelGenerator(ast).code;
+    return babelGenerator(ast, {comments: false}).code;
 }
 
 
@@ -120,8 +120,9 @@ const JSXElementSanitizationVisitor = {
         if (attributeIsSanitized(elementName(path.parentPath.parent), attributeName(path.node))) {
             path.remove();
         }
-    }
+    },
 };
+
 
 function extractElementMessage(jsxElement) {
     const messageWithContainer = generate(jsxElement);
