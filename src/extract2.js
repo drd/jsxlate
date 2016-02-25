@@ -1,9 +1,13 @@
 const fs = require('fs');
 
 const babel = require('babel-core');
+
 import babelGenerator from 'babel-generator';
+import * as types from 'babel-types';
+
 
 import parsing from './parsing';
+
 
 const options = {
     functionMarker: 'i18n',
@@ -30,16 +34,17 @@ const whitelist = (function(wl) {
 
 // Error types
 
-function InputError(description) {
+function InputError(description, node) {
     return {
         description,
+        node,
         inputError: true
     };
 }
 
-function assertInput(condition, description) {
+function assertInput(condition, description, node) {
     if (!condition) {
-        throw InputError(description);
+        throw InputError(description, node);
     }
 }
 
@@ -63,12 +68,14 @@ function isFunctionMarker(callExpression) {
 function validateFunctionMessage(callExpression) {
     assertInput(
         callExpression.arguments.length === 1,
-        `Expected exactly 1 argument to ${options.functionMarker}(), but got ${callExpression.arguments.length}`
+        `Expected exactly 1 argument to ${options.functionMarker}(), but got ${callExpression.arguments.length}`,
+        callExpression
     );
 
     assertInput(
         callExpression.arguments[0].type === 'StringLiteral',
-        `Expected a StringLiteral argument to ${options.functionMarker}(), but got ${callExpression.arguments[0].type}`
+        `Expected a StringLiteral argument to ${options.functionMarker}(), but got ${callExpression.arguments[0].type}`,
+        callExpression
     );
 }
 
@@ -87,21 +94,115 @@ function elementName(jsxElement) {
     return nodeName(jsxElement.openingElement);
 }
 
+function elementAttributes(jsxElement) {
+    return jsxElement.openingElement.attributes;
+}
+
 function isElementMarker(jsxElement) {
     return elementName(jsxElement) === 'I18N';
 }
 
-const JSXElementValidationVisitor = {
-    JSXElement(path)  {
+function isSimpleExpression(expression) {
+    if (expression.type === 'Identifier') {
+        return true;
+    } else if (expression.type === 'ThisExpression') {
+        return true;
+    } else if (expression.type === 'MemberExpression') {
+        return !expression.computed && isSimpleExpression(expression.object);
+    } else {
+        return false;
+    }
+}
 
+function hasNamespacedName(jsxElement) {
+    return jsxElement.openingElement.name.type === 'JSXNamespacedName';
+}
+
+function hasI18nId(jsxElement) {
+    return (
+        hasNamespacedName(jsxElement) ||
+        hasI18nIdAttribute(jsxElement)
+    );
+}
+
+function hasI18nIdAttribute(jsxElement) {
+    return elementAttributes(jsxElement).map(attributeName).includes('i18n-id');
+}
+
+function i18nId(jsxElement) {
+    if (hasNamespacedName(jsxElement)) {
+        // It's names all the way down
+        return jsxElement.openingElement.name.name.name;
+    } else {
+        const attr = elementAttributes(jsxElement)
+            .find(a => attributeName(a) === 'i18n-id');
+        if (attr) {
+            assertInput(attr.value.type === 'StringLiteral',
+                "i18n-id attribute found with non-StringLiteral value",
+                jsxElement
+            );
+            return attr.value.value;
+        }
+    }
+}
+
+function convertToNamespacedName(jsxElement) {
+    if (!hasNamespacedName(jsxElement)) {
+        const name = elementName(jsxElement);
+        const id = i18nId(jsxElement);
+        if (id) {
+            const nameAst = types.JSXNamespacedName(
+                types.JSXIdentifier(name),
+                types.JSXIdentifier(id)
+            );
+            jsxElement.openingElement.name = nameAst;
+            if (jsxElement.closingElement) {
+                jsxElement.closingElement.name = nameAst;
+            }
+        }
+    }
+
+    return elementName(jsxElement);
+}
+
+const JSXElementValidationVisitor = {
+    JSXElement(path) {
+        // prevent nested markers
+        assertInput(!isElementMarker(path.node),
+            "Found a nested message marker",
+            path.node
+        );
+
+        // // ensure i18n-id is present if there are sanitized attributes
+        // if (path.node.openingElement.attributes.some(
+        //     a => attributeIsSanitized(path.node, a))
+        // ) {
+        //     assertInput(hasI18nId(path.node),
+        //         "Element with sanitized attributes was missing an i18n-id",
+        //         path.node
+        //     );
+        // }
+
+        // keep count of name/id for duplicate checking
+        const elementName = convertToNamespacedName(path.node);
+        const count = this.validationContext.componentNamesAndIds[elementName] || 0;
+        this.validationContext.componentNamesAndIds[elementName] = count + 1;
     },
 
     JSXAttribute(path) {
-
+        // technically part of sanitization, but visitors are merged
+        // for performance
+        if (attributeIsSanitized(path.parentPath.parent, path.node)) {
+            path.remove();
+        }
     },
 
     JSXExpressionContainer(path) {
-
+        assertInput(isSimpleExpression(path.node),
+            "Only identifiers and simple member expressions (this.that.thud) are allowed in " +
+            "<I18N> tags.",
+            path.node
+        );
     },
 };
 
@@ -109,23 +210,15 @@ function attributeName(jsxAttribute) {
     return nodeName(jsxAttribute);
 }
 
-function attributeIsSanitized(elementName, attributeName) {
-    const whitelistedAttributes = whitelist[elementName] || whitelist['*'];
-    return !whitelistedAttributes.includes(attributeName);
+function attributeIsSanitized(element, attribute) {
+    const whitelistedAttributes = whitelist[elementName(element)] || whitelist['*'];
+    return !whitelistedAttributes.includes(attributeName(attribute));
 }
-
-
-const JSXElementSanitizationVisitor = {
-    JSXAttribute(path) {
-        if (attributeIsSanitized(elementName(path.parentPath.parent), attributeName(path.node))) {
-            path.remove();
-        }
-    },
-};
 
 
 function extractElementMessage(jsxElement) {
     const messageWithContainer = generate(jsxElement);
+    // HACK.
     return /<I18N>([\s\S]+?)<\/I18N>/.exec(messageWithContainer)[1].trim();
 }
 
@@ -146,8 +239,12 @@ export function extractFromSource(src) {
 
                 JSXElement(path) {
                     if (isElementMarker(path.node)) {
-                        const validationContext = {};
-                        path.traverse(JSXElementSanitizationVisitor);
+                        // Traverse with state of validationContext
+                        const validationContext = {
+                            root: path,
+                            componentNamesAndIds: {},
+                        };
+                        path.traverse(JSXElementValidationVisitor, {validationContext});
                         messages.push(extractElementMessage(path.node));
                     }
                 },
@@ -172,6 +269,9 @@ export default function extractFromPaths(paths) {
             console.error(path, e);
             if (e.stack) {
                 console.error(e.stack);
+            }
+            if (e.node) {
+                console.error("Error at ", generate(e.node));
             }
         }
     });
