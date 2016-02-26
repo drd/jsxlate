@@ -4,7 +4,8 @@ const sinon = require('sinon');
 const I = require('immutable');
 import generate from 'babel-generator';
 
-const {extract} = require('../src/extract');
+//const {extract} = require('../src/extract');
+import {extractFromSource as extract} from '../src/extract2';
 import parsing from '../src/parsing';
 const transform = require('../src/transform');
 import transformation from '../src/transformation';

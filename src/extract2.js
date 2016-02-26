@@ -23,7 +23,8 @@ const options = {
 
 const whitelist = (function(wl) {
     const shared = wl['*'];
-    return Object.entries(wl).reduce((whitelist, [name, attrs]) => {
+    return Object.keys(wl).reduce((whitelist, name) => {
+        const attrs = wl[name];
         if (name !== '*') {
             wl[name] = attrs.concat(shared);
         }
@@ -34,18 +35,28 @@ const whitelist = (function(wl) {
 
 // Error types
 
-function InputError(description, node) {
-    return {
+export function InputError(description, node) {
+    Object.assign(this, {
         description,
         node,
         inputError: true
-    };
+    });
 }
 
 function assertInput(condition, description, node) {
     if (!condition) {
-        throw InputError(description, node);
+        throw new InputError(description, node);
     }
+}
+
+function assertUnique(map, description, node) {
+    const dupes = Object.entries(map).filter(
+        ([key, value]) => value > 1
+    );
+    assertInput(dupes.length === 0,
+        `${description}: ${dupes}`,
+        node
+    );
 }
 
 
@@ -102,6 +113,14 @@ function isElementMarker(jsxElement) {
     return elementName(jsxElement) === 'I18N';
 }
 
+function isTag(jsxElement) {
+    return /^[a-z]|\-/.test(elementName(jsxElement));
+}
+
+function isComponent(jsxElement) {
+    return !isTag(jsxElement);
+}
+
 function isSimpleExpression(expression) {
     if (expression.type === 'Identifier') {
         return true;
@@ -127,6 +146,10 @@ function hasI18nId(jsxElement) {
 
 function hasI18nIdAttribute(jsxElement) {
     return elementAttributes(jsxElement).map(attributeName).includes('i18n-id');
+}
+
+function hasUnsafeAttributes(jsxElement) {
+    return elementAttributes(jsxElement).some(a => attributeIsSanitized(jsxElement, a));
 }
 
 function i18nId(jsxElement) {
@@ -165,7 +188,13 @@ function convertToNamespacedName(jsxElement) {
     return elementName(jsxElement);
 }
 
-const JSXElementValidationVisitor = {
+
+function incrementKey(map, key) {
+    map[key] = (map[key] || 0) + 1;
+}
+
+
+const ExtractionValidationVisitor = {
     JSXElement(path) {
         // prevent nested markers
         assertInput(!isElementMarker(path.node),
@@ -173,20 +202,20 @@ const JSXElementValidationVisitor = {
             path.node
         );
 
-        // // ensure i18n-id is present if there are sanitized attributes
-        // if (path.node.openingElement.attributes.some(
-        //     a => attributeIsSanitized(path.node, a))
-        // ) {
-        //     assertInput(hasI18nId(path.node),
-        //         "Element with sanitized attributes was missing an i18n-id",
-        //         path.node
-        //     );
-        // }
-
-        // keep count of name/id for duplicate checking
         const elementName = convertToNamespacedName(path.node);
-        const count = this.validationContext.componentNamesAndIds[elementName] || 0;
-        this.validationContext.componentNamesAndIds[elementName] = count + 1;
+        if (hasUnsafeAttributes(path.node)) {
+            if (isComponent(path.node)) {
+                // keep track of custom components to ensure there are no duplicates
+                incrementKey(this.validationContext.componentNamesAndIds, elementName);
+            } else {
+                // tags with sanitized attributes must have an i18n-id or namespace
+                assertInput(
+                    hasI18nId(path.node),
+                    "Found a tag with sanitized attributes with no i18n-id",
+                    path.node
+                );
+            }
+        }
     },
 
     JSXAttribute(path) {
@@ -198,11 +227,13 @@ const JSXElementValidationVisitor = {
     },
 
     JSXExpressionContainer(path) {
-        assertInput(isSimpleExpression(path.node),
-            "Only identifiers and simple member expressions (this.that.thud) are allowed in " +
-            "<I18N> tags.",
-            path.node
-        );
+        if (path.parent.type === 'JSXElement') {
+            assertInput(isSimpleExpression(path.node.expression),
+                "Only identifiers and simple member expressions (foo.bar, " +
+                "this.that.other) are allowed in <I18N> tags.",
+                path.node
+            );
+        }
     },
 };
 
@@ -212,7 +243,10 @@ function attributeName(jsxAttribute) {
 
 function attributeIsSanitized(element, attribute) {
     const whitelistedAttributes = whitelist[elementName(element)] || whitelist['*'];
-    return !whitelistedAttributes.includes(attributeName(attribute));
+    return (
+        !whitelistedAttributes.includes(attributeName(attribute)) ||
+        attribute.value.type !== 'StringLiteral'
+    );
 }
 
 
@@ -222,6 +256,23 @@ function extractElementMessage(jsxElement) {
     return /<I18N>([\s\S]+?)<\/I18N>/.exec(messageWithContainer)[1].trim();
 }
 
+function validateElementContext(validationContext) {
+    const dupes = Object.entries(validationContext.componentNamesAndIds).filter(
+        ([key, value]) => value > 1
+    );
+
+    assertUnique(
+        validationContext.componentsWithSanitizedAttributes,
+        'Found the following duplicate elements/components',
+        validationContext.root
+    );
+
+    assertUnique(
+        validationContext.componentNamesAndIds,
+        'Found the following duplicate elements/components',
+        validationContext.root
+    );
+}
 
 export function extractFromSource(src) {
     const messages = [];
@@ -243,8 +294,10 @@ export function extractFromSource(src) {
                         const validationContext = {
                             root: path,
                             componentNamesAndIds: {},
+                            componentsWithSanitizedAttributes: {},
                         };
-                        path.traverse(JSXElementValidationVisitor, {validationContext});
+                        path.traverse(ExtractionValidationVisitor, {validationContext});
+                        validateElementContext(validationContext);
                         messages.push(extractElementMessage(path.node));
                     }
                 },
@@ -271,7 +324,7 @@ export default function extractFromPaths(paths) {
                 console.error(e.stack);
             }
             if (e.node) {
-                console.error("Error at ", generate(e.node));
+                console.error("Error at", e.node.loc, generate(e.node));
             }
         }
     });

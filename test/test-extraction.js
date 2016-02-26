@@ -1,8 +1,10 @@
 const mocha = require('mocha');
 const {expect} = require('chai');
 const sinon = require('sinon');
+require('babel-polyfill');
 
-const {extract} = require('../src/extract');
+// const {extract} = require('../src/extract2');
+import {extractFromSource as extract, InputError} from '../src/extract2';
 
 
 describe('extraction', function() {
@@ -181,23 +183,16 @@ describe('extraction', function() {
     });
 
     describe('errors and warnings', function() {
-        it('warns when it finds non-extractable whitelisted attributes', function() {
-            let stub = sinon.stub(console, 'warn');
-            extract('<I18N><a href={Router.url("about-us")}>click me</a></I18N>');
-            expect(stub.callCount).to.equal(1);
-            stub.restore();
-        });
-
         it('throws an error when an element has sanitized attributes but no i18n-id', function() {
-            expect(() => extract('<I18N>O, hai, <span className="boop">{name}</span>.</I18N>')).to.throw(Error);
+            expect(() => extract('<I18N>O, hai, <span className="boop">{name}</span>.</I18N>')).to.throw(InputError);
         });
 
         it('does not require i18n-id on unique components', function() {
-            expect(() => extract('<I18N>O, hai, <Component beep="boop">{name}</Component>.</I18N>')).to.not.throw(Error);
+            expect(() => extract('<I18N>O, hai, <Component beep="boop">{name}</Component>.</I18N>')).to.not.throw(InputError);
         });
 
         it('requires i18n-id on duplicated components', function() {
-            expect(() => extract('<I18N>O, hai, <C beep="boop">{name}</C>, <C beep="boöp">{game}</C>.</I18N>')).to.throw(Error);
+            expect(() => extract('<I18N>O, hai, <C beep="boop">{name}</C>, <C beep="boöp">{game}</C>.</I18N>')).to.throw(InputError);
         });
     });
 });
