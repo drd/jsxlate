@@ -105,6 +105,14 @@ function elementName(jsxElement) {
     return nodeName(jsxElement.openingElement);
 }
 
+function elementNamespaceOrName(jsxElement) {
+    if (hasNamespacedName(jsxElement)) {
+        return jsxElement.openingElement.name.namespace.name;
+    } else {
+        return elementName(jsxElement);
+    }
+}
+
 function elementAttributes(jsxElement) {
     return jsxElement.openingElement.attributes;
 }
@@ -242,7 +250,8 @@ function attributeName(jsxAttribute) {
 }
 
 function attributeIsSanitized(element, attribute) {
-    const whitelistedAttributes = whitelist[elementName(element)] || whitelist['*'];
+    const name = elementNamespaceOrName(element);
+    const whitelistedAttributes = whitelist[name] || whitelist['*'];
     return (
         !whitelistedAttributes.includes(attributeName(attribute)) ||
         attribute.value.type !== 'StringLiteral'
