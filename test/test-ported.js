@@ -197,8 +197,3 @@ describe('Message node transformation', function() {
         });
     });
 });
-
-
-describe('freeVariables', function() {
-
-})
