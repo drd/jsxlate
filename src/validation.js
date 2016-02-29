@@ -7,8 +7,17 @@
 import generate from 'babel-generator';
 
 const ast = require('./ast');
+import {incrementKey} from './extract';
 const whitelisting = require('./whitelisting');
 
+
+function assertSameCounts(original, translated, msg) {
+    Object.keys(original).concat(Object.keys(translated)).forEach(key => {
+        if (translated[key] !== original[key]) {
+            throw new Error(msg + ` (original[${key}]=${original[key]}, translated[${key}]=${translated[key]})`);
+        }
+    })
+}
 
 module.exports = {
     sanitizedAttributesOf(element) {
@@ -18,6 +27,24 @@ module.exports = {
     validateTranslation(original, translation) {
         const ogContext = this.validateMessage(original);
         const trContext = this.validateMessage(translation);
+
+        assertSameCounts(
+            ogContext.componentCounts,
+            trContext.componentCounts,
+            "Found a differing number of components in translation from original"
+        );
+
+        assertSameCounts(
+            ogContext.i18nIds,
+            trContext.i18nIds,
+            "Found a differing number of components with same i18n-id in translation from original"
+        );
+
+        assertSameCounts(
+            ogContext.namedExpressionDefinitions,
+            trContext.namedExpressionDefinitions,
+            "Found a differing number of named expressions in translation from original"
+        );
     },
 
     validateMessage: function(element) {
@@ -25,6 +52,9 @@ module.exports = {
             root: element,
             componentsWithoutIds: {},
             componentsToSanitizedAttributes: {},
+            i18nIds: {},
+            componentCounts: {},
+            namedExpressionDefinitions: {},
         };
 
         this.validateChildren(element.children, context);
@@ -66,14 +96,18 @@ module.exports = {
                 let componentId = ast.findIdAttribute(element)
                 if (!componentId) {
                     componentId = ast.elementName(element);
-                    let count = context.componentsWithoutIds[componentId];
-                    if (count === undefined) {
-                        context.componentsWithoutIds[componentId] = 0;
-                    }
-                    context.componentsWithoutIds[componentId]++;
+                    incrementKey(context.componentsWithoutIds, componentId);
                 }
             }
             context.componentsToSanitizedAttributes[ast.idOrComponentName(element)] = whitelisting.sanitizedAttributes(element);
+        }
+
+        if (ast.isComponent(element) || ast.findIdAttribute(element)) {
+            incrementKey(context.i18nIds, ast.idOrComponentName(element));
+        }
+
+        if (ast.isComponent(element)) {
+            incrementKey(context.componentCounts, ast.unNamespacedElementName(element));
         }
 
         this.validateChildren(element.children, context);
@@ -96,6 +130,7 @@ module.exports = {
 
                 case 'JSXExpressionContainer':
                     this.validateJSXExpressionContainer(child, context);
+                    incrementKey(context.namedExpressionDefinitions, ast.memberExpressionName(child));
                 break;
             }
         })

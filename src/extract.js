@@ -204,7 +204,7 @@ function convertToNamespacedName(jsxElement) {
 }
 
 
-function incrementKey(map, key) {
+export function incrementKey(map, key) {
     map[key] = (map[key] || 0) + 1;
 }
 

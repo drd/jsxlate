@@ -124,8 +124,8 @@ describe('translation', function() {
             '{random + expression + in + placeholder}<Component />{foo}{bar.baz}',
             '{non.existant.name}<Component />{foo}{bar.baz}',
             '<Component /> Duplicated expressions: {foo}{foo}{bar.baz}',
-            'Missing component. {foo}{foo}{bar.baz}',
-            'Duplicated component. <Component /> <Component /> {foo}{foo}{bar.baz}',
+            'Missing component.',
+            'Duplicated component. <Component /> <Component />',
         ];
         var correctTranslation = 'Helo, byd. <Component />{foo}{bar.baz}';
 
@@ -138,7 +138,6 @@ describe('translation', function() {
         expect(() => translateMessage(correctTranslation)).to.not.throw();
 
         invalidTranslations.forEach(translation => {
-            console.log(translation);
             expect(() => translateMessage(translation)).to.throw();
         });
     });
