@@ -9,7 +9,7 @@ import generate from 'babel-generator';
 import traverse from 'babel-traverse';
 
 import ast from './ast';
-const freeVariables = require('./free-variables');
+import freeVariablesInMessage from './free-variables';
 import validation from './validation';
 
 
@@ -20,7 +20,7 @@ const Translation = {
             let freeVars = [];
             if (ast.isElement(markerNode)) {
                 const translated = babylon.parse(`<I18N>${translatedMessage}</I18N>`, {plugins: ['jsx']});
-                freeVars = freeVariables.freeVariablesInMessage(markerNode);
+                freeVars = freeVariablesInMessage(markerNode);
                 validation.validateTranslation(markerNode, translated.program.body[0].expression);
                 const reconstituted = Translation.reconstitute(markerNode, translated);
                 unprintedTranslation = generate(reconstituted, undefined, translatedMessage).code;

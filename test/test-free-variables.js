@@ -3,7 +3,7 @@ const mocha = require('mocha');
 const {expect} = require('chai');
 const sinon = require('sinon');
 
-const freeVariables = require('../src/free-variables');
+import freeVariablesInMessage from '../src/free-variables';
 
 
 describe('freeVariables', function() {
@@ -20,7 +20,7 @@ describe('freeVariables', function() {
     Object.entries(examples).forEach(([src, expectedVariables]) => {
         it(`in ${src}`, function() {
             const expression = babylon.parse(src, {plugins: ['jsx']}).program.body[0].expression;
-            const variables = freeVariables.freeVariablesInMessage(expression);
+            const variables = freeVariablesInMessage(expression);
             expect(variables).to.have.members(expectedVariables);
         });
     });

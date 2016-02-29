@@ -8,7 +8,7 @@ const types = require('babel-types')
 
 const ast = require('./ast');
 import {extractElementMessageWithoutSideEffects} from './extract';
-const freeVariables = require('./free-variables');
+import freeVariablesInMessage from './free-variables';
 
 
 const transformElementMarker = template(`
@@ -29,7 +29,7 @@ export default {
     },
 
     transformElementMarker(node) {
-        const vars = freeVariables.freeVariablesInMessage(node);
+        const vars = freeVariablesInMessage(node);
         const message = extractElementMessageWithoutSideEffects(node);
         const fallback = this.makeFallback(node);
         const transformed = transformElementMarker({
