@@ -5,10 +5,12 @@
  */
 
 const babel = require('babel-core');
+import generate from 'babel-generator';
 var jsx = require('babel-plugin-syntax-jsx');
 
 import ast from './ast';
-import extraction from './extraction';
+import {extractElementMessageWithoutSideEffects} from './extract';
+import parsing from './parsing';
 import translation from './translation';
 
 
@@ -28,7 +30,7 @@ const Translate = {
 
                     JSXElement({node}) {
                         if (ast.isElementMarker(node)) {
-                            const message = extraction.extractElementMessage(node);
+                            const message = extractElementMessageWithoutSideEffects(node);
                             const translationForMessage = translations[message];
                             const renderer = translation.translatedRendererFor(node, translationForMessage, message);
                             bundle[message] = renderer;

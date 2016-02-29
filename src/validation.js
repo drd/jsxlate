@@ -18,9 +18,6 @@ module.exports = {
     validateTranslation(original, translation) {
         const ogContext = this.validateMessage(original);
         const trContext = this.validateMessage(translation);
-
-        console.log(ogContext.componentsWithoutIds)
-        console.log(trContext.componentsWithoutIds)
     },
 
     validateMessage: function(element) {

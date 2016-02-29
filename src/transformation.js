@@ -7,7 +7,7 @@ import traverse from 'babel-traverse';
 const types = require('babel-types')
 
 const ast = require('./ast');
-const extraction = require('./extraction');
+import {extractElementMessageWithoutSideEffects} from './extract';
 const freeVariables = require('./free-variables');
 
 
@@ -30,7 +30,7 @@ export default {
 
     transformElementMarker(node) {
         const vars = freeVariables.freeVariablesInMessage(node);
-        const message = extraction.extractElementMessage(node);
+        const message = extractElementMessageWithoutSideEffects(node);
         const fallback = this.makeFallback(node);
         const transformed = transformElementMarker({
             MESSAGE: types.stringLiteral(message),

@@ -3,8 +3,7 @@ const {expect} = require('chai');
 const sinon = require('sinon');
 require('babel-polyfill');
 
-// const {extract} = require('../src/extract2');
-import {extractFromSource as extract, InputError} from '../src/extract2';
+import {extractFromSource as extract, InputError} from '../src/extract';
 
 
 describe('extraction', function() {

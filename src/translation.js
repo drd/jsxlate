@@ -53,7 +53,7 @@ const Translation = {
                 }
                 ast.convertNamespacedNameToIdAttribute(node);
                 const id = ast.idOrComponentName(node);
-                if (sanitized[id]) {
+                if (id && sanitized[id]) {
                     sanitized[id].forEach(a => {
                         node.openingElement.attributes.push(a);
                     })

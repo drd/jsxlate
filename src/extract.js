@@ -15,7 +15,7 @@ const options = {
     whitelistedAttributes: {
         a:   ['href'],
         img: ['alt'],
-        '*': ['title', 'placeholder', 'alt', 'summary'],
+        '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id',],
         'Pluralize': ['on'],
         'Match': ['when'],
     },
@@ -160,6 +160,12 @@ function hasUnsafeAttributes(jsxElement) {
     return elementAttributes(jsxElement).some(a => attributeIsSanitized(jsxElement, a));
 }
 
+function filterAttributes(jsxElement, condition) {
+    jsxElement.openingElement.attributes = jsxElement.openingElement.attributes.filter(
+        a => condition(jsxElement, a)
+    );
+}
+
 function i18nId(jsxElement) {
     if (hasNamespacedName(jsxElement)) {
         // It's names all the way down
@@ -182,6 +188,7 @@ function convertToNamespacedName(jsxElement) {
         const name = elementName(jsxElement);
         const id = i18nId(jsxElement);
         if (id) {
+            filterAttributes(jsxElement, (_, a) => attributeName(a) !== 'i18n-id');
             const nameAst = types.JSXNamespacedName(
                 types.JSXIdentifier(name),
                 types.JSXIdentifier(id)
@@ -259,10 +266,34 @@ function attributeIsSanitized(element, attribute) {
 }
 
 
-function extractElementMessage(jsxElement) {
-    const messageWithContainer = generate(jsxElement);
-    // HACK.
+function validateAndSanitizeElement(jsxElementPath) {
+    // Traverse with state of validationContext
+    const validationContext = {
+        root: jsxElementPath.node,
+        componentNamesAndIds: {},
+        componentsWithSanitizedAttributes: {},
+    };
+    jsxElementPath.traverse(ExtractionValidationVisitor, {validationContext});
+    validateElementContext(validationContext);
+}
+
+
+export function extractElementMessage(jsxElementPath) {
+    validateAndSanitizeElement(jsxElementPath);
+    const messageWithContainer = generate(jsxElementPath.node);
+    // TODO: is there a better way to handle whitespace of jsxChildren ?
+    // thought: possibly by re-situating them as the children of a Block?
     return /<I18N>([\s\S]+?)<\/I18N>/.exec(messageWithContainer)[1].trim();
+}
+
+// TODO: is there a more elegant approach?
+export function extractElementMessageWithoutSideEffects(jsxElement) {
+    assertInput(
+        isElementMarker(jsxElement),
+        "Attempted to extract message from non-marker",
+        jsxElement
+    );
+    return extractFromSource(generate(jsxElement))[0];
 }
 
 function validateElementContext(validationContext) {
@@ -299,15 +330,7 @@ export function extractFromSource(src) {
 
                 JSXElement(path) {
                     if (isElementMarker(path.node)) {
-                        // Traverse with state of validationContext
-                        const validationContext = {
-                            root: path,
-                            componentNamesAndIds: {},
-                            componentsWithSanitizedAttributes: {},
-                        };
-                        path.traverse(ExtractionValidationVisitor, {validationContext});
-                        validateElementContext(validationContext);
-                        messages.push(extractElementMessage(path.node));
+                        messages.push(extractElementMessage(path));
                     }
                 },
             }

@@ -14,7 +14,7 @@ const ast = require('./ast');
 let tagWhitelistedAttributes = {
     a:   ['href'],
     img: ['alt'],
-    '*': ['title', 'placeholder', 'alt', 'summary'],
+    '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id',],
     'Pluralize': ['on'],
     'Match': ['when'],
 };

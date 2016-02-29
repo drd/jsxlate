@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const I = require('immutable');
 import generate from 'babel-generator';
 
-import {extractFromSource as extract} from '../src/extract2';
+import {extractFromSource as extract} from '../src/extract';
 import parsing from '../src/parsing';
 const transform = require('../src/transform');
 import transformation from '../src/transformation';
@@ -29,7 +29,7 @@ describe('extraction', function() {
         'var {nested, ...rested} = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
         '<p><I18N>1: {same.name.different.message}</I18N> <I18N>2: {same.name.different.message}</I18N></p>': ['1: {same.name.different.message}', '2: {same.name.different.message}'],
         '<I18N><Pluralize:count on={count}><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize:count></I18N>': [
-            '<Pluralize:count><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize:count>']
+            '<Pluralize:count><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize:count>'],
     }
 
     it('extracts expected strings', function() {
@@ -187,7 +187,7 @@ describe('translation', function() {
             try {
                 const ast = parsing.parseExpression(message);
                 const transformedMarker = transformation.transformMarker(ast);
-                expect(transformedMessage).to.equal(generate(transformedMarker).code);
+                expect(generate(transformedMarker).code).to.equal(transformedMessage);
             } catch(e) {
                 console.warn("Encountered error testing", message);
                 throw e;
