@@ -141,6 +141,9 @@ describe('translation', function() {
             expect(() => translateMessage(translation)).to.throw();
         });
     });
+});
+
+describe('Message node transformation', function() {
 
     it('properly handles whitespace and quotes', function() {
         var messagesToBeTransformed = I.List([

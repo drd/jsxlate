@@ -13,7 +13,7 @@ import freeVariablesInMessage from './free-variables';
 
 const transformElementMarker = template(`
     <I18N message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>
-`);
+`, {plugins: ['jsx']});
 
 function wrapExpression(expression) {
     return types.program([types.expressionStatement(expression)]);
