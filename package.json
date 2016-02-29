@@ -44,6 +44,7 @@
     "babel-register": "^6.4.3",
     "babel-template": "^6.3.13",
     "babel-traverse": "^6.4.5",
+    "babel-types": "^6.6.0",
     "babylon": "^6.4.5",
     "chalk": "^1.1.0",
     "expand-tilde": "^1.2.0",
