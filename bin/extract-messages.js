@@ -1,11 +1,13 @@
 #! /usr/bin/env node
 "use strict";
 
+require('babel-polyfill');
+
 function showHelpAndExit() {
     console.log("Usage: extract-messages [-m EXISTING] [-o OUTPUT] ...FILES/DIRECTORIES");
     console.log("Prints a JSON document with messages in FILES/DIRECTORIES mapped to themselves.");
-    console.log("If -m is passed, merges with EXISTING translations.")
-    console.log("If -o is passed, writes to OUTPUT instead of stdout.")
+    console.log("If -m is passed, merges with EXISTING translations.");
+    console.log("If -o is passed, writes to OUTPUT instead of stdout.");
     process.exit();
 }
 
@@ -22,23 +24,24 @@ var chalk = require('chalk');
 var fs = require('fs');
 
 var filesFromMixedPaths = require('./filesFromMixedPaths');
-var jsxlate = require('../lib/jsxlate.js');
+var extractFromSource = require('../build/extract').extractFromSource;
 
 var paths = filesFromMixedPaths(argv._);
 var messages = {};
 
 paths.forEach(function (path) {
-    var buffer = fs.readFileSync(path, "utf8");
+    var source = fs.readFileSync(path, "utf8");
     try {
-        var messagesInFile = jsxlate.extractMessages(buffer);
+        var messagesInFile = extractFromSource(source);
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + path + ":"));
-        console.error(jsxlate.errorMessageForError(e));
+        console.error(e);
+        console.error(e.stack);
         process.exit(1);
     }
     messagesInFile.forEach(function (message) {
         messages[message] = message;
-    })
+    });
 });
 
 if (argv.m) {

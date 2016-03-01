@@ -32,12 +32,16 @@ const whitelist = (function(wl) {
 
 // Error types
 
-export function InputError(description, node) {
-    Object.assign(this, {
-        description,
-        node,
-        inputError: true
-    });
+class InputError extends Error {
+    constructor(description, node) {
+        super(description);
+
+        Object.assign(this, {
+            description,
+            node,
+            inputError: true
+        });
+    }
 }
 
 function assertInput(condition, description, node) {
@@ -59,7 +63,7 @@ function assertUnique(map, description, node) {
 
 // Code generation
 
-function generate(ast) {
+export function generate(ast) {
     return babelGenerator(ast, {comments: false}).code;
 }
 
