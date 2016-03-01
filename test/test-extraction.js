@@ -1,6 +1,5 @@
-const mocha = require('mocha');
-const {expect} = require('chai');
-const sinon = require('sinon');
+const I = require('immutable');
+const {expect, assert} = require('chai');
 require('babel-polyfill');
 
 import {extractFromSource as extract, InputError} from '../src/extract';
@@ -26,7 +25,7 @@ describe('extraction', function() {
                 'foo, bar, foo',
                 'this is silly'
             ]);
-        })
+        });
     });
 
     describe('of jsx', function() {
@@ -179,6 +178,43 @@ describe('extraction', function() {
                 '<a href="/info/Help/Organizations#Eligibility">Are we eligible?</a>'
             ]);
         });
+
+        describe('of various strings', function() {
+            var extractions = {
+                'Hello': [],
+                '<I18N>Hello</I18N>': ['Hello'],
+                'i18n("world")': ['world'],
+                '<I18N><a href="foo">tag with only safe attributes</a></I18N>': ['<a href="foo">tag with only safe attributes</a>'],
+                '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': ['<a:link href="foo">tag with unsafe attributes</a:link>'],
+                '<I18N><a href="foo" target="_blank" i18n-id="link">tag with unsafe attributes</a></I18N>': ['<a:link href="foo">tag with unsafe attributes</a:link>'],
+                '<I18N><SelfClosing i18n-id="foo" attr="attr" /></I18N>': ['<SelfClosing:foo />'],
+                '<I18N><SelfClosing /></I18N>': ['<SelfClosing />'],
+                '<I18N><SelfClosing:a /><SelfClosing:b /></I18N>': ['<SelfClosing:a /><SelfClosing:b />'],
+                '<I18N><Member.Name /></I18N>': ['<Member.Name />'],
+                '<I18N><a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a></I18N>': ['<a><b><i>Deeply nested</i> nested <i>nested</i> nested</b> tags</a>'],
+                '<I18N>Cat: {hat}</I18N>': ['Cat: {hat}'],
+                '<I18N>And now {a.member.expression}</I18N>': ['And now {a.member.expression}'],
+                'var {nested, ...rested} = i18n("hatters"); <I18N>Cat: {nested}</I18N>': ['hatters', 'Cat: {nested}'],
+                '<p><I18N>1: {same.name.different.message}</I18N> <I18N>2: {same.name.different.message}</I18N></p>': ['1: {same.name.different.message}', '2: {same.name.different.message}'],
+                '<I18N><Pluralize:count on={count}><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize:count></I18N>': [
+                    '<Pluralize:count><Match when="zero">You have no items</Match><Match when="one">You have one item</Match><Match when="other">You have {count} items</Match></Pluralize:count>'],
+            };
+
+            it('extracts expected strings', function() {
+                Object.keys(extractions).forEach(input => {
+                    try { extract(input); } catch(e) { console.error(e); }
+                    assert(I.is(I.fromJS(extractions[input]), I.fromJS(extract(input))),
+                             `
+                             Incorrect extraction for input
+                             ${input}
+                             Expected
+                             ${extractions[input]}
+                             but got
+                             ${extract(input)}
+                             `);
+                });
+            });
+        });
     });
 
     describe('errors and warnings', function() {
@@ -192,6 +228,26 @@ describe('extraction', function() {
 
         it('requires i18n-id on duplicated components', function() {
             expect(() => extract('<I18N>O, hai, <C beep="boop">{name}</C>, <C beep="boöp">{game}</C>.</I18N>')).to.throw(InputError);
+        });
+
+        it('warns on unextractable messages', function() {
+            var shouldNotBeExtractable = [
+                '<I18N>Nested <I18N>message markers.</I18N></I18N>',
+                'i18n("Not" + "just a string" + "literal")',
+                'i18n()',
+                'i18n("Too many", "arguments")',
+                '<I18N><a target="_blank">Unsafe attributes but no id.</a></I18N>',
+                '<I18N><Doubled/>two of the same Component type without ids<Doubled/></I18N>',
+                '<I18N><Doubled:doubled/>two of the same Component type with the same ids<Doubled:doubled/></I18N>',
+                '<I18N>{"string literal"}</I18N>',
+                '<I18N>{arbitrary.expression()}</I18N>',
+                '<I18N>{("non"+"simple").memberExpression}</I18N>',
+                '<I18N>{computed["memberExpression"]}</I18N>'
+            ];
+
+            shouldNotBeExtractable.forEach(msg => {
+                expect(() => extract(msg)).to.throw;
+            });
         });
     });
 });
