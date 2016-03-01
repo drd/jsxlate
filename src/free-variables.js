@@ -58,7 +58,7 @@ function freeVariablesInObjectExpression(expression, variables) {
         if (property.computed) {
             freeVariablesInExpression(property.key, variables);
         }
-    })
+    });
 }
 
 function freeVariablesInExpression(expression, variables) {

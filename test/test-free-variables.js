@@ -1,7 +1,5 @@
 const babylon = require('babylon');
-const mocha = require('mocha');
 const {expect} = require('chai');
-const sinon = require('sinon');
 
 import freeVariablesInMessage from '../src/free-variables';
 

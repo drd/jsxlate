@@ -5,12 +5,10 @@
  */
 
 const babel = require('babel-core');
-import generate from 'babel-generator';
 var jsx = require('babel-plugin-syntax-jsx');
 
 import ast from './ast';
 import {extractElementMessageWithoutSideEffects} from './extract';
-import parsing from './parsing';
 import translation from './translation';
 
 
@@ -18,7 +16,7 @@ const Translate = {
     translateMessagesToBundle(src, translations) {
         const bundle = {};
 
-        const plugin = function({types: t}) {
+        const plugin = function() {
             return {
                 visitor: {
                     CallExpression({node}) {
@@ -38,7 +36,7 @@ const Translate = {
                     }
                 }
             };
-        }
+        };
 
         babel.transform(src, {
             plugins: [jsx, plugin]

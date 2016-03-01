@@ -1,7 +1,4 @@
 const fs = require('fs');
-
-const babel = require('babel-core');
-
 import babelGenerator from 'babel-generator';
 import * as types from 'babel-types';
 
@@ -51,7 +48,7 @@ function assertInput(condition, description, node) {
 
 function assertUnique(map, description, node) {
     const dupes = Object.entries(map).filter(
-        ([key, value]) => value > 1
+        ([_, value]) => value > 1     // eslint-disable-line no-unused-vars
     );
     assertInput(dupes.length === 0,
         `${description}: ${dupes}`,
@@ -297,10 +294,6 @@ export function extractElementMessageWithoutSideEffects(jsxElement) {
 }
 
 function validateElementContext(validationContext) {
-    const dupes = Object.entries(validationContext.componentNamesAndIds).filter(
-        ([key, value]) => value > 1
-    );
-
     assertUnique(
         validationContext.componentsWithSanitizedAttributes,
         'Found the following duplicate elements/components',
@@ -318,7 +311,7 @@ export function extractFromSource(src) {
     const messages = [];
 
     const plugin = function({types: t}, {opts} = {opts: {}}) {
-        Object.assign(options, opts)
+        Object.assign(options, opts);
         return {
             visitor: {
                 CallExpression({node: callExpression}) {
@@ -334,8 +327,8 @@ export function extractFromSource(src) {
                     }
                 },
             }
-        }
-    }
+        };
+    };
 
     parsing.transform(src, plugin);
     return messages;

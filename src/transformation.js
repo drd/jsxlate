@@ -1,10 +1,6 @@
-const babel = require('babel-core');
-import generate from 'babel-generator';
-// const jsxt = require('babel-plugin-transform-react-jsx');
-const objectRestSpread = require('babel-plugin-transform-object-rest-spread');
 const template = require('babel-template');
 import traverse from 'babel-traverse';
-const types = require('babel-types')
+const types = require('babel-types');
 
 const ast = require('./ast');
 import {extractElementMessageWithoutSideEffects} from './extract';
@@ -15,9 +11,6 @@ const transformElementMarker = template(`
     <I18N message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>
 `, {plugins: ['jsx']});
 
-function wrapExpression(expression) {
-    return types.program([types.expressionStatement(expression)]);
-}
 
 export default {
     transformMarker(node) {
@@ -59,4 +52,4 @@ export default {
         // names are a superset of {message, context, args, fallback}
         return node.openingElement.attributes.length !== 4;
     },
-}
+};

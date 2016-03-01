@@ -36,7 +36,7 @@ module.exports = {
         } else if (name.type === 'JSXNamespacedName') {
             return `${name.namespace.name}:${name.name.name}`;
         } else if (name.type === 'JSXMemberExpression') {
-            return this.memberExpressionName(name)
+            return this.memberExpressionName(name);
         } else {
             throw new Error("unknown elementName type: " + name.type);
         }
@@ -53,7 +53,7 @@ module.exports = {
         } else if (name.type === 'JSXNamespacedName') {
             return name.namespace.name;
         } else if (name.type === 'JSXMemberExpression') {
-            return this.memberExpressionName(name)
+            return this.memberExpressionName(name);
         } else {
             throw new Error("unknown elementName type: " + name.type);
         }

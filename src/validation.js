@@ -16,7 +16,7 @@ function assertSameCounts(original, translated, msg) {
         if (translated[key] !== original[key]) {
             throw new Error(msg + ` (original[${key}]=${original[key]}, translated[${key}]=${translated[key]})`);
         }
-    })
+    });
 }
 
 module.exports = {
@@ -69,7 +69,7 @@ module.exports = {
             if (context.componentsWithoutIds[name] > 1) {
                 duplicated.push(name);
             }
-        })
+        });
         if (duplicated.length) {
             throw new Error("Missing required i18n-id on duplicated component(s) " + duplicated.join(', '));
         }
@@ -93,7 +93,7 @@ module.exports = {
             if (ast.isTag(element)) {
                 this.assertI18nId(element);
             } else if (ast.isComponent(element)) {
-                let componentId = ast.findIdAttribute(element)
+                let componentId = ast.findIdAttribute(element);
                 if (!componentId) {
                     componentId = ast.elementName(element);
                     incrementKey(context.componentsWithoutIds, componentId);
@@ -133,6 +133,6 @@ module.exports = {
                     incrementKey(context.namedExpressionDefinitions, ast.memberExpressionName(child));
                 break;
             }
-        })
+        });
     }
 };

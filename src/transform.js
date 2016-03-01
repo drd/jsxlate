@@ -2,7 +2,7 @@ const ast = require('./ast');
 import transformation from './transformation';
 
 
-module.exports = function({types: t}) {
+module.exports = function() {
     return {
         visitor: {
             JSXElement: {

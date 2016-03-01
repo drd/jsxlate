@@ -27,12 +27,12 @@ const Translation = {
             } else {
                 unprintedTranslation = JSON.stringify(translatedMessage) + ';';
             }
-            return Translation.renderer(freeVars, unprintedTranslation, markerNode);
+            return Translation.renderer(freeVars, unprintedTranslation);
         } catch(exc) {
             if (process.env.NODE_ENV === 'test') {
                 throw exc;
             }
-            return Translation.errorRenderer(originalMessage, exc)
+            return Translation.errorRenderer(originalMessage, exc);
         }
     },
 
@@ -56,7 +56,7 @@ const Translation = {
                 if (id && sanitized[id]) {
                     sanitized[id].forEach(a => {
                         node.openingElement.attributes.push(a);
-                    })
+                    });
                 }
                 ast.removeIdAttribute(node);
             },
@@ -64,7 +64,7 @@ const Translation = {
         return translated;
     },
 
-    renderer(freeVariables, translation, originalNode) {
+    renderer(freeVariables, translation) {
         return (
 `function(${freeVariables.join(', ')}) { return ${translation} }`
         );
