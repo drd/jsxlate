@@ -19,7 +19,9 @@ var ast = require('./ast');
 var tagWhitelistedAttributes = {
     a: ['href'],
     img: ['alt'],
-    '*': ['title', 'placeholder', 'alt', 'summary']
+    '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id'],
+    'Pluralize': ['on'],
+    'Match': ['when']
 };
 
 module.exports = {
@@ -45,7 +47,7 @@ module.exports = {
     },
 
     isWhitelistedAttribute: function isWhitelistedAttribute(element, attribute) {
-        var name = ast.elementName(element);
+        var name = ast.unNamespacedElementName(element);
         var elementWhitelistedAttributes = this.whitelistedAttributeNames(name);
         return elementWhitelistedAttributes.indexOf(ast.attributeName(attribute)) !== -1;
     },
@@ -58,7 +60,7 @@ module.exports = {
         if (attributeIsWhitelisted && !value) {
             console.warn("Ignoring non-literal extractable attribute:", (0, _babelGenerator2.default)(attribute).code);
         }
-        return value && attributeIsWhitelisted;
+        return attributeIsWhitelisted;
     },
 
     // Reports if an element has any attributes to be sanitized

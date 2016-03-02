@@ -3,14 +3,13 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.default = translateMessagesToBundle;
 
 var _ast = require('./ast');
 
 var _ast2 = _interopRequireDefault(_ast);
 
-var _extraction = require('./extraction');
-
-var _extraction2 = _interopRequireDefault(_extraction);
+var _extract = require('./extract');
 
 var _translation = require('./translation');
 
@@ -27,44 +26,38 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var babel = require('babel-core');
 var jsx = require('babel-plugin-syntax-jsx');
 
-var Translate = {
-    translateMessagesToBundle: function translateMessagesToBundle(src, translations) {
-        var bundle = {};
+function translateMessagesToBundle(src, translations) {
+    var bundle = {};
 
-        var plugin = function plugin(_ref) {
-            var t = _ref.types;
+    var plugin = function plugin() {
+        return {
+            visitor: {
+                CallExpression: function CallExpression(_ref) {
+                    var node = _ref.node;
 
-            return {
-                visitor: {
-                    CallExpression: function CallExpression(_ref2) {
-                        var node = _ref2.node;
+                    if (node.callee.name === 'i18n') {
+                        var message = node.arguments[0].value;
+                        bundle[message] = _translation2.default.translatedRendererFor(node, translations[message], message);
+                    }
+                },
+                JSXElement: function JSXElement(_ref2) {
+                    var node = _ref2.node;
 
-                        if (node.callee.name === 'i18n') {
-                            var message = node.arguments[0].value;
-                            bundle[message] = translations[message];
-                        }
-                    },
-                    JSXElement: function JSXElement(_ref3) {
-                        var node = _ref3.node;
-
-                        if (_ast2.default.isElementMarker(node)) {
-                            var message = _extraction2.default.extractElementMessage(node);
-                            var translationForMessage = translations[message];
-                            var renderer = _translation2.default.translatedRendererFor(node, translationForMessage, message);
-                            bundle[message] = renderer;
-                        }
+                    if (_ast2.default.isElementMarker(node)) {
+                        var message = (0, _extract.extractElementMessageWithoutSideEffects)(node);
+                        var translationForMessage = translations[message];
+                        var renderer = _translation2.default.translatedRendererFor(node, translationForMessage, message);
+                        bundle[message] = renderer;
                     }
                 }
-            };
+            }
         };
+    };
 
-        babel.transform(src, {
-            plugins: [jsx, plugin]
-        });
+    babel.transform(src, {
+        plugins: [jsx, plugin]
+    });
 
-        return bundle;
-    }
+    return bundle;
 };
-
-exports.default = Translate;
 
