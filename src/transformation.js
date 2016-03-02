@@ -41,7 +41,7 @@ export default {
         traverse(node, {
             noScope: true,
             JSXElement({node}) {
-                ast.removeIdAttribute(node);
+                ast.stripI18nId(node);
             }
         });
         return node;

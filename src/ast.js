@@ -108,18 +108,9 @@ module.exports = {
         return element.openingElement.attributes;
     },
 
-    // remove i18n-id attribute from an element
-    removeIdAttribute(element) {
-        if (element.openingElement.attributes) {
-            element.openingElement.attributes = element.openingElement.attributes.filter(a => !this.isIdAttribute(a));
-        }
-        return element;
-    },
-
-    convertNamespacedNameToIdAttribute(element) {
+    stripI18nId(element) {
         if (element.openingElement.name.type === 'JSXNamespacedName') {
             const newName = element.openingElement.name.namespace.name;
-            const i18nId = element.openingElement.name.name.name;
             element.openingElement.name.type = 'JSXIdentifier';
             element.openingElement.name.name = newName;
             delete element.openingElement.name.object;
@@ -129,6 +120,25 @@ module.exports = {
                 element.closingElement.name.name = newName;
                 delete element.closingElement.name.object;
             }
+        } else {
+            this.removeIdAttribute(element);
+        }
+    },
+
+    // remove i18n-id attribute from an element
+    removeIdAttribute(element) {
+        if (this.elementAttributes(element)) {
+            element.openingElement.attributes = this.elementAttributes(element).filter(
+                a => !this.isIdAttribute(a)
+            );
+        }
+        return element;
+    },
+
+    convertNamespacedNameToIdAttribute(element) {
+        if (element.openingElement.name.type === 'JSXNamespacedName') {
+            const i18nId = element.openingElement.name.name.name;
+            this.stripI18nId(element);
 
             element.openingElement.attributes.push(
                 types.JSXAttribute(

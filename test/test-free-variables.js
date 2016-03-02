@@ -9,6 +9,7 @@ describe('freeVariables', function() {
         '<I18N>{foo}</I18N>': ['foo'],
         '<I18N>{this.foo}</I18N>': [],
         '<I18N>{this.foo()}</I18N>': [],
+        '<I18N><span foo>{foo}</span></I18N>': ['foo'],
         '<I18N><span foo={bar}>{foo}</span></I18N>': ['foo', 'bar'],
         '<I18N><span foo={{one: 1, [two]: three}}>{foo}</span></I18N>': ['foo', 'two', 'three'],
         '<I18N><span i18n-id="stat" className="stat"><ReactIntl.FormattedNumber value={dailyVisitors}/></span>daily visitors</I18N>':

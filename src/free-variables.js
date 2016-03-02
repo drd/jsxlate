@@ -47,7 +47,10 @@ function freeVariablesInAttributes(attributes, variables) {
 }
 
 function freeVariablesInAttribute(attribute, variables) {
-    if (attribute.value.type === 'JSXExpressionContainer') {
+    if (
+        attribute.value &&
+        attribute.value.type === 'JSXExpressionContainer'
+    ) {
         freeVariablesInExpression(attribute.value.expression, variables);
     }
 }

@@ -16,6 +16,13 @@ describe('Message node transformation', function() {
                   ' fallback={function () {\n  return <span>Hello, world. <Component />{foo}<p>{bar.baz}</p></span>;\n}} />;'
             ],
 
+            // ensure namespaced tags are de-namespaced
+            [
+                '<I18N>Hello, world. <Component />{foo}<p:beluga data-caviar>{bar.baz}</p:beluga></I18N>',
+                '<I18N message={"Hello, world. <Component />{foo}<p:beluga>{bar.baz}</p:beluga>"} context={this} args={[Component, foo, bar]}' +
+                  ' fallback={function () {\n  return <span>Hello, world. <Component />{foo}<p data-caviar>{bar.baz}</p></span>;\n}} />;'
+            ],
+
             // this test ensures whitespace is handled properly
             [
                 `<I18N>
