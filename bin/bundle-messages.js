@@ -3,9 +3,9 @@
 
 function showHelpAndExit() {
     console.log("Usage: bundle-messages -t TRANSLATIONS [-o OUTPUT] ...FILES/DIRECTORIES");
-    console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped")
+    console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped");
     console.log("to render functions.");
-    console.log("If -o is passed, writes to OUTPUT instead of stdout.")
+    console.log("If -o is passed, writes to OUTPUT instead of stdout.");
     process.exit();
 }
 
@@ -23,7 +23,7 @@ var fs = require('fs');
 var rw = require('rw');
 
 var filesFromMixedPaths = require('./filesFromMixedPaths');
-var jsxlate = require('../lib/jsxlate.js');
+var translateMessagesToBundle = require('../lib/translate');
 
 
 var translations = JSON.parse(rw.readFileSync(argv.t, "utf8"));
@@ -34,10 +34,10 @@ var bundle = {};
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
     try {
-        var translationsForFile = jsxlate.translateMessagesToBundle(buffer, translations);
+        var translationsForFile = translateMessagesToBundle(buffer, translations);
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
-        console.error(jsxlate.errorMessageForError(e));
+        console.error(e);
         process.exit(1);
     }
     Object.keys(translationsForFile).forEach(function (message) {
@@ -47,7 +47,7 @@ files.forEach(function (filename) {
 
 
 var bundleEntries = Object.keys(bundle).map(function (message) {
-    return "\n\t" + JSON.stringify(message) + ': ' + bundle[message]
+    return "\n\t" + JSON.stringify(message) + ': ' + bundle[message];
 });
 
 var bundle = (
