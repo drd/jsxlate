@@ -48,8 +48,9 @@ export default {
     },
 
     needsTransformation(node) {
-        // TODO: possibly a better test would be to assert the attribute
-        // names are a superset of {message, context, args, fallback}
-        return node.openingElement.attributes.length !== 4;
+        // Babel will re-visit the node after replacement, so we must check to
+        // see if a node has already been processed. Since we transform to a
+        // self-closing tag, the absence of children signifies completion.
+        return node.children.length;
     },
 };
