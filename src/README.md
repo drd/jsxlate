@@ -59,7 +59,7 @@ whitelistedAttributes: {
 ```
 
 Any attributes for `*` will be merged with attributes for a specific tag or
-component. It [should be possible](/../TODO.md) to specify these via the
+component. It [should be possible](../TODO.md) to specify these via the
 `.babelrc` [plugin options](https://babeljs.io/docs/plugins/#plugin-options),
 but this is not yet implemented.
 
