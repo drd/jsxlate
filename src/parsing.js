@@ -9,6 +9,7 @@ const basePlugins = [syntaxJsx, transformObjectRestSpread];
 const jsxTransformPlugins = [transformJsx, transformObjectRestSpread];
 const parsePlugins = ['jsx', 'objectRestSpread'];
 
+
 export default {
     parse(code, plugins = []) {
         return babylon.parse(code, {plugins: parsePlugins.concat(plugins)});

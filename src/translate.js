@@ -4,11 +4,10 @@
  *
  */
 
-const babel = require('babel-core');
-var jsx = require('babel-plugin-syntax-jsx');
 
 import ast from './ast';
 import {extractElementMessageWithoutSideEffects} from './extract';
+import parsing from './parsing';
 import translation from './translation';
 
 
@@ -37,9 +36,7 @@ export default function translateMessagesToBundle(src, translations) {
         };
     };
 
-    babel.transform(src, {
-        plugins: [jsx, plugin]
-    });
+    parsing.transform(src, [plugin]);
 
     return bundle;
 };

@@ -23,7 +23,7 @@ var fs = require('fs');
 var rw = require('rw');
 
 var filesFromMixedPaths = require('./filesFromMixedPaths');
-var translateMessagesToBundle = require('../lib/translate');
+var translateMessagesToBundle = require('../build/translate').default;
 
 
 var translations = JSON.parse(rw.readFileSync(argv.t, "utf8"));

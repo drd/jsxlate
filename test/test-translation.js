@@ -29,7 +29,7 @@ describe('translation', function() {
             '<I18N><a:link href="foo" target="_blank">tag with unsafe attributes</a:link></I18N>': 'function() { return <span><a href="bar" target="_blank">tag gyda phriodoleddau anniogel</a></span>; }',
             '<I18N><a href="foo" target="_blank" i18n-id="link">tag with unsafe attributes</a></I18N>': 'function() { return <span><a href="bar" target="_blank">tag gyda phriodoleddau anniogel</a></span>; }',
             '<I18N><SelfClosing i18n-id="foo" attr="attr" /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing attr="attr" /></span>; }',
-            '<I18N><SelfClosing /></I18N>': 'function(SelfClosing) { return <span>Translated: <SelfClosing /></span>; }',
+            '<I18N><SelfClosing {...foo}/></I18N>': 'function(SelfClosing, foo) { return <span>Translated: <SelfClosing {...foo} /></span>; }',
             '<I18N><Member.Name /></I18N>': 'function(Member) { return <span>Translated: <Member.Name /></span>; }',
             '<I18N>Cat: {nested}</I18N>': "function(nested) { return <span>Cat : {nested}</span>; }",
             '<I18N>And now {a.member.expression}</I18N>': 'function(a) { return <span>Ac yn awr {a.member.expression}</span>; }',

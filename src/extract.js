@@ -99,7 +99,7 @@ function extractFunctionMessage(callExpression) {
 // Element messages: <I18N>Foo <span>all the</span> bars.</I18N>
 
 function nodeName(node) {
-    return generate(node.name);
+    return node.name && generate(node.name);
 }
 
 function elementName(jsxElement) {
@@ -242,6 +242,10 @@ const ExtractionValidationVisitor = {
         }
     },
 
+    JSXSpreadAttribute(path) {
+        path.remove();
+    },
+
     JSXExpressionContainer(path) {
         if (path.parent.type === 'JSXElement') {
             assertInput(isSimpleExpression(path.node.expression),
@@ -258,6 +262,10 @@ function attributeName(jsxAttribute) {
 }
 
 function attributeIsSanitized(element, attribute) {
+    if (attribute.type === 'JSXSpreadAttribute') {
+        return true;
+    }
+
     const name = elementNamespaceOrName(element);
     const whitelistedAttributes = whitelist[name] || whitelist['*'];
     return (

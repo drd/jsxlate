@@ -1,7 +1,7 @@
-const babylon = require('babylon');
 const {expect} = require('chai');
 
 import freeVariablesInMessage from '../src/free-variables';
+import parsing from '../src/parsing';
 
 
 describe('freeVariables', function() {
@@ -11,7 +11,8 @@ describe('freeVariables', function() {
         '<I18N>{this.foo()}</I18N>': [],
         '<I18N><span foo>{foo}</span></I18N>': ['foo'],
         '<I18N><span foo={bar}>{foo}</span></I18N>': ['foo', 'bar'],
-        '<I18N><span foo={{one: 1, [two]: three}}>{foo}</span></I18N>': ['foo', 'two', 'three'],
+        '<I18N><span foo={bar} {...baz}>{foo}</span></I18N>': ['foo', 'bar', 'baz'],
+        '<I18N><span foo={{one: 1, [two]: three, ...four}}>{foo}</span></I18N>': ['foo', 'two', 'three', 'four'],
         '<I18N><span i18n-id="stat" className="stat"><ReactIntl.FormattedNumber value={dailyVisitors}/></span>daily visitors</I18N>':
             ['ReactIntl', 'dailyVisitors'],
         '<I18N>Hello, world. {/* no variables here bruh */}<Component />{foo}<p>{bar.baz}</p></I18N>':
@@ -24,7 +25,7 @@ describe('freeVariables', function() {
 
     Object.entries(examples).forEach(([src, expectedVariables]) => {
         it(`in ${src}`, function() {
-            const expression = babylon.parse(src, {plugins: ['jsx']}).program.body[0].expression;
+            const expression = parsing.parse(src).program.body[0].expression;
             const variables = freeVariablesInMessage(expression);
             expect(variables).to.have.members(expectedVariables);
         });

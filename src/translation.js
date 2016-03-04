@@ -4,12 +4,12 @@
  *
  */
 
-const babylon = require('babylon');
 import generate from 'babel-generator';
 import traverse from 'babel-traverse';
 
 import ast from './ast';
 import freeVariablesInMessage from './free-variables';
+import parsing from './parsing';
 import validation from './validation';
 
 
@@ -19,7 +19,7 @@ const Translation = {
             let unprintedTranslation;
             let freeVars = [];
             if (ast.isElement(markerNode)) {
-                const translated = babylon.parse(`<I18N>${translatedMessage}</I18N>`, {plugins: ['jsx']});
+                const translated = parsing.parse(`<I18N>${translatedMessage}</I18N>`);
                 freeVars = freeVariablesInMessage(markerNode);
                 validation.validateTranslation(markerNode, translated.program.body[0].expression);
                 const reconstituted = Translation.reconstitute(markerNode, translated);
