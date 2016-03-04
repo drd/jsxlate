@@ -38,7 +38,7 @@ describe('translation', function() {
         };
 
         Object.entries(expectedResultsForTranslationBundles).forEach(([original, expected]) => {
-            const bundle = translateMessagesToBundle(original, translations);
+            const bundle = translateMessagesToBundle(original, translations).bundle;
             expect(Object.values(bundle)[0]).to.equal(expected);
         });
     });
