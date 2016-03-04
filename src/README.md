@@ -172,3 +172,47 @@ the pre-`babel-template` version).
 The goal of the translation process is to construct a bundle of functions, keyed
 on the extracted messages of the source code, which will render that message in
 a given language.
+
+For each marker node the following steps are performed:
+
+- extract the message from the node
+- look up the corresponding translation in the input
+- if a translation is found,
+ - validate the translation
+ - find any free variables therein
+ - generate a renderer for that message
+- else mark it as missing
+
+Message extraction proceeds exactly as in the Transform plugin.
+
+### Validate the translation
+
+To validate a translated message, all of the requirements of the extraction
+validation must be met. In addition, the following checks are performed to
+ensure consistency between the original source and the translation:
+
+- there must be the same number of React Components of a given name in both the
+  source and the translation
+- there must be the same number of `i18n-id`s in both the source and translation
+- there must be the same number of named expression definitions in both the
+  source and the translation
+
+#### Named Expression Definitions
+
+Named expression definitions are simply anything inside a `JSXExpressionContainer`
+node, e.g. `{foo}`, `{this.bar}`, or `{bar.baz.quux}`. These simple expressions
+can consist only of `Identifier`, `MemberExpression`, and `ThisExpression` nodes,
+anything else is invalid.
+
+### Generating a renderer for a given node + translation
+
+The translation process can seem quite challenging but is in fact fairly simple.
+The key here is that the translator's input is almost a valid JSX expression, it
+just needs to have namespace syntax removed and any missing attributes added to
+it. As such, the process is:
+
+- strip namespaces from element names and remove `i18n-id` attributes
+- find all sanitized attributes in the original source and create a mapping of
+  `i18n-id`/`ComponentName` to these attributes
+- `traverse()` the translated message and append sanitized attributes from the
+  previous step to any nodes that match.

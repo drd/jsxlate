@@ -13,6 +13,9 @@
  - [ ] ordinal
 - [ ] reorganize repo
  - [ ] reorganize `src/`
+  - [ ] unify error handling
+  - [ ] handle duplication between extract and other files
+   - [ ] switch to all named exports
   - [ ] move bin scripts into `src/`
  - [ ] delete `jsxlate.js` and `lib/`
  - [ ] switch to monorepo layout w/ packages dir
@@ -23,14 +26,12 @@
  - [ ] HOWTO
   - [ ] mark messages
   - [ ] extract messages
-  - [ ] (example of transifex?)
+   - [ ] example of transifex?
   - [ ] create bundles
   - [ ] transform the source
  - [ ] syntax of messages
   - [ ] show examples of valid/invalid messages
  - [ ] integrate with React Intl
- - [ ] implementation
-  - [ ] translation/bundling
 - [ ] configuration
  - [ ] for e.g. translator-accessible attributes
  - [ ] change name of marker function/component
@@ -54,6 +55,7 @@
  - [x] implementation
   - [x] extraction
   - [x] transformation
+  - [x] translation/bundling
 - [x] restructuring/splitting of jsx-translator.js
  - [x] clean up exports
 - [x] optimization

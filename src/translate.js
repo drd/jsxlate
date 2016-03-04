@@ -19,7 +19,7 @@ export default function translateMessagesToBundle(src, translations) {
     const bundle = {};
     const missing = {};
 
-    function foo(node, message) {
+    function attemptToCreateRenderer(node, message) {
         if (translations[message]) {
             bundle[message] = translation.translatedRendererFor(
                 node,
@@ -37,14 +37,14 @@ export default function translateMessagesToBundle(src, translations) {
                 CallExpression({node}) {
                     if (node.callee.name === 'i18n') {
                         const message = extractFunctionMessage(node);
-                        foo(node, message);
+                        attemptToCreateRenderer(node, message);
                     }
                 },
 
                 JSXElement({node}) {
                     if (ast.isElementMarker(node)) {
                         const message = extractElementMessageWithoutSideEffects(node);
-                        foo(node, message);
+                        attemptToCreateRenderer(node, message);
                     }
                 }
             }
