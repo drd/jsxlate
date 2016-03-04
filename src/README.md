@@ -52,14 +52,14 @@ By default, the following attributes are whitelisted (tag: [attributes]):
 whitelistedAttributes: {
     a:   ['href'],
     img: ['alt'],
-    '*': ['title', 'placeholder', 'alt', 'summary'],
+    '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id'],
     'Pluralize': ['on'],
     'Match': ['when'],
 },
 ```
 
 Any attributes for `*` will be merged with attributes for a specific tag or
-component. It [should be possible](#extract-todo) to specify these via the
+component. It [should be possible](/../TODO.md) to specify these via the
 `.babelrc` [plugin options](https://babeljs.io/docs/plugins/#plugin-options),
 but this is not yet implemented.
 
@@ -72,7 +72,9 @@ and sanitization. Comments are stripped during this phase. Messages are
 collected per source file in `extractFromSource()` and merged across files
 in `extractFromPaths()`.
 
+
 ---
+
 
 ## Transform plugin
 
@@ -153,7 +155,7 @@ accomplished using the excellent `babel-template` library. `babel-template`
 allows you to interpolate AST variables into a string template, saving a bunch
 of time and boilerplate. From `transformation.js`, here is how it is used:
 
-```
+```js
 const transformElementMarker = template(`
     <I18N message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>
 `, {plugins: ['jsx']});
@@ -165,7 +167,9 @@ the corresponding values will be interpolated into the AST of the parsed
 template. (See the git history of `src/transform.js` to see the full glory of
 the pre-`babel-template` version).
 
+
 ---
+
 
 ## Translation
 
