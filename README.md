@@ -60,6 +60,49 @@ This module exports an object that has translator functions for the correspondin
 
 ### Transforming the source
 
+NOTE: clean this up, expand docs.
+
+The transform plugin is used on your application source to turn <I18N> marker
+components into <I18N> lookups. Example:
+
+```js
+function FishAppraiser(props) {
+  return <I18N>The {props.fish} looks good!</I18N>;
+}
+```
+
+Is turned into:
+
+```js
+function FishAppraiser(props) {
+  return <I18N message="The {props.fish} looks good!"
+               context={this}
+               args={[props]}
+               fallback={(props) => <span>The {props.fish} looks good!</span>}/>;
+}
+```
+
+Because jsxlate uses an optional namespace syntax for marking tags with sanitized attributes to translators, any use of these must be compiled with the transform plugin. Example:
+
+```js
+function FishAppraiser(props) {
+  return <I18N>The <span:fishy className="fishy">{props.fish}</span:fishy> looks good!</I18N>;
+}
+```
+
+Is turned into:
+
+```js
+function FishAppraiser(props) {
+  return <I18N message="The <span:fishy>{props.fish}</span:fishy> looks good!"
+               context={this}
+               args={[props]}
+               fallback={(props) => <span>The
+                 <span className="fishy">{props.fish}</span>
+               looks good!</span>}/>;
+}
+```
+
 The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime.
 
 The preferred method is to use [webpack](http://webpack.github.io) as your bundling tool and [jsxlate-loader](http://github.com/drd/jsxlate-loader) in your loader pipeline. Setup is shown in `examples/simple`.
