@@ -11,7 +11,7 @@ import ast from './ast';
 import freeVariablesInMessage from './free-variables';
 import {options} from './options';
 import parsing from './parsing';
-import validation from './validation';
+import {validateTranslation, sanitizedAttributesOf, validateMessage} from './validation';
 
 
 export default function translatedRendererFor(markerNode, translatedMessage, originalMessage) {
@@ -23,7 +23,7 @@ export default function translatedRendererFor(markerNode, translatedMessage, ori
                 `<${options.elementMarker}>${translatedMessage}</${options.elementMarker}>
             `);
             freeVars = freeVariablesInMessage(markerNode);
-            validation.validateTranslation(markerNode, translated.program.body[0].expression);
+            validateTranslation(markerNode, translated.program.body[0].expression);
             const reconstituted = reconstitute(markerNode, translated);
             unprintedTranslation = generate(reconstituted, undefined, translatedMessage).code;
         } else {
@@ -45,11 +45,11 @@ function reconstitute(original, translated) {
             ast.convertNamespacedNameToIdAttribute(node);
         }
     });
-    const sanitized = validation.sanitizedAttributesOf(original);
+    const sanitized = sanitizedAttributesOf(original);
     traverse(translated, {
         JSXElement({node}) {
             if (ast.isElementMarker(node)) {
-                validation.validateMessage(node);
+                validateMessage(node);
                 node.openingElement.name.name = 'span';
                 node.closingElement.name.name = 'span';
             }
