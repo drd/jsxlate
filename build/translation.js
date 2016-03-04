@@ -20,6 +20,10 @@ var _freeVariables = require('./free-variables');
 
 var _freeVariables2 = _interopRequireDefault(_freeVariables);
 
+var _parsing = require('./parsing');
+
+var _parsing2 = _interopRequireDefault(_parsing);
+
 var _validation = require('./validation');
 
 var _validation2 = _interopRequireDefault(_validation);
@@ -32,15 +36,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  */
 
-var babylon = require('babylon');
-
 var Translation = {
     translatedRendererFor: function translatedRendererFor(markerNode, translatedMessage, originalMessage) {
         try {
             var unprintedTranslation = undefined;
             var freeVars = [];
             if (_ast2.default.isElement(markerNode)) {
-                var translated = babylon.parse('<I18N>' + translatedMessage + '</I18N>', { plugins: ['jsx'] });
+                var translated = _parsing2.default.parse('<I18N>' + translatedMessage + '</I18N>');
                 freeVars = (0, _freeVariables2.default)(markerNode);
                 _validation2.default.validateTranslation(markerNode, translated.program.body[0].expression);
                 var reconstituted = Translation.reconstitute(markerNode, translated);
@@ -53,7 +55,7 @@ var Translation = {
             if (process.env.NODE_ENV === 'test') {
                 throw exc;
             }
-            return Translation.errorRenderer(originalMessage, exc);
+            return Translation.errorRenderer(originalMessage, translatedMessage, exc);
         }
     },
     reconstitute: function reconstitute(original, translated) {
@@ -90,8 +92,8 @@ var Translation = {
     renderer: function renderer(freeVariables, translation) {
         return 'function(' + freeVariables.join(', ') + ') { return ' + translation + ' }';
     },
-    errorRenderer: function errorRenderer(message, exception) {
-        return 'function() {\n    return <span class="error">Error for translation of ' + message + ':\n<pre>\n' + exception + '\n' + exception.stack + '\n</pre></span>;\n}';
+    errorRenderer: function errorRenderer(message, translation, exception) {
+        return 'function() {\n    return <span class="error">Error for translation "' + translation + '" of "' + message + '":\n<pre>\n' + exception + '\n' + exception.stack + '\n</pre></span>;\n}';
     }
 };
 

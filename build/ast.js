@@ -60,8 +60,11 @@ module.exports = {
 
     // Return the name of a JSXAttribute
     attributeName: function attributeName(attribute) {
-        var name = attribute.name;
+        if (!attribute.name) {
+            return '';
+        }
 
+        var name = attribute.name;
         if (name.type === 'JSXIdentifier') {
             return name.name;
         } else if (name.type === 'JSXNamespacedName') {

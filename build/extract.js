@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.generate = generate;
+exports.extractFunctionMessage = extractFunctionMessage;
 exports.incrementKey = incrementKey;
 exports.extractElementMessage = extractElementMessage;
 exports.extractElementMessageWithoutSideEffects = extractElementMessageWithoutSideEffects;
@@ -123,7 +124,7 @@ function extractFunctionMessage(callExpression) {
 // Element messages: <I18N>Foo <span>all the</span> bars.</I18N>
 
 function nodeName(node) {
-    return generate(node.name);
+    return node.name && generate(node.name);
 }
 
 function elementName(jsxElement) {
@@ -252,6 +253,9 @@ var ExtractionValidationVisitor = {
             path.remove();
         }
     },
+    JSXSpreadAttribute: function JSXSpreadAttribute(path) {
+        path.remove();
+    },
     JSXExpressionContainer: function JSXExpressionContainer(path) {
         if (path.parent.type === 'JSXElement') {
             assertInput(isSimpleExpression(path.node.expression), "Only identifiers and simple member expressions (foo.bar, " + "this.that.other) are allowed in <I18N> tags.", path.node);
@@ -264,6 +268,10 @@ function attributeName(jsxAttribute) {
 }
 
 function attributeIsSanitized(element, attribute) {
+    if (attribute.type === 'JSXSpreadAttribute') {
+        return true;
+    }
+
     var name = elementNamespaceOrName(element);
     var whitelistedAttributes = whitelist[name] || whitelist['*'];
     return !whitelistedAttributes.includes(attributeName(attribute)) || attribute.value.type !== 'StringLiteral';

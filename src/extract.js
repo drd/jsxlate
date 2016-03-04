@@ -91,7 +91,7 @@ function validateFunctionMessage(callExpression) {
     );
 }
 
-function extractFunctionMessage(callExpression) {
+export function extractFunctionMessage(callExpression) {
     return callExpression.arguments[0].value;
 }
 

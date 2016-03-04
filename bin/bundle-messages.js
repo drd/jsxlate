@@ -1,6 +1,9 @@
 #! /usr/bin/env node
 "use strict";
 
+require('babel-polyfill');
+var generate = require('babel-generator').default;
+
 function showHelpAndExit() {
     console.log("Usage: bundle-messages -t TRANSLATIONS [-o OUTPUT] ...FILES/DIRECTORIES");
     console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped");
@@ -29,6 +32,7 @@ var translateMessagesToBundle = require('../build/translate').default;
 var translations = JSON.parse(rw.readFileSync(argv.t, "utf8"));
 var files = filesFromMixedPaths(argv._);
 var bundle = {};
+var missing = {};
 
 
 files.forEach(function (filename) {
@@ -38,10 +42,14 @@ files.forEach(function (filename) {
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
         console.error(e);
+        e.node && console.error(generate(e.node));
         process.exit(1);
     }
-    Object.keys(translationsForFile).forEach(function (message) {
-        bundle[message] = translationsForFile[message];
+    Object.keys(translationsForFile.bundle).forEach(function (message) {
+        bundle[message] = translationsForFile.bundle[message];
+    });
+    Object.keys(translationsForFile.missing).forEach(function (message) {
+        missing[message] = message;
     });
 });
 
@@ -58,6 +66,13 @@ var bundle = (
 
 if (argv.o) {
     fs.writeFileSync(argv.o, bundle);
+    console.error(chalk.bold.green("Success! Wrote transitions to " + argv.o));
 } else {
     console.log(bundle);
+}
+
+var missingMessages = Object.keys(missing);
+if (missingMessages.length) {
+    console.error(chalk.bold.yellow("\nTranslations missing (" + missingMessages.length + "):"));
+    console.error('  ' + chalk.yellow(missingMessages.join('\n\n  ')));
 }

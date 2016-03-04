@@ -57,13 +57,20 @@ function freeVariablesInAttribute(attribute, variables) {
     if (attribute.value && attribute.value.type === 'JSXExpressionContainer') {
         freeVariablesInExpression(attribute.value.expression, variables);
     }
+    if (attribute.type === 'JSXSpreadAttribute') {
+        freeVariablesInExpression(attribute.argument, variables);
+    }
 }
 
 function freeVariablesInObjectExpression(expression, variables) {
     expression.properties.forEach(function (property) {
-        freeVariablesInExpression(property.value, variables);
-        if (property.computed) {
-            freeVariablesInExpression(property.key, variables);
+        if (property.type === 'SpreadProperty') {
+            freeVariablesInExpression(property.argument, variables);
+        } else {
+            freeVariablesInExpression(property.value, variables);
+            if (property.computed) {
+                freeVariablesInExpression(property.key, variables);
+            }
         }
     });
 }

@@ -32,7 +32,7 @@ const Translation = {
             if (process.env.NODE_ENV === 'test') {
                 throw exc;
             }
-            return Translation.errorRenderer(originalMessage, exc);
+            return Translation.errorRenderer(originalMessage, translatedMessage, exc);
         }
     },
 
@@ -70,10 +70,10 @@ const Translation = {
         );
     },
 
-    errorRenderer(message, exception) {
+    errorRenderer(message, translation, exception) {
         return (
 `function() {
-    return <span class="error">Error for translation of ${message}:
+    return <span class="error">Error for translation "${translation}" of "${message}":
 <pre>
 ${exception}
 ${exception.stack}
