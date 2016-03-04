@@ -35,7 +35,7 @@ export default function translateMessagesToBundle(src, translations) {
         return {
             visitor: {
                 CallExpression({node}) {
-                    if (node.callee.name === 'i18n') {
+                    if (ast.isFunctionMarker(node)) {
                         const message = extractFunctionMessage(node);
                         attemptToCreateRenderer(node, message);
                     }

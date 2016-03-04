@@ -3,62 +3,14 @@ import babelGenerator from 'babel-generator';
 import * as types from 'babel-types';
 
 
+import {assertInput, assertUnique} from './errors';
+import {options, whitelist} from './options';
 import parsing from './parsing';
 
 
-const options = {
-    functionMarker: 'i18n',
-    elementMarker: 'I18N',
-    whitelistedAttributes: {
-        a:   ['href'],
-        img: ['alt'],
-        '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id',],
-        'Pluralize': ['on'],
-        'Match': ['when'],
-    },
-};
-
-const whitelist = (function(wl) {
-    const shared = wl['*'];
-    return Object.keys(wl).reduce((whitelist, name) => {
-        const attrs = wl[name];
-        if (name !== '*') {
-            wl[name] = attrs.concat(shared);
-        }
-        return wl;
-    }, {'*': shared});
-})(options.whitelistedAttributes);
 
 
-// Error types
 
-class InputError extends Error {
-    constructor(description, node) {
-        super(description);
-
-        Object.assign(this, {
-            description,
-            node,
-            inputError: true
-        });
-    }
-}
-
-function assertInput(condition, description, node) {
-    if (!condition) {
-        throw new InputError(description, node);
-    }
-}
-
-function assertUnique(map, description, node) {
-    const dupes = Object.entries(map).filter(
-        ([_, value]) => value > 1     // eslint-disable-line no-unused-vars
-    );
-    assertInput(dupes.length === 0,
-        `${description}: ${dupes}`,
-        node
-    );
-}
 
 
 // Code generation
@@ -119,7 +71,7 @@ function elementAttributes(jsxElement) {
 }
 
 function isElementMarker(jsxElement) {
-    return elementName(jsxElement) === 'I18N';
+    return elementName(jsxElement) === options.elementMarker;
 }
 
 function isTag(jsxElement) {
@@ -292,7 +244,10 @@ export function extractElementMessage(jsxElementPath) {
     const messageWithContainer = generate(jsxElementPath.node);
     // TODO: is there a better way to handle whitespace of jsxChildren ?
     // thought: possibly by re-situating them as the children of a Block?
-    return /<I18N>([\s\S]+?)<\/I18N>/.exec(messageWithContainer)[1].trim();
+    const extractRe = new RegExp(
+        `<${options.elementMarker}>([\\s\\S]+?)<\\/${options.elementMarker}>`
+    );
+    return extractRe.exec(messageWithContainer)[1].trim();
 }
 
 // TODO: is there a more elegant approach?

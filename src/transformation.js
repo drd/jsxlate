@@ -5,10 +5,11 @@ const types = require('babel-types');
 const ast = require('./ast');
 import {extractElementMessageWithoutSideEffects} from './extract';
 import freeVariablesInMessage from './free-variables';
+import {options} from './options';
 
 
 const transformElementMarker = template(`
-    <I18N message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>
+    <${options.elementMarker} message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>
 `, {plugins: ['jsx']});
 
 

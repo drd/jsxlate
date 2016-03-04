@@ -7,23 +7,13 @@
 import generate from 'babel-generator';
 
 const ast = require('./ast');
-
-
-// Each tag can have a specific list of attributes to extract,
-// which is merged with the wildcard list.
-let tagWhitelistedAttributes = {
-    a:   ['href'],
-    img: ['alt'],
-    '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id',],
-    'Pluralize': ['on'],
-    'Match': ['when'],
-};
+import {whitelist as tagWhitelistedAttributes} from './options';
 
 
 module.exports = {
     // Return all whitelisted attribute names for this elementName
     whitelistedAttributeNames: function(elementName) {
-        return (tagWhitelistedAttributes[elementName] || []).concat(tagWhitelistedAttributes['*']);
+        return tagWhitelistedAttributes[elementName] || [];
     },
 
 

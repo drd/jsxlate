@@ -6,6 +6,7 @@
 
 
 const types = require('babel-types');
+import {options} from './options';
 
 
 module.exports = {
@@ -182,11 +183,17 @@ module.exports = {
 
     // Identify <I18N> tags
     isElementMarker(node) {
-        return this.isElement(node) && this.elementName(node) === 'I18N';
+        return (
+            this.isElement(node) &&
+            this.elementName(node) === options.elementMarker
+        );
     },
 
     // Identify i18n() functions
     isFunctionMarker(node) {
-        return node.type === 'CallExpression' && node.callee.name === 'i18n';
+        return (
+            node.type === 'CallExpression' &&
+            node.callee.name === options.functionMarker
+        );
     },
 };

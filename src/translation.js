@@ -9,6 +9,7 @@ import traverse from 'babel-traverse';
 
 import ast from './ast';
 import freeVariablesInMessage from './free-variables';
+import {options} from './options';
 import parsing from './parsing';
 import validation from './validation';
 
@@ -19,7 +20,9 @@ const Translation = {
             let unprintedTranslation;
             let freeVars = [];
             if (ast.isElement(markerNode)) {
-                const translated = parsing.parse(`<I18N>${translatedMessage}</I18N>`);
+                const translated = parsing.parse(
+                    `<${options.elementMarker}>${translatedMessage}</${options.elementMarker}>
+                `);
                 freeVars = freeVariablesInMessage(markerNode);
                 validation.validateTranslation(markerNode, translated.program.body[0].expression);
                 const reconstituted = Translation.reconstitute(markerNode, translated);
