@@ -11,7 +11,7 @@ import {
     extractElementMessageWithoutSideEffects,
 } from './extract';
 import parsing from './parsing';
-import translation from './translation';
+import translatedRendererFor from './translation';
 
 
 
@@ -21,7 +21,7 @@ export default function translateMessagesToBundle(src, translations) {
 
     function attemptToCreateRenderer(node, message) {
         if (translations[message]) {
-            bundle[message] = translation.translatedRendererFor(
+            bundle[message] = translatedRendererFor(
                 node,
                 translations[message],
                 message
