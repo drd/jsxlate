@@ -1,39 +1,25 @@
 'use strict';
 
-var _babelGenerator = require('babel-generator');
+var _ast = require('./ast');
 
-var _babelGenerator2 = _interopRequireDefault(_babelGenerator);
+var _generation = require('./generation');
+
+var _generation2 = _interopRequireDefault(_generation);
+
+var _options = require('./options');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var ast = require('./ast');
-
-// Each tag can have a specific list of attributes to extract,
-// which is merged with the wildcard list.
-/*
- *
- *   Attribute whitelisting
- *
- */
-
-var tagWhitelistedAttributes = {
-    a: ['href'],
-    img: ['alt'],
-    '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id'],
-    'Pluralize': ['on'],
-    'Match': ['when']
-};
 
 module.exports = {
     // Return all whitelisted attribute names for this elementName
     whitelistedAttributeNames: function whitelistedAttributeNames(elementName) {
-        return (tagWhitelistedAttributes[elementName] || []).concat(tagWhitelistedAttributes['*']);
+        return _options.whitelist[elementName] || [];
     },
 
     extractableAttributes: function extractableAttributes(element) {
         var _this = this;
 
-        return ast.elementAttributes(element).filter(function (a) {
+        return (0, _ast.elementAttributes)(element).filter(function (a) {
             return _this.isExtractableAttribute(element, a);
         });
     },
@@ -41,24 +27,24 @@ module.exports = {
     sanitizedAttributes: function sanitizedAttributes(element) {
         var _this2 = this;
 
-        return element.openingElement.attributes.filter(function (a) {
+        return (0, _ast.elementAttributes)(element).filter(function (a) {
             return !_this2.isWhitelistedAttribute(element, a);
         });
     },
 
     isWhitelistedAttribute: function isWhitelistedAttribute(element, attribute) {
-        var name = ast.unNamespacedElementName(element);
+        var name = (0, _ast.elementNamespaceOrName)(element);
         var elementWhitelistedAttributes = this.whitelistedAttributeNames(name);
-        return elementWhitelistedAttributes.indexOf(ast.attributeName(attribute)) !== -1;
+        return elementWhitelistedAttributes.indexOf((0, _ast.attributeName)(attribute)) !== -1;
     },
 
     // Reports if an attribute is both whitelisted and has an extractable value
     // NOTE: Will warn to stderr if it finds a whitelisted attribute with no value
     isExtractableAttribute: function isExtractableAttribute(element, attribute) {
-        var value = ast.attributeValue(attribute);
+        var value = (0, _ast.attributeValue)(attribute);
         var attributeIsWhitelisted = this.isWhitelistedAttribute(element, attribute);
         if (attributeIsWhitelisted && !value) {
-            console.warn("Ignoring non-literal extractable attribute:", (0, _babelGenerator2.default)(attribute).code);
+            console.warn("Ignoring non-literal extractable attribute:", (0, _generation2.default)(attribute).code);
         }
         return attributeIsWhitelisted;
     },
@@ -67,5 +53,9 @@ module.exports = {
     hasUnsafeAttributes: function hasUnsafeAttributes(element) {
         return this.sanitizedAttributes(element).length > 0;
     }
-};
+}; /*
+    *
+    *   Attribute whitelisting
+    *
+    */
 

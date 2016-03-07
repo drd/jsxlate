@@ -8,11 +8,15 @@ var _babelTraverse = require('babel-traverse');
 
 var _babelTraverse2 = _interopRequireDefault(_babelTraverse);
 
+var _ast = require('./ast');
+
 var _extract = require('./extract');
 
 var _freeVariables = require('./free-variables');
 
 var _freeVariables2 = _interopRequireDefault(_freeVariables);
+
+var _options = require('./options');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -20,13 +24,11 @@ var template = require('babel-template');
 
 var types = require('babel-types');
 
-var ast = require('./ast');
-
-var _transformElementMarker = template('\n    <I18N message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>\n', { plugins: ['jsx'] });
+var _transformElementMarker = template('\n    <' + _options.options.elementMarker + ' message={MESSAGE} context={this} args={ARGS} fallback={function() { return FALLBACK; }}/>\n', { plugins: ['jsx'] });
 
 exports.default = {
     transformMarker: function transformMarker(node) {
-        if (ast.isElementMarker(node)) {
+        if ((0, _ast.isElementMarker)(node)) {
             return this.transformElementMarker(node);
         } else {
             return node;
@@ -53,7 +55,7 @@ exports.default = {
             JSXElement: function JSXElement(_ref) {
                 var node = _ref.node;
 
-                ast.stripI18nId(node);
+                (0, _ast.stripI18nId)(node);
             }
         });
         return node;

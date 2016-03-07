@@ -7,8 +7,6 @@ exports.default = translateMessagesToBundle;
 
 var _ast = require('./ast');
 
-var _ast2 = _interopRequireDefault(_ast);
-
 var _extract = require('./extract');
 
 var _parsing = require('./parsing');
@@ -31,9 +29,9 @@ function translateMessagesToBundle(src, translations) {
     var bundle = {};
     var missing = {};
 
-    function foo(node, message) {
+    function attemptToCreateRenderer(node, message) {
         if (translations[message]) {
-            bundle[message] = _translation2.default.translatedRendererFor(node, translations[message], message);
+            bundle[message] = (0, _translation2.default)(node, translations[message], message);
         } else {
             missing[message] = message;
         }
@@ -45,17 +43,17 @@ function translateMessagesToBundle(src, translations) {
                 CallExpression: function CallExpression(_ref) {
                     var node = _ref.node;
 
-                    if (node.callee.name === 'i18n') {
+                    if ((0, _ast.isFunctionMarker)(node)) {
                         var message = (0, _extract.extractFunctionMessage)(node);
-                        foo(node, message);
+                        attemptToCreateRenderer(node, message);
                     }
                 },
                 JSXElement: function JSXElement(_ref2) {
                     var node = _ref2.node;
 
-                    if (_ast2.default.isElementMarker(node)) {
+                    if ((0, _ast.isElementMarker)(node)) {
                         var message = (0, _extract.extractElementMessageWithoutSideEffects)(node);
-                        foo(node, message);
+                        attemptToCreateRenderer(node, message);
                     }
                 }
             }

@@ -1,5 +1,40 @@
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.isFunctionMarker = isFunctionMarker;
+exports.nodeName = nodeName;
+exports.elementName = elementName;
+exports.attributeName = attributeName;
+exports.elementNamespaceOrName = elementNamespaceOrName;
+exports.elementAttributes = elementAttributes;
+exports.isElementMarker = isElementMarker;
+exports.isElement = isElement;
+exports.isTag = isTag;
+exports.isComponent = isComponent;
+exports.isSimpleExpression = isSimpleExpression;
+exports.hasNamespacedName = hasNamespacedName;
+exports.hasI18nId = hasI18nId;
+exports.hasI18nIdAttribute = hasI18nIdAttribute;
+exports.filterAttributes = filterAttributes;
+exports.i18nId = i18nId;
+exports.removeIdAttribute = removeIdAttribute;
+exports.stripI18nId = stripI18nId;
+exports.convertToNamespacedName = convertToNamespacedName;
+exports.convertNamespacedNameToIdAttribute = convertNamespacedNameToIdAttribute;
+exports.idOrComponentName = idOrComponentName;
+
+var _errors = require('./errors');
+
+var _generation = require('./generation');
+
+var _generation2 = _interopRequireDefault(_generation);
+
+var _options = require('./options');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 /*
  *
  *   AST Manipulation
@@ -8,176 +43,153 @@
 
 var types = require('babel-types');
 
-module.exports = {
-    // Given an AST of either a MemberExpression or a JSXMemberExpression,
-    // return a dotted string (e.g. "this.props.value")
+// does this callExpression node represent a call to `i18n()`
+function isFunctionMarker(callExpression) {
+    return callExpression.callee.name === _options.options.functionMarker;
+}
 
-    memberExpressionName: function memberExpressionName(name) {
-        var segments = [];
-        var iteratee = name;
-        while (iteratee.type.endsWith('MemberExpression')) {
-            segments.push(iteratee.property.name);
-            iteratee = iteratee.object;
-        }
-        if (iteratee.type === 'ThisExpression') {
-            segments.push('this');
-        } else {
-            segments.push(iteratee.name);
-        }
-        return segments.reverse().join('.');
-    },
+// Element markers (`<I18N> ... </I18N>`)
 
-    // Return the name of a JSXElement
-    elementName: function elementName(element) {
-        var name = element.openingElement.name;
+function nodeName(node) {
+    return node.name && (0, _generation2.default)(node.name);
+}
 
-        if (name.type === 'JSXIdentifier') {
-            return name.name;
-        } else if (name.type === 'JSXNamespacedName') {
-            return name.namespace.name + ':' + name.name.name;
-        } else if (name.type === 'JSXMemberExpression') {
-            return this.memberExpressionName(name);
-        } else {
-            throw new Error("unknown elementName type: " + name.type);
-        }
-    },
+function elementName(jsxElement) {
+    return nodeName(jsxElement.openingElement);
+}
 
-    // Return the name of a JSXElement, but for namespaced names,
-    // only return the namespace. Example: elementName(<a:foo/>) === 'a'
-    unNamespacedElementName: function unNamespacedElementName(element) {
-        var name = element.openingElement.name;
+function attributeName(jsxAttribute) {
+    return nodeName(jsxAttribute);
+}
 
-        if (name.type === 'JSXIdentifier') {
-            return name.name;
-        } else if (name.type === 'JSXNamespacedName') {
-            return name.namespace.name;
-        } else if (name.type === 'JSXMemberExpression') {
-            return this.memberExpressionName(name);
-        } else {
-            throw new Error("unknown elementName type: " + name.type);
-        }
-    },
-
-    // Return the name of a JSXAttribute
-    attributeName: function attributeName(attribute) {
-        if (!attribute.name) {
-            return '';
-        }
-
-        var name = attribute.name;
-        if (name.type === 'JSXIdentifier') {
-            return name.name;
-        } else if (name.type === 'JSXNamespacedName') {
-            return name.namespace.name + ':' + name.name.name;
-        } else {
-            throw new Error("unknown attributeName type: " + name.type);
-        }
-    },
-
-    // Return if an element is a tag
-    isTag: function isTag(element) {
-        return (/^[a-z]|\-/.test(this.elementName(element))
-        );
-    },
-
-    // Return if an element is a custom component
-    isComponent: function isComponent(element) {
-        return !this.isTag(element);
-    },
-
-    // Return the value of a JSXAttribute
-    // Currently only works for Literals.
-    attributeValue: function attributeValue(attribute) {
-        var value = attribute.value;
-
-        switch (value.type) {
-            case 'Literal':
-            case 'StringLiteral':
-            case 'NumericLiteral':
-                return value.value;
-                break;
-
-            default:
-        }
-    },
-
-    // Return the attribute list of a JSXElement
-    elementAttributes: function elementAttributes(element) {
-        return element.openingElement.attributes;
-    },
-    stripI18nId: function stripI18nId(element) {
-        if (element.openingElement.name.type === 'JSXNamespacedName') {
-            var newName = element.openingElement.name.namespace.name;
-            element.openingElement.name.type = 'JSXIdentifier';
-            element.openingElement.name.name = newName;
-            delete element.openingElement.name.object;
-
-            if (element.closingElement) {
-                element.closingElement.name.type = 'JSXIdentifier';
-                element.closingElement.name.name = newName;
-                delete element.closingElement.name.object;
-            }
-        } else {
-            this.removeIdAttribute(element);
-        }
-    },
-
-    // remove i18n-id attribute from an element
-    removeIdAttribute: function removeIdAttribute(element) {
-        var _this = this;
-
-        if (this.elementAttributes(element)) {
-            element.openingElement.attributes = this.elementAttributes(element).filter(function (a) {
-                return !_this.isIdAttribute(a);
-            });
-        }
-        return element;
-    },
-    convertNamespacedNameToIdAttribute: function convertNamespacedNameToIdAttribute(element) {
-        if (element.openingElement.name.type === 'JSXNamespacedName') {
-            var i18nId = element.openingElement.name.name.name;
-            this.stripI18nId(element);
-
-            element.openingElement.attributes.push(types.JSXAttribute(types.JSXIdentifier('i18n-id'), types.StringLiteral(i18nId)));
-        }
-    },
-    isIdAttribute: function isIdAttribute(attribute) {
-        return this.attributeName(attribute).toLowerCase() === 'i18n-id';
-    },
-
-    // Find and return the value of the i18n-id attribute of a JSXElement
-    findIdAttribute: function findIdAttribute(element) {
-        var _this2 = this;
-
-        var attribute = this.elementAttributes(element).find(function (a) {
-            return _this2.isIdAttribute(a);
-        });
-        if (attribute) {
-            return this.attributeValue(attribute);
-        }
-        if (element.openingElement.name.type === 'JSXNamespacedName') {
-            return element.openingElement.name.name.name;
-        }
-    },
-    idOrComponentName: function idOrComponentName(element) {
-        var id = this.findIdAttribute(element);
-        if (!id && this.isComponent(element)) {
-            id = this.elementName(element);
-        }
-        return id;
-    },
-    isElement: function isElement(node) {
-        return node.type === 'JSXElement';
-    },
-
-    // Identify <I18N> tags
-    isElementMarker: function isElementMarker(node) {
-        return this.isElement(node) && this.elementName(node) === 'I18N';
-    },
-
-    // Identify i18n() functions
-    isFunctionMarker: function isFunctionMarker(node) {
-        return node.type === 'CallExpression' && node.callee.name === 'i18n';
+function elementNamespaceOrName(jsxElement) {
+    if (hasNamespacedName(jsxElement)) {
+        return jsxElement.openingElement.name.namespace.name;
+    } else {
+        return elementName(jsxElement);
     }
+}
+
+function elementAttributes(jsxElement) {
+    return jsxElement.openingElement.attributes;
+}
+
+function isElementMarker(jsxElement) {
+    return isElement(jsxElement) && elementName(jsxElement) === _options.options.elementMarker;
+}
+
+function isElement(node) {
+    return node.type === 'JSXElement';
+}
+
+function isTag(jsxElement) {
+    return (/^[a-z]|\-/.test(elementName(jsxElement))
+    );
+}
+
+function isComponent(jsxElement) {
+    return !isTag(jsxElement);
+}
+
+function isSimpleExpression(expression) {
+    if (expression.type === 'Identifier') {
+        return true;
+    } else if (expression.type === 'ThisExpression') {
+        return true;
+    } else if (expression.type === 'MemberExpression') {
+        return !expression.computed && isSimpleExpression(expression.object);
+    } else {
+        return false;
+    }
+}
+
+function hasNamespacedName(jsxElement) {
+    return jsxElement.openingElement.name.type === 'JSXNamespacedName';
+}
+
+function hasI18nId(jsxElement) {
+    return hasNamespacedName(jsxElement) || hasI18nIdAttribute(jsxElement);
+}
+
+function hasI18nIdAttribute(jsxElement) {
+    return elementAttributes(jsxElement).map(attributeName).includes('i18n-id');
+}
+
+function filterAttributes(jsxElement, condition) {
+    jsxElement.openingElement.attributes = jsxElement.openingElement.attributes.filter(function (a) {
+        return condition(jsxElement, a);
+    });
+}
+
+function i18nId(jsxElement) {
+    if (hasNamespacedName(jsxElement)) {
+        // It's names all the way down
+        return jsxElement.openingElement.name.name.name;
+    } else {
+        var attr = elementAttributes(jsxElement).find(function (a) {
+            return attributeName(a) === 'i18n-id';
+        });
+        if (attr) {
+            (0, _errors.assertInput)(attr.value.type === 'StringLiteral', "i18n-id attribute found with non-StringLiteral value", jsxElement);
+            return attr.value.value;
+        }
+    }
+}
+
+function removeIdAttribute(jsxElement) {
+    filterAttributes(jsxElement, function (_, a) {
+        return attributeName(a) !== 'i18n-id';
+    });
+}
+
+function stripI18nId(jsxElement) {
+    if (jsxElement.openingElement.name.type === 'JSXNamespacedName') {
+        var newName = jsxElement.openingElement.name.namespace.name;
+        jsxElement.openingElement.name.type = 'JSXIdentifier';
+        jsxElement.openingElement.name.name = newName;
+        delete jsxElement.openingElement.name.object;
+
+        if (jsxElement.closingElement) {
+            jsxElement.closingElement.name.type = 'JSXIdentifier';
+            jsxElement.closingElement.name.name = newName;
+            delete jsxElement.closingElement.name.object;
+        }
+    } else {
+        removeIdAttribute(jsxElement);
+    }
+}
+
+function convertToNamespacedName(jsxElement) {
+    if (!hasNamespacedName(jsxElement)) {
+        var name = elementName(jsxElement);
+        var id = i18nId(jsxElement);
+        if (id) {
+            removeIdAttribute(jsxElement);
+            var nameAst = types.JSXNamespacedName(types.JSXIdentifier(name), types.JSXIdentifier(id));
+            jsxElement.openingElement.name = nameAst;
+            if (jsxElement.closingElement) {
+                jsxElement.closingElement.name = nameAst;
+            }
+        }
+    }
+
+    return elementName(jsxElement);
+}
+
+function convertNamespacedNameToIdAttribute(jsxElement) {
+    if (jsxElement.openingElement.name.type === 'JSXNamespacedName') {
+        var _i18nId = jsxElement.openingElement.name.name.name;
+        stripI18nId(jsxElement);
+
+        jsxElement.openingElement.attributes.push(types.JSXAttribute(types.JSXIdentifier('i18n-id'), types.StringLiteral(_i18nId)));
+    }
+}
+
+function idOrComponentName(jsxElement) {
+    var id = i18nId(jsxElement);
+    if (!id && isComponent(jsxElement)) {
+        id = elementName(jsxElement);
+    }
+    return id;
 };
 

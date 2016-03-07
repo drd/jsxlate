@@ -4,10 +4,17 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = freeVariablesInMessage;
-var ast = require('./ast');
+
+var _ast = require('./ast');
+
+var _generation = require('./generation');
+
+var _generation2 = _interopRequireDefault(_generation);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function freeVariablesInMessage(node) {
-    if (!ast.isElement(node)) {
+    if (!(0, _ast.isElement)(node)) {
         return [];
     }
     var variables = new Set();
@@ -43,7 +50,7 @@ function freeVariablesInElementName(name, variables) {
         }
     } else if (name.type === 'JSXMemberExpression') {
         // FIXME
-        variables.add(ast.memberExpressionName(name).split('.')[0]);
+        variables.add((0, _generation2.default)(name).split('.')[0]);
     }
 }
 
@@ -82,8 +89,7 @@ function freeVariablesInExpression(expression, variables) {
             break;
 
         case 'MemberExpression':
-            // FIXME
-            variables.add(ast.memberExpressionName(expression).split('.')[0]);
+            variables.add((0, _generation2.default)(expression).split('.')[0]);
             break;
 
         case 'CallExpression':
