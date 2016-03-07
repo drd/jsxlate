@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-import {isElementMarker} from './ast';
+import {isElementMarker, isFunctionMarker} from './ast';
 import {assertInput} from './errors';
 import generate from './generation';
 import {options} from './options';
@@ -11,22 +11,9 @@ import {
 } from './validation';
 
 
-// Function messages: i18n("Foo all the bars.")
-
-function isFunctionMarker(callExpression) {
-    return callExpression.callee.name === options.functionMarker;
-}
-
-
 export function extractFunctionMessage(callExpression) {
     return callExpression.arguments[0].value;
 }
-
-
-// Element messages: <I18N>Foo <span>all the</span> bars.</I18N>
-
-
-
 
 
 export function extractElementMessage(jsxElementPath) {
@@ -40,6 +27,7 @@ export function extractElementMessage(jsxElementPath) {
     return extractRe.exec(messageWithContainer)[1].trim();
 }
 
+
 // TODO: is there a more elegant approach?
 export function extractElementMessageWithoutSideEffects(jsxElement) {
     assertInput(
@@ -49,6 +37,7 @@ export function extractElementMessageWithoutSideEffects(jsxElement) {
     );
     return extractFromSource(generate(jsxElement))[0];
 }
+
 
 export function extractFromSource(src) {
     const messages = [];

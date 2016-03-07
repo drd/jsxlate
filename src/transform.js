@@ -1,4 +1,4 @@
-import ast from './ast';
+import {isElementMarker} from './ast';
 import transformation from './transformation';
 
 
@@ -8,7 +8,7 @@ module.exports = function() {
             JSXElement: {
                 enter: function(path) {
                     const {node} = path;
-                    if (ast.isElementMarker(node) && transformation.needsTransformation(node)) {
+                    if (isElementMarker(node) && transformation.needsTransformation(node)) {
                         path.replaceWith(transformation.transformElementMarker(node));
                     }
                 }

@@ -5,15 +5,19 @@
  */
 
 
-import ast, {
-    isElementMarker,
-    convertToNamespacedName,
-    isComponent,
-    hasI18nId,
-    isSimpleExpression,
+import {
     attributeName,
+    convertToNamespacedName,
     elementAttributes,
-    elementNamespaceOrName
+    elementName,
+    elementNamespaceOrName,
+    i18nId,
+    idOrComponentName,
+    hasI18nId,
+    isComponent,
+    isElementMarker,
+    isSimpleExpression,
+    isTag
 } from './ast';
 import {assertInput, assertUnique} from './errors';
 import generate from './generation';
@@ -88,36 +92,36 @@ function assertUniqueComponents(context) {
 function assertI18nId(element) {
     let openingElement = element.openingElement;
     if (openingElement.name.type !== 'JSXNamespacedName'
-        && !ast.findIdAttribute(element)) {
+        && !i18nId(element)) {
         throw new Error('Element missing required i18n-id: ' + generate(openingElement));
     }
 }
 
 function validateJSXElement(element, context) {
-    if (ast.isElementMarker(element)) {
+    if (isElementMarker(element)) {
         // TODO: unified error handling showing source of exception
         // and context, including line/character positions.
         throw new Error("Found a nested element marker in " + generate(context.root));
     }
     if (whitelisting.hasUnsafeAttributes(element)) {
-        if (ast.isTag(element)) {
+        if (isTag(element)) {
             assertI18nId(element);
-        } else if (ast.isComponent(element)) {
-            let componentId = ast.findIdAttribute(element);
+        } else if (isComponent(element)) {
+            let componentId = i18nId(element);
             if (!componentId) {
-                componentId = ast.elementName(element);
+                componentId = elementName(element);
                 incrementKey(context.componentsWithoutIds, componentId);
             }
         }
-        context.componentsToSanitizedAttributes[ast.idOrComponentName(element)] = whitelisting.sanitizedAttributes(element);
+        context.componentsToSanitizedAttributes[idOrComponentName(element)] = whitelisting.sanitizedAttributes(element);
     }
 
-    if (ast.isComponent(element) || ast.findIdAttribute(element)) {
-        incrementKey(context.i18nIds, ast.idOrComponentName(element));
+    if (isComponent(element) || i18nId(element)) {
+        incrementKey(context.i18nIds, idOrComponentName(element));
     }
 
-    if (ast.isComponent(element)) {
-        incrementKey(context.componentCounts, ast.unNamespacedElementName(element));
+    if (isComponent(element)) {
+        incrementKey(context.componentCounts, elementNamespaceOrName(element));
     }
 
     validateChildren(element.children, context);
@@ -140,7 +144,7 @@ function validateChildren(children, context) {
 
             case 'JSXExpressionContainer':
                 validateJSXExpressionContainer(child, context);
-                incrementKey(context.namedExpressionDefinitions, ast.memberExpressionName(child));
+                incrementKey(context.namedExpressionDefinitions, generate(child));
             break;
         }
     });

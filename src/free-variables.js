@@ -1,8 +1,9 @@
-import ast from './ast';
+import {isElement} from './ast';
+import generate from './generation';
 
 
 export default function freeVariablesInMessage(node) {
-    if (!ast.isElement(node)) {
+    if (!isElement(node)) {
         return [];
     }
     const variables = new Set();
@@ -38,7 +39,7 @@ function freeVariablesInElementName(name, variables) {
         }
     } else if (name.type === 'JSXMemberExpression') {
         // FIXME
-        variables.add(ast.memberExpressionName(name).split('.')[0]);
+        variables.add(generate(name).split('.')[0]);
     }
 }
 
@@ -80,8 +81,7 @@ function freeVariablesInExpression(expression, variables) {
         break;
 
         case 'MemberExpression':
-            // FIXME
-            variables.add(ast.memberExpressionName(expression).split('.')[0]);
+            variables.add(generate(expression).split('.')[0]);
         break;
 
         case 'CallExpression':

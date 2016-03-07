@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] merge extract/translation validation
+- [ ] deduplicate `src/ast.js`
 - [ ] add i18n-comment, i18n-context, i18n-domain supporting attributes
  - [ ] prevent collisions between source/react child strings by bucketing messages
  - [ ] and output to .po/t files

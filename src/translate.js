@@ -5,7 +5,7 @@
  */
 
 
-import ast from './ast';
+import {isElementMarker, isFunctionMarker} from './ast';
 import {
     extractFunctionMessage,
     extractElementMessageWithoutSideEffects,
@@ -35,14 +35,14 @@ export default function translateMessagesToBundle(src, translations) {
         return {
             visitor: {
                 CallExpression({node}) {
-                    if (ast.isFunctionMarker(node)) {
+                    if (isFunctionMarker(node)) {
                         const message = extractFunctionMessage(node);
                         attemptToCreateRenderer(node, message);
                     }
                 },
 
                 JSXElement({node}) {
-                    if (ast.isElementMarker(node)) {
+                    if (isElementMarker(node)) {
                         const message = extractElementMessageWithoutSideEffects(node);
                         attemptToCreateRenderer(node, message);
                     }

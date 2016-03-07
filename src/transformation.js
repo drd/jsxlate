@@ -2,7 +2,7 @@ const template = require('babel-template');
 import traverse from 'babel-traverse';
 const types = require('babel-types');
 
-import ast from './ast';
+import {isElementMarker, stripI18nId} from './ast';
 import {extractElementMessageWithoutSideEffects} from './extract';
 import freeVariablesInMessage from './free-variables';
 import {options} from './options';
@@ -15,7 +15,7 @@ const transformElementMarker = template(`
 
 export default {
     transformMarker(node) {
-        if (ast.isElementMarker(node)) {
+        if (isElementMarker(node)) {
             return this.transformElementMarker(node);
         } else {
             return node;
@@ -42,7 +42,7 @@ export default {
         traverse(node, {
             noScope: true,
             JSXElement({node}) {
-                ast.stripI18nId(node);
+                stripI18nId(node);
             }
         });
         return node;

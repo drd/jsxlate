@@ -6,7 +6,13 @@
 
 import traverse from 'babel-traverse';
 
-import ast from './ast';
+import {
+    convertNamespacedNameToIdAttribute,
+    idOrComponentName,
+    isElement,
+    isElementMarker,
+    removeIdAttribute
+} from './ast';
 import generate from './generation';
 import freeVariablesInMessage from './free-variables';
 import {options} from './options';
@@ -18,7 +24,7 @@ export default function translatedRendererFor(markerNode, translatedMessage, ori
     try {
         let unprintedTranslation;
         let freeVars = [];
-        if (ast.isElement(markerNode)) {
+        if (isElement(markerNode)) {
             const translated = parsing.parse(
                 `<${options.elementMarker}>${translatedMessage}</${options.elementMarker}>
             `);
@@ -42,25 +48,25 @@ function reconstitute(original, translated) {
     traverse(original, {
         noScope: true,
         JSXElement({node}) {
-            ast.convertNamespacedNameToIdAttribute(node);
+            convertNamespacedNameToIdAttribute(node);
         }
     });
     const sanitized = sanitizedAttributesOf(original);
     traverse(translated, {
         JSXElement({node}) {
-            if (ast.isElementMarker(node)) {
+            if (isElementMarker(node)) {
                 validateMessage(node);
                 node.openingElement.name.name = 'span';
                 node.closingElement.name.name = 'span';
             }
-            ast.convertNamespacedNameToIdAttribute(node);
-            const id = ast.idOrComponentName(node);
+            convertNamespacedNameToIdAttribute(node);
+            const id = idOrComponentName(node);
             if (id && sanitized[id]) {
                 sanitized[id].forEach(a => {
                     node.openingElement.attributes.push(a);
                 });
             }
-            ast.removeIdAttribute(node);
+            removeIdAttribute(node);
         },
     });
     return translated;
