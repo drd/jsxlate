@@ -1045,8 +1045,11 @@ function duplicatedValues(list) {
     Ast utilities
 *****************************************************************************/
 
+var babelNode = babel.parse('foo').constructor;
+var babelSourceLocation = babel.parse('foo').loc.constructor;
+
 function _convert(key, sequence) {
-    if (this[key].constructor === babel.acorn.Node) {
+    if (this[key].constructor === babelNode) {
         return I.Map(this[key])
     }
     return Array.isArray(this[key]) ? sequence.toList() : sequence.toOrderedMap();
@@ -1069,14 +1072,14 @@ function acornAstToNestedObjects(ast, p) {
         return ast;
     } else if (ast.constructor === Array) {
         return ast.map(acornAstToNestedObjects)
-    } else if (ast.constructor === babel.acorn.Node || ast.constructor === Object) {
+    } else if (ast.constructor === babelNode || ast.constructor === Object) {
         return Object.entries(ast).reduce((acc, [key, value]) => {
             if (key.substr(0, 2) !== '__') {
                 acc[key] = acornAstToNestedObjects(value, ast);
             }
             return acc;
         }, {});
-    } else if (ast.constructor === babel.acorn.SourceLocation) {
+    } else if (ast.constructor === babelSourceLocation) {
         return {
             start: {
                 line: ast.start.line,
@@ -1088,7 +1091,7 @@ function acornAstToNestedObjects(ast, p) {
             }
         };
     } else {
-        throw new Error(`Unexpected input: ${ast.constructor} ${JSON.stringify(ast)} ${JSON.stringify(p)}`);
+        throw new Error(`Unexpected input: ${ast.constructor}, ${babelNode}`); //` ${JSON.stringify(ast)} ${JSON.stringify(p)}`);
     }
 }
 

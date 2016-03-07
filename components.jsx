@@ -28,6 +28,7 @@ class I18N extends React.Component {
         let renderer = state.messages[this.props.message];
         if (renderer) {
             let rendered = renderer.apply(this.props.context, this.props.args);
+            console.log("rendered", rendered);
             // TODO: this check would be unnecessary if collisions between
             // source and react child strings were impossible.
             if (Object.prototype.toString.call(rendered) === '[object String]') {

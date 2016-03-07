@@ -1,11 +1,14 @@
 #! /usr/bin/env node
 "use strict";
 
+require('babel-polyfill');
+var generate = require('babel-generator').default;
+
 function showHelpAndExit() {
     console.log("Usage: bundle-messages -t TRANSLATIONS [-o OUTPUT] ...FILES/DIRECTORIES");
-    console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped")
+    console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped");
     console.log("to render functions.");
-    console.log("If -o is passed, writes to OUTPUT instead of stdout.")
+    console.log("If -o is passed, writes to OUTPUT instead of stdout.");
     process.exit();
 }
 
@@ -23,31 +26,36 @@ var fs = require('fs');
 var rw = require('rw');
 
 var filesFromMixedPaths = require('./filesFromMixedPaths');
-var jsxlate = require('../lib/jsxlate.js');
+var translateMessagesToBundle = require('../build/translate').default;
 
 
 var translations = JSON.parse(rw.readFileSync(argv.t, "utf8"));
 var files = filesFromMixedPaths(argv._);
 var bundle = {};
+var missing = {};
 
 
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
     try {
-        var translationsForFile = jsxlate.translateMessagesToBundle(buffer, translations);
+        var translationsForFile = translateMessagesToBundle(buffer, translations);
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
-        console.error(jsxlate.errorMessageForError(e));
+        console.error(e);
+        e.node && console.error(generate(e.node));
         process.exit(1);
     }
-    Object.keys(translationsForFile).forEach(function (message) {
-        bundle[message] = translationsForFile[message];
+    Object.keys(translationsForFile.bundle).forEach(function (message) {
+        bundle[message] = translationsForFile.bundle[message];
+    });
+    Object.keys(translationsForFile.missing).forEach(function (message) {
+        missing[message] = message;
     });
 });
 
 
 var bundleEntries = Object.keys(bundle).map(function (message) {
-    return "\n\t" + JSON.stringify(message) + ': ' + bundle[message]
+    return "\n\t" + JSON.stringify(message) + ': ' + bundle[message];
 });
 
 var bundle = (
@@ -58,6 +66,13 @@ var bundle = (
 
 if (argv.o) {
     fs.writeFileSync(argv.o, bundle);
+    console.error(chalk.bold.green("Success! Wrote transitions to " + argv.o));
 } else {
     console.log(bundle);
+}
+
+var missingMessages = Object.keys(missing);
+if (missingMessages.length) {
+    console.error(chalk.bold.yellow("\nTranslations missing (" + missingMessages.length + "):"));
+    console.error('  ' + chalk.yellow(missingMessages.join('\n\n  ')));
 }
