@@ -6,10 +6,13 @@
 
 
 const types = require('babel-types');
+
+import {assertInput} from './errors';
+import generate from './generation';
 import {options} from './options';
 
 
-module.exports = {
+const AST = {
     // Given an AST of either a MemberExpression or a JSXMemberExpression,
     // return a dotted string (e.g. "this.props.value")
     memberExpressionName(name) {
@@ -197,3 +200,115 @@ module.exports = {
         );
     },
 };
+export default AST;
+
+
+// Code generation
+
+
+
+export function nodeName(node) {
+    return node.name && generate(node.name);
+}
+
+export function elementName(jsxElement) {
+    return nodeName(jsxElement.openingElement);
+}
+
+export function attributeName(jsxAttribute) {
+    return nodeName(jsxAttribute);
+}
+
+export function elementNamespaceOrName(jsxElement) {
+    if (hasNamespacedName(jsxElement)) {
+        return jsxElement.openingElement.name.namespace.name;
+    } else {
+        return elementName(jsxElement);
+    }
+}
+
+export function elementAttributes(jsxElement) {
+    return jsxElement.openingElement.attributes;
+}
+
+export function isElementMarker(jsxElement) {
+    return elementName(jsxElement) === options.elementMarker;
+}
+
+export function isTag(jsxElement) {
+    return /^[a-z]|\-/.test(elementName(jsxElement));
+}
+
+export function isComponent(jsxElement) {
+    return !isTag(jsxElement);
+}
+
+export function isSimpleExpression(expression) {
+    if (expression.type === 'Identifier') {
+        return true;
+    } else if (expression.type === 'ThisExpression') {
+        return true;
+    } else if (expression.type === 'MemberExpression') {
+        return !expression.computed && isSimpleExpression(expression.object);
+    } else {
+        return false;
+    }
+}
+
+export function hasNamespacedName(jsxElement) {
+    return jsxElement.openingElement.name.type === 'JSXNamespacedName';
+}
+
+export function hasI18nId(jsxElement) {
+    return (
+        hasNamespacedName(jsxElement) ||
+        hasI18nIdAttribute(jsxElement)
+    );
+}
+
+export function hasI18nIdAttribute(jsxElement) {
+    return elementAttributes(jsxElement).map(attributeName).includes('i18n-id');
+}
+
+export function filterAttributes(jsxElement, condition) {
+    jsxElement.openingElement.attributes = jsxElement.openingElement.attributes.filter(
+        a => condition(jsxElement, a)
+    );
+}
+
+export function i18nId(jsxElement) {
+    if (hasNamespacedName(jsxElement)) {
+        // It's names all the way down
+        return jsxElement.openingElement.name.name.name;
+    } else {
+        const attr = elementAttributes(jsxElement)
+            .find(a => attributeName(a) === 'i18n-id');
+        if (attr) {
+            assertInput(attr.value.type === 'StringLiteral',
+                "i18n-id attribute found with non-StringLiteral value",
+                jsxElement
+            );
+            return attr.value.value;
+        }
+    }
+}
+
+export function convertToNamespacedName(jsxElement) {
+    if (!hasNamespacedName(jsxElement)) {
+        const name = elementName(jsxElement);
+        const id = i18nId(jsxElement);
+        if (id) {
+            filterAttributes(jsxElement, (_, a) => attributeName(a) !== 'i18n-id');
+            const nameAst = types.JSXNamespacedName(
+                types.JSXIdentifier(name),
+                types.JSXIdentifier(id)
+            );
+            jsxElement.openingElement.name = nameAst;
+            if (jsxElement.closingElement) {
+                jsxElement.closingElement.name = nameAst;
+            }
+        }
+    }
+
+    return elementName(jsxElement);
+}

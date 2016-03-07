@@ -2,7 +2,7 @@ const template = require('babel-template');
 import traverse from 'babel-traverse';
 const types = require('babel-types');
 
-const ast = require('./ast');
+import ast from './ast';
 import {extractElementMessageWithoutSideEffects} from './extract';
 import freeVariablesInMessage from './free-variables';
 import {options} from './options';

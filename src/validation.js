@@ -4,10 +4,20 @@
  *
  */
 
-import generate from 'babel-generator';
 
-const ast = require('./ast');
-import {incrementKey} from './extract';
+import ast, {
+    isElementMarker,
+    convertToNamespacedName,
+    isComponent,
+    hasI18nId,
+    isSimpleExpression,
+    attributeName,
+    elementAttributes,
+    elementNamespaceOrName
+} from './ast';
+import {assertInput, assertUnique} from './errors';
+import generate from './generation';
+import {options} from './options';
 const whitelisting = require('./whitelisting');
 
 
@@ -134,4 +144,120 @@ function validateChildren(children, context) {
             break;
         }
     });
+}
+
+
+
+
+
+
+import {whitelist} from './options';
+
+export function validateFunctionMessage(callExpression) {
+    assertInput(
+        callExpression.arguments.length === 1,
+        `Expected exactly 1 argument to ${options.functionMarker}(), but got ${callExpression.arguments.length}`,
+        callExpression
+    );
+
+    assertInput(
+        callExpression.arguments[0].type === 'StringLiteral',
+        `Expected a StringLiteral argument to ${options.functionMarker}(), but got ${callExpression.arguments[0].type}`,
+        callExpression
+    );
+}
+
+
+function incrementKey(map, key) {
+    map[key] = (map[key] || 0) + 1;
+}
+
+
+const ExtractionValidationVisitor = {
+    JSXElement(path) {
+        // prevent nested markers
+        assertInput(!isElementMarker(path.node),
+            "Found a nested message marker",
+            path.node
+        );
+
+        const elementName = convertToNamespacedName(path.node);
+        if (hasUnsafeAttributes(path.node)) {
+            if (isComponent(path.node)) {
+                // keep track of custom components to ensure there are no duplicates
+                incrementKey(this.validationContext.componentNamesAndIds, elementName);
+            } else {
+                // tags with sanitized attributes must have an i18n-id or namespace
+                assertInput(
+                    hasI18nId(path.node),
+                    "Found a tag with sanitized attributes with no i18n-id",
+                    path.node
+                );
+            }
+        }
+    },
+
+    JSXAttribute(path) {
+        // technically part of sanitization, but visitors are merged
+        // for performance
+        if (attributeIsSanitized(path.parentPath.parent, path.node)) {
+            path.remove();
+        }
+    },
+
+    JSXSpreadAttribute(path) {
+        path.remove();
+    },
+
+    JSXExpressionContainer(path) {
+        if (path.parent.type === 'JSXElement') {
+            assertInput(isSimpleExpression(path.node.expression),
+                "Only identifiers and simple member expressions (foo.bar, " +
+                "this.that.other) are allowed in <I18N> tags.",
+                path.node
+            );
+        }
+    },
+};
+
+export function hasUnsafeAttributes(jsxElement) {
+    return elementAttributes(jsxElement).some(a => attributeIsSanitized(jsxElement, a));
+}
+
+function attributeIsSanitized(element, attribute) {
+    if (attribute.type === 'JSXSpreadAttribute') {
+        return true;
+    }
+
+    const name = elementNamespaceOrName(element);
+    const whitelistedAttributes = whitelist[name] || whitelist['*'];
+    return (
+        !whitelistedAttributes.includes(attributeName(attribute)) ||
+        attribute.value.type !== 'StringLiteral'
+    );
+}
+
+function validateElementContext(validationContext) {
+    assertUnique(
+        validationContext.componentsWithSanitizedAttributes,
+        'Found the following duplicate elements/components',
+        validationContext.root
+    );
+
+    assertUnique(
+        validationContext.componentNamesAndIds,
+        'Found the following duplicate elements/components',
+        validationContext.root
+    );
+}
+
+export function validateAndSanitizeElement(jsxElementPath) {
+    // Traverse with state of validationContext
+    const validationContext = {
+        root: jsxElementPath.node,
+        componentNamesAndIds: {},
+        componentsWithSanitizedAttributes: {},
+    };
+    jsxElementPath.traverse(ExtractionValidationVisitor, {validationContext});
+    validateElementContext(validationContext);
 }

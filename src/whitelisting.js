@@ -4,9 +4,9 @@
  *
  */
 
-import generate from 'babel-generator';
 
-const ast = require('./ast');
+import ast from './ast';
+import generate from './generation';
 import {whitelist as tagWhitelistedAttributes} from './options';
 
 

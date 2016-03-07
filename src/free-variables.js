@@ -1,4 +1,4 @@
-const ast = require('./ast');
+import ast from './ast';
 
 
 export default function freeVariablesInMessage(node) {

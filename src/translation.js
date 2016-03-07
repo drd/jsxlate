@@ -4,10 +4,10 @@
  *
  */
 
-import generate from 'babel-generator';
 import traverse from 'babel-traverse';
 
 import ast from './ast';
+import generate from './generation';
 import freeVariablesInMessage from './free-variables';
 import {options} from './options';
 import parsing from './parsing';
@@ -25,7 +25,7 @@ export default function translatedRendererFor(markerNode, translatedMessage, ori
             freeVars = freeVariablesInMessage(markerNode);
             validateTranslation(markerNode, translated.program.body[0].expression);
             const reconstituted = reconstitute(markerNode, translated);
-            unprintedTranslation = generate(reconstituted, undefined, translatedMessage).code;
+            unprintedTranslation = generate(reconstituted, undefined, translatedMessage);
         } else {
             unprintedTranslation = JSON.stringify(translatedMessage) + ';';
         }

@@ -1,4 +1,4 @@
-const ast = require('./ast');
+import ast from './ast';
 import transformation from './transformation';
 
 
