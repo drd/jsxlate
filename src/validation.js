@@ -243,12 +243,6 @@ function attributeIsSanitized(element, attribute) {
 
 function validateElementContext(validationContext) {
     assertUnique(
-        validationContext.componentsWithSanitizedAttributes,
-        'Found the following duplicate elements/components',
-        validationContext.root
-    );
-
-    assertUnique(
         validationContext.componentNamesAndIds,
         'Found the following duplicate elements/components',
         validationContext.root
@@ -259,8 +253,7 @@ export function validateAndSanitizeElement(jsxElementPath) {
     // Traverse with state of validationContext
     const validationContext = {
         root: jsxElementPath.node,
-        componentNamesAndIds: {},
-        componentsWithSanitizedAttributes: {},
+        componentNamesAndIds: {}
     };
     jsxElementPath.traverse(ExtractionValidationVisitor, {validationContext});
     validateElementContext(validationContext);
