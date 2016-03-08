@@ -1,6 +1,6 @@
 const {expect} = require('chai');
 
-import {extractFromSource as extract} from '../src/extract';
+import {extractMessages as extract} from '../src/extract';
 import translateMessagesToBundle from '../src/translate';
 
 
