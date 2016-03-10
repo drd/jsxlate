@@ -61,7 +61,10 @@ export default {
         },
 
         in(poFile) {
-            return PO.parse(poFile);
+            return PO.parse(poFile).items.reduce((messages, message) => {
+                messages[message.msgid] = message.msgstr[0];
+                return messages;
+            }, {});
         }
     },
 

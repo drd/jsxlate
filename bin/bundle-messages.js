@@ -13,8 +13,8 @@ function showHelpAndExit() {
 }
 
 var argv = require('minimist')(process.argv.slice(2), {
-    string: 'toh',
-    alias: {t: 'translations', o: 'output', h: 'help'}
+    string: 'tohf',
+    alias: {t: 'translations', o: 'output', h: 'help', f: 'format'}
 });
 
 if (!(argv._.length && argv.t) || argv.h) {
@@ -25,11 +25,18 @@ var chalk = require('chalk');
 var fs = require('fs');
 var rw = require('rw');
 
+var io = require('../build/io').default;
 var filesFromMixedPaths = require('./filesFromMixedPaths');
 var translateMessagesToBundle = require('../build/translate').default;
 
+if (argv.f) {
+    var format = argv.f;
+} else {
+    var fileChunks = argv.t.split('.');
+    var format = fileChunks[fileChunks.length - 1];
+}
 
-var translations = JSON.parse(rw.readFileSync(argv.t, "utf8"));
+var translations = rw.readFileSync(argv.t, "utf8");
 var files = filesFromMixedPaths(argv._);
 var bundle = {};
 var missing = {};
@@ -42,6 +49,7 @@ files.forEach(function (filename) {
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
         console.error(e);
+        console.error(e.stack);
         e.node && console.error(generate(e.node));
         process.exit(1);
     }

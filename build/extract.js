@@ -117,7 +117,9 @@ function extractMessages(src) {
     return Object.keys(extractFromSource(src));
 }
 
-function extractFromPaths(paths, _ref4) {
+function extractFromPaths(paths) {
+    var _ref4 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
     var _ref4$outputFormat = _ref4.outputFormat;
     var outputFormat = _ref4$outputFormat === undefined ? 'po' : _ref4$outputFormat;
 

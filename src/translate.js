@@ -10,14 +10,16 @@ import {
     extractFunctionMessage,
     extractElementMessageWithoutSideEffects,
 } from './extract';
+import io from './io';
 import parsing from './parsing';
 import translatedRendererFor from './translation';
 
 
 
-export default function translateMessagesToBundle(src, translations) {
+export default function translateMessagesToBundle(src, translationsSrc, {inputFormat = 'po', ...options} = {}) {
     const bundle = {};
     const missing = {};
+    const translations = io[inputFormat].in(translationsSrc, options);
 
     function attemptToCreateRenderer(node, message) {
         if (translations[message]) {

@@ -80,7 +80,20 @@ exports.default = {
             return po.toString();
         },
         in: function _in(poFile) {
-            return _pofile2.default.parse(poFile);
+            return _pofile2.default.parse(poFile).items.reduce(function (messages, message) {
+                messages[message.msgid] = message.msgstr[0];
+                return messages;
+            }, {});
+        }
+    },
+
+    // simple passthru for tests
+    js: {
+        out: function out(messages) {
+            return messages;
+        },
+        in: function _in(messages) {
+            return messages;
         }
     }
 };
