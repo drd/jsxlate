@@ -1,6 +1,7 @@
 # jsxlate
 
 [![Build Status](https://travis-ci.org/drd/jsxlate.svg)](https://travis-ci.org/drd/jsxlate)
+[![Coverage Status](https://coveralls.io/repos/github/drd/jsxlate/badge.svg?branch=master)](https://coveralls.io/github/drd/jsxlate?branch=master)
 
 This program aids in internationalizing React applications by extracting messages from JSX sources and then rewriting the messages into bundles of translatable units. The advantage of this approach is that translators can be shown full sentences, rich in context.
 
