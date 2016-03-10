@@ -12,6 +12,7 @@
     "build": "./build.sh",
     "prepublish": "./build.sh",
     "test": "npm run lint && NODE_ENV=test mocha --compilers js:babel-register",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint src test"
   },
   "author": "Eric O'Connell <eric.oconnell@idealist.org>",
@@ -47,10 +48,12 @@
     "babel-types": "^6.6.0",
     "babylon": "^6.4.5",
     "chalk": "^1.1.0",
+    "coveralls": "^2.11.8",
     "expand-tilde": "^1.2.0",
     "glob-to-regexp": "0.0.2",
     "immutable": "^3.7.3",
     "minimist": "^1.1.1",
+    "nyc": "^6.0.0",
     "pofile": "^1.0.2",
     "rw": "^0.1.4",
     "walk": "^2.3.9"
