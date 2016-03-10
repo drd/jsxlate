@@ -64,4 +64,10 @@ export default {
             return PO.parse(poFile);
         }
     },
+
+    // simple passthru for tests
+    js: {
+        out: messages => messages,
+        in: messages => messages
+    },
 };

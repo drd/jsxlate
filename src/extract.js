@@ -91,7 +91,7 @@ export function extractMessages(src) {
 }
 
 
-export default function extractFromPaths(paths, {outputFormat = 'po', ...options}) {
+export default function extractFromPaths(paths, {outputFormat = 'po', ...options} = {}) {
     let messages = {};
     const ffmp = require('../bin/filesFromMixedPaths');
 
