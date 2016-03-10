@@ -1,10 +1,8 @@
 # TODO
 
-- [ ] merge extract/translation validation
 - [ ] deduplicate `src/ast.js`
 - [ ] add i18n-comment, i18n-context, i18n-domain supporting attributes
  - [ ] prevent collisions between source/react child strings by bucketing messages
- - [ ] and output to .po/t files
 - [ ] support ICU MessageFormat syntax for:
  - [ ] pluralization
   - [ ] syntax validation
@@ -44,6 +42,8 @@
 
 # DONE
 
+- [x] merge extract/translation validation
+- [x] input/output from/to .pot/.po files
 - [x] pluralization
  - [x] <Pluralize> / <Match> shown to translators, no ICU MessageFormat
 - [x] rename `i18n-designation` attribute to `i18n-id`
