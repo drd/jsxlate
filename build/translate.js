@@ -9,6 +9,10 @@ var _ast = require('./ast');
 
 var _extract = require('./extract');
 
+var _io = require('./io');
+
+var _io2 = _interopRequireDefault(_io);
+
 var _parsing = require('./parsing');
 
 var _parsing2 = _interopRequireDefault(_parsing);
@@ -19,15 +23,23 @@ var _translation2 = _interopRequireDefault(_translation);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/*
- *
- *   Plugin for Message Translation and Bundling
- *
- */
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; } /*
+                                                                                                                                                                                                                              *
+                                                                                                                                                                                                                              *   Plugin for Message Translation and Bundling
+                                                                                                                                                                                                                              *
+                                                                                                                                                                                                                              */
 
-function translateMessagesToBundle(src, translations) {
+function translateMessagesToBundle(src, translationsSrc) {
+    var _ref = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+
+    var _ref$inputFormat = _ref.inputFormat;
+    var inputFormat = _ref$inputFormat === undefined ? 'po' : _ref$inputFormat;
+
+    var options = _objectWithoutProperties(_ref, ['inputFormat']);
+
     var bundle = {};
     var missing = {};
+    var translations = _io2.default[inputFormat].in(translationsSrc, options);
 
     function attemptToCreateRenderer(node, message) {
         if (translations[message]) {
@@ -40,16 +52,16 @@ function translateMessagesToBundle(src, translations) {
     var plugin = function plugin() {
         return {
             visitor: {
-                CallExpression: function CallExpression(_ref) {
-                    var node = _ref.node;
+                CallExpression: function CallExpression(_ref2) {
+                    var node = _ref2.node;
 
                     if ((0, _ast.isFunctionMarker)(node)) {
                         var message = (0, _extract.extractFunctionMessage)(node);
                         attemptToCreateRenderer(node, message);
                     }
                 },
-                JSXElement: function JSXElement(_ref2) {
-                    var node = _ref2.node;
+                JSXElement: function JSXElement(_ref3) {
+                    var node = _ref3.node;
 
                     if ((0, _ast.isElementMarker)(node)) {
                         var message = (0, _extract.extractElementMessageWithoutSideEffects)(node);

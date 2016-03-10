@@ -31,7 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function translatedRendererFor(markerNode, translatedMessage, originalMessage) {
     try {
-        var unprintedTranslation = undefined;
+        var unprintedTranslation = void 0;
         var freeVars = [];
         if ((0, _ast.isElement)(markerNode)) {
             var translated = _parsing2.default.parse('<' + _options.options.elementMarker + '>' + translatedMessage + '</' + _options.options.elementMarker + '>\n            ');

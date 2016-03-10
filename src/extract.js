@@ -1,8 +1,9 @@
-const fs = require('fs');
+import fs from 'fs';
 
 import {isElementMarker, isFunctionMarker} from './ast';
 import {assertInput} from './errors';
 import generate from './generation';
+import io from './io';
 import {options} from './options';
 import parsing from './parsing';
 import {
@@ -35,12 +36,30 @@ export function extractElementMessageWithoutSideEffects(jsxElement) {
         "Attempted to extract message from non-marker",
         jsxElement
     );
-    return extractFromSource(generate(jsxElement))[0];
+    return Object.keys(extractFromSource(generate(jsxElement)))[0];
 }
 
 
-export function extractFromSource(src) {
-    const messages = [];
+function messageReferenceForNode(node, sourceFile) {
+    return {
+        sourceFile,
+        line: node.loc.start.line,
+        node
+    };
+}
+
+
+export function extractFromSource(src, filePath = '<Program>') {
+    const messages = {};
+
+    function addMessage(node, message) {
+        let item = messages[message];
+        if (item) {
+            item.push(messageReferenceForNode(node, filePath));
+        } else {
+            messages[message] = [messageReferenceForNode(node, filePath)];
+        }
+    }
 
     const plugin = function({types: t}, {opts} = {opts: {}}) {
         Object.assign(options, opts);
@@ -49,13 +68,13 @@ export function extractFromSource(src) {
                 CallExpression({node: callExpression}) {
                     if (isFunctionMarker(callExpression)) {
                         validateFunctionMessage(callExpression);
-                        messages.push(extractFunctionMessage(callExpression));
+                        addMessage(callExpression, extractFunctionMessage(callExpression));
                     }
                 },
 
                 JSXElement(path) {
                     if (isElementMarker(path.node)) {
-                        messages.push(extractElementMessage(path));
+                        addMessage(path.node, extractElementMessage(path));
                     }
                 },
             }
@@ -67,14 +86,30 @@ export function extractFromSource(src) {
 }
 
 
-export default function extractFromPaths(paths) {
+export function extractMessages(src) {
+    return Object.keys(extractFromSource(src));
+}
+
+
+export default function extractFromPaths(paths, {outputFormat = 'po', ...options} = {}) {
     let messages = {};
     const ffmp = require('../bin/filesFromMixedPaths');
+
+    function addItem(message, item) {
+        let existing = messages[message];
+        if (existing) {
+            messages[message] = existing.concat(item);
+        } else {
+            messages[message] = item;
+        }
+    }
 
     ffmp(paths).forEach(path => {
         const src = fs.readFileSync(path, "utf-8");
         try {
-            extractFromSource(src).forEach(msg => messages[msg] = msg);
+            Object.entries(extractFromSource(src, path)).forEach(
+                ([msg, item]) => addItem(msg, item)
+            );
         } catch(e) {
             console.error(path, e);
             if (e.stack) {
@@ -86,5 +121,5 @@ export default function extractFromPaths(paths) {
         }
     });
 
-    return messages;
+    return io[outputFormat].out(messages, options);
 }

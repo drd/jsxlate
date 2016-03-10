@@ -1,6 +1,6 @@
 const {expect} = require('chai');
 
-import {extractFromSource as extract} from '../src/extract';
+import {extractMessages as extract} from '../src/extract';
 import translateMessagesToBundle from '../src/translate';
 
 
@@ -38,7 +38,7 @@ describe('translation', function() {
         };
 
         Object.entries(expectedResultsForTranslationBundles).forEach(([original, expected]) => {
-            const bundle = translateMessagesToBundle(original, translations).bundle;
+            const bundle = translateMessagesToBundle(original, translations, {inputFormat: 'js'}).bundle;
             expect(Object.values(bundle)[0]).to.equal(expected);
         });
     });
@@ -67,7 +67,7 @@ describe('translation', function() {
         var extraction = extract(originalSource)[0];
 
         function translateMessage(translation) {
-            translateMessagesToBundle(originalSource, {[extraction]: translation});
+            translateMessagesToBundle(originalSource, {[extraction]: translation}, {inputFormat: 'js'});
         }
 
         expect(() => translateMessage(correctTranslation)).to.not.throw();

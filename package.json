@@ -5,8 +5,6 @@
   "main": "./build/transform.js",
   "bin": {
     "extract-messages": "./bin/extract-messages.js",
-    "translate": "./bin/translate.js",
-    "transform": "./bin/transform.js",
     "bundle-messages": "./bin/bundle-messages.js",
     "jsxlate-lint": "./bin/jsxlate-lint.js"
   },
@@ -53,6 +51,7 @@
     "glob-to-regexp": "0.0.2",
     "immutable": "^3.7.3",
     "minimist": "^1.1.1",
+    "pofile": "^1.0.2",
     "rw": "^0.1.4",
     "walk": "^2.3.9"
   },

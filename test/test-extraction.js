@@ -2,7 +2,7 @@ const I = require('immutable');
 const {expect, assert} = require('chai');
 require('babel-polyfill');
 
-import {extractFromSource as extract, InputError} from '../src/extract';
+import {extractMessages as extract, InputError} from '../src/extract';
 
 
 describe('extraction', function() {
