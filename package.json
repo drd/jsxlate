@@ -65,6 +65,7 @@
   "devDependencies": {
     "babel-eslint": "^5.0.0",
     "babel-loader": "^6.2.1",
+    "babel-preset-react": "^6.5.0",
     "chai": "^3.2.0",
     "eslint": "~2.2.0",
     "eslint-plugin-react": "^4.1.0",
