@@ -100,6 +100,7 @@ function freeVariablesInExpression(expression, variables) {
         case 'Literal':
         case 'StringLiteral':
         case 'NumericLiteral':
+        case 'BooleanLiteral':
         case 'JSXEmptyExpression':
             // noop
         break;
