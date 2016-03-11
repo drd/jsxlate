@@ -1,8 +1,3 @@
 presentation*
-<<<<<<< HEAD
 node_modules*
 out*
-||||||| merged common ancestors
-=======
-node_modules*
->>>>>>> @{-1}
