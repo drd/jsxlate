@@ -1,5 +1,4 @@
 import {isElementMarker} from './ast';
-import generate from './generation';
 import parsing from './parsing';
 
 
@@ -29,7 +28,7 @@ export default function findUntranslatedStrings(src) {
                     }
                 }
             }
-        }
+        };
     };
 
     parsing.transform(src, [plugin]);
