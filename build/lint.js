@@ -7,10 +7,6 @@ exports.default = findUntranslatedStrings;
 
 var _ast = require('./ast');
 
-var _generation = require('./generation');
-
-var _generation2 = _interopRequireDefault(_generation);
-
 var _parsing = require('./parsing');
 
 var _parsing2 = _interopRequireDefault(_parsing);
