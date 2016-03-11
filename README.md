@@ -32,31 +32,35 @@ Messages take one of two forms: string literals or JSX elements.
 A script is included that extracts messages from JSX files:
 
 ```
-$(npm bin)/extract-messages MyComponent.jsx > messages.json
+$(npm bin)/extract-messages MyComponent.jsx > messages.po
 ```
 
 You can operate on directories, and specify the output file:
 
 ```
-$(npm bin)/extract-messages -o messages.json src/
+$(npm bin)/extract-messages -o messages.po src/
 ```
 
 You can also merge with an existing file:
 
 ```
-$(npm bin)/extract-messages -m messages.json -o messages.json src/module/
+$(npm bin)/extract-messages -m messages.po -o messages.po src/module/
 ```
+
+The default output format is [`gettext` PO](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html), but you can also output JSON using the option `-f json`.
 
 
 ### Bundling translated messages
 
-Once you get your translations back from the translators (as `messages-fr.json`), you can use the `bundle-messages` script to generate a translations bundle:
+Once you get your translations back from the translators (as `messages-fr.po`), you can use the `bundle-messages` script to generate a translations bundle:
 
 ```
-$(npm bin)/bundle-messages -t messages-fr.json -o i18n/bundle-fr.js src/
+$(npm bin)/bundle-messages -t messages-fr.po -o i18n/bundle-fr.js src/
 ```
 
 This module exports an object that has translator functions for the corresponding locale.
+
+The default input format is determined by the file extension of the input file.
 
 
 ### Transforming the source
