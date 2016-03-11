@@ -1,6 +1,6 @@
 {
   "name": "jsxlate",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Automatic message extraction and translation for JSX files",
   "main": "./build/transform.js",
   "bin": {
@@ -9,8 +9,8 @@
     "jsxlate-lint": "./bin/jsxlate-lint.js"
   },
   "scripts": {
-    "build": "./build.sh",
-    "prepublish": "./build.sh",
+    "build": "npm run test && ./build.sh",
+    "prepublish": "npm run build",
     "test": "npm run lint && NODE_ENV=test nyc mocha --compilers js:babel-register",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint src test"

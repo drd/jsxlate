@@ -14,7 +14,7 @@ function ignoreList(ignores) {
     // depending on the input? :(
     ignores = ignores.split ? ignores.split(',') : ignores;
     return ignores.map(function(i) {
-        return globToRegExp(i);
+        return globToRegExp(expandTilde(i));
     });
 }
 
