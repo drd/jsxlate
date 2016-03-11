@@ -27,6 +27,60 @@ Messages take one of two forms: string literals or JSX elements.
 
 ## Provided Tools
 
+### Transforming the source
+
+The `main` export from the `jsxlate` module is a [babel plugin](https://babeljs.io/docs/plugins/) which will  turn <I18N> marker components into <I18N> lookups. To enable it, add jsxlate to your `.babelrc` plugins list like so:
+
+```json
+{
+  "presets": ["es2015", "react"],
+  "plugins": ["jsxlate"]
+}
+```
+
+To understand what the transformation does, consider this component:
+
+```js
+function FishAppraiser(props) {
+  return <I18N>The {props.fish} looks good!</I18N>;
+}
+```
+
+The transform plugin will convert it to this form:
+
+```js
+function FishAppraiser(props) {
+  return <I18N message="The {props.fish} looks good!"
+               context={this}
+               args={[props]}
+               fallback={(props) => <span>The {props.fish} looks good!</span>}/>;
+}
+```
+
+Because jsxlate uses an optional namespace syntax for marking tags with sanitized attributes to translators, any use of these must be compiled with the transform plugin. Example:
+
+```js
+function FishAppraiser(props) {
+  return <I18N>The <span:fishy className="fishy">{props.fish}</span:fishy> looks good!</I18N>;
+}
+```
+
+Is turned into:
+
+```js
+function FishAppraiser(props) {
+  return <I18N message="The <span:fishy>{props.fish}</span:fishy> looks good!"
+               context={this}
+               args={[props]}
+               fallback={(props) => <span>The
+                 <span className="fishy">{props.fish}</span>
+               looks good!</span>}/>;
+}
+```
+
+It is also possible to only use the `i18n-id` attribute to mark components with sanitized attributes, in which case you will not need to specify `jsxlate` as a plugin in your `.babelrc` during development. The performance overhead is small, but on a very large site it may be preferable. However, if you do not use the plugin you will not be able to preview your translations.
+
+
 ### Extracting messages
 
 A script is included that extracts messages from JSX files:
@@ -61,76 +115,6 @@ $(npm bin)/bundle-messages -t messages-fr.po -o i18n/bundle-fr.js src/
 This module exports an object that has translator functions for the corresponding locale.
 
 The default input format is determined by the file extension of the input file.
-
-
-### Transforming the source
-
-NOTE: clean this up, expand docs.
-
-The transform plugin is used on your application source to turn <I18N> marker
-components into <I18N> lookups. Example:
-
-```js
-function FishAppraiser(props) {
-  return <I18N>The {props.fish} looks good!</I18N>;
-}
-```
-
-Is turned into:
-
-```js
-function FishAppraiser(props) {
-  return <I18N message="The {props.fish} looks good!"
-               context={this}
-               args={[props]}
-               fallback={(props) => <span>The {props.fish} looks good!</span>}/>;
-}
-```
-
-Because jsxlate uses an optional namespace syntax for marking tags with sanitized attributes to translators, any use of these must be compiled with the transform plugin. Example:
-
-```js
-function FishAppraiser(props) {
-  return <I18N>The <span:fishy className="fishy">{props.fish}</span:fishy> looks good!</I18N>;
-}
-```
-
-Is turned into:
-
-```js
-function FishAppraiser(props) {
-  return <I18N message="The <span:fishy>{props.fish}</span:fishy> looks good!"
-               context={this}
-               args={[props]}
-               fallback={(props) => <span>The
-                 <span className="fishy">{props.fish}</span>
-               looks good!</span>}/>;
-}
-```
-
-The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime.
-
-The preferred method is to use [webpack](http://webpack.github.io) as your bundling tool and [jsxlate-loader](http://github.com/drd/jsxlate-loader) in your loader pipeline. Setup is shown in `examples/simple`.
-
-
-We also provide `bin/transform` for integration with other build/bundling setups.
-
-Using `bin/transform`:
-
-```
-for f in $(find -name '*.js?'); do $(npm bin)/transform < $f > out/$f; done
-```
-
-
-### Discovering untranslated strings
-
-We provide a tool, `bin/jsxlate-lint`, which will do its best to discover strings that should likely be marked for extraction, but which are currently not. It only looks for strings appearing in JSX elements, because there is no simple heuristic for strings appearing in plain JavaScript source. If anyone wants to contribute a data-flow analyzer to see if strings are interpolated into the markup, that contribution would be welcome ;)
-
-Using `bin/jsxlate-lint`:
-
-```
-$(npm bin)/jsxlate-lint src/ -I *bundle*.js -I *untranslated/*.js
-```
 
 
 ## Integrating with your App
