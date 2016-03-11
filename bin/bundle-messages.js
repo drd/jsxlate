@@ -5,9 +5,11 @@ require('babel-polyfill');
 var generate = require('babel-generator').default;
 
 function showHelpAndExit() {
-    console.log("Usage: bundle-messages -t TRANSLATIONS [-o OUTPUT] ...FILES/DIRECTORIES");
+    console.log("Usage: bundle-messages -t TRANSLATIONS [-o OUTPUT] [-f FORMAT (po|json)] ..FILES/DIRECTORIES");
     console.log("Prints a JS module with messages in FILES/DIRECTORIES mapped");
     console.log("to render functions.");
+    console.log("The input format automatically defaults to the file extension (po or json).")
+    console.log("Pass -f  to override this behavior.");
     console.log("If -o is passed, writes to OUTPUT instead of stdout.");
     process.exit();
 }
@@ -45,7 +47,7 @@ var missing = {};
 files.forEach(function (filename) {
     var buffer = fs.readFileSync(filename, "utf8");
     try {
-        var translationsForFile = translateMessagesToBundle(buffer, translations);
+        var translationsForFile = translateMessagesToBundle(buffer, translations, { inputFormat: format });
     } catch (e) {
         console.error(chalk.bold.red("\nError in file " + filename + ":"));
         console.error(e);
