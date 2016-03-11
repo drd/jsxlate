@@ -27,44 +27,18 @@ Messages take one of two forms: string literals or JSX elements.
 
 ## Provided Tools
 
-### Extracting messages
-
-A script is included that extracts messages from JSX files:
-
-```
-$(npm bin)/extract-messages MyComponent.jsx > messages.json
-```
-
-You can operate on directories, and specify the output file:
-
-```
-$(npm bin)/extract-messages -o messages.json src/
-```
-
-You can also merge with an existing file:
-
-```
-$(npm bin)/extract-messages -m messages.json -o messages.json src/module/
-```
-
-
-### Bundling translated messages
-
-Once you get your translations back from the translators (as `messages-fr.json`), you can use the `bundle-messages` script to generate a translations bundle:
-
-```
-$(npm bin)/bundle-messages -t messages-fr.json -o i18n/bundle-fr.js src/
-```
-
-This module exports an object that has translator functions for the corresponding locale.
-
-
 ### Transforming the source
 
-NOTE: clean this up, expand docs.
+The `main` export from the `jsxlate` module is a [babel plugin](https://babeljs.io/docs/plugins/) which will  turn <I18N> marker components into <I18N> lookups. To enable it, add jsxlate to your `.babelrc` plugins list like so:
 
-The transform plugin is used on your application source to turn <I18N> marker
-components into <I18N> lookups. Example:
+```json
+{
+  "presets": ["es2015", "react"],
+  "plugins": ["jsxlate"]
+}
+```
+
+To understand what the transformation does, consider this component:
 
 ```js
 function FishAppraiser(props) {
@@ -72,7 +46,7 @@ function FishAppraiser(props) {
 }
 ```
 
-Is turned into:
+The transform plugin will convert it to this form:
 
 ```js
 function FishAppraiser(props) {
@@ -104,29 +78,43 @@ function FishAppraiser(props) {
 }
 ```
 
-The developer will mark up messages using the function `i18n()` or the component `<I18N/>`. During development, these will simply pass through their input (`i18n`) or children (`<I18N/>`). However, certain transformations must be made in order to translate the messages at runtime.
-
-The preferred method is to use [webpack](http://webpack.github.io) as your bundling tool and [jsxlate-loader](http://github.com/drd/jsxlate-loader) in your loader pipeline. Setup is shown in `examples/simple`.
+It is also possible to only use the `i18n-id` attribute to mark components with sanitized attributes, in which case you will not need to specify `jsxlate` as a plugin in your `.babelrc` during development. The performance overhead is small, but on a very large site it may be preferable. However, if you do not use the plugin you will not be able to preview your translations.
 
 
-We also provide `bin/transform` for integration with other build/bundling setups.
+### Extracting messages
 
-Using `bin/transform`:
+A script is included that extracts messages from JSX files:
 
 ```
-for f in $(find -name '*.js?'); do $(npm bin)/transform < $f > out/$f; done
+$(npm bin)/extract-messages MyComponent.jsx > messages.po
 ```
 
-
-### Discovering untranslated strings
-
-We provide a tool, `bin/jsxlate-lint`, which will do its best to discover strings that should likely be marked for extraction, but which are currently not. It only looks for strings appearing in JSX elements, because there is no simple heuristic for strings appearing in plain JavaScript source. If anyone wants to contribute a data-flow analyzer to see if strings are interpolated into the markup, that contribution would be welcome ;)
-
-Using `bin/jsxlate-lint`:
+You can operate on directories, and specify the output file:
 
 ```
-$(npm bin)/jsxlate-lint src/ -I *bundle*.js -I *untranslated/*.js
+$(npm bin)/extract-messages -o messages.po src/
 ```
+
+You can also merge with an existing file:
+
+```
+$(npm bin)/extract-messages -m messages.po -o messages.po src/module/
+```
+
+The default output format is [`gettext` PO](https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html), but you can also output JSON using the option `-f json`.
+
+
+### Bundling translated messages
+
+Once you get your translations back from the translators (as `messages-fr.po`), you can use the `bundle-messages` script to generate a translations bundle:
+
+```
+$(npm bin)/bundle-messages -t messages-fr.po -o i18n/bundle-fr.js src/
+```
+
+This module exports an object that has translator functions for the corresponding locale.
+
+The default input format is determined by the file extension of the input file.
 
 
 ## Integrating with your App
