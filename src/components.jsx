@@ -1,34 +1,57 @@
 import React from 'react';
+import _ from 'lodash';
 
-
-// TODO: default locale should be empty, not fake-English
-var state = {
-    messages: {},
-    locale: {name: 'en', pluralFn: (c) => c === 1 ? 'one' : 'other'}
+let contextTypes = {
+    _i18n: React.PropTypes.func.isRequired,
+    messages: React.PropTypes.object.isRequired,
+    locale: React.PropTypes.shape({
+        name: React.PropTypes.string.isRequired,
+        pluralFn: React.PropTypes.func.isRequired
+    }).isRequired
 };
 
+class I18NContainer extends React.Component {
 
-function setMessages(messages) {
-    state.messages = messages;
+    getChildContext() {
+        return {
+            _i18n: function(original) {
+                let translated = this.props.messages[original];
+                return translated ? translated() : original;
+            }.bind(this),
+            messages: this.props.messages,
+            locale: this.props.locale
+        };
+    }
+
+    render() {
+        return this.props.children;
+    }
 }
 
-function setLocale(locale) {
-    state.locale = locale;
-}
+I18NContainer.propTypes = {
+    messages: React.PropTypes.object,
+    locale: React.PropTypes.shape({
+        name: React.PropTypes.string.isRequired,
+        pluralFn: React.PropTypes.func.isRequired
+    })
+};
 
+I18NContainer.defaultProps = {
+    messages: {},
+    // TODO: default locale should be empty, not fake-English
+    locale: {
+        name: 'en',
+        pluralFn: (c) => c === 1 ? 'one' : 'other'
+    }
+};
 
-function i18n(original) {
-    let translated = state.messages[original];
-    return translated ? translated() : original;
-}
-
+I18NContainer.childContextTypes = contextTypes;
 
 class I18N extends React.Component {
     render() {
-        let renderer = state.messages[this.props.message];
+        let renderer = this.context.messages[this.props.message];
         if (renderer) {
             let rendered = renderer.apply(this.props.context, this.props.args);
-            console.log("rendered", rendered);
             // TODO: this check would be unnecessary if collisions between
             // source and react child strings were impossible.
             if (Object.prototype.toString.call(rendered) === '[object String]') {
@@ -41,6 +64,7 @@ class I18N extends React.Component {
     }
 }
 
+I18N.contextTypes = contextTypes;
 
 class Match extends React.Component {
     render() {
@@ -52,7 +76,6 @@ Match._isMatch = true;
 Match.propTypes = {
     when: React.PropTypes.string
 };
-
 
 class Pluralize extends React.Component {
 
@@ -76,7 +99,7 @@ class Pluralize extends React.Component {
         React.Children.forEach(this.props.children, c => children.push(c));
         children = children.reduce(this.classifyMatches.bind(this), {});
 
-        let form = state.locale.pluralFn(this.props.on);
+        let form = this.context.locale.pluralFn(this.props.on);
         let match = children[this.props.on] || children[form];
         if (!match) {
             throw new Error("Missing plural form: " + form);
@@ -85,6 +108,7 @@ class Pluralize extends React.Component {
     }
 }
 
+Pluralize.contextTypes = contextTypes;
 
 Pluralize.propTypes = {
     on: React.PropTypes.number,
@@ -95,14 +119,17 @@ Pluralize.propTypes = {
             return new Error("Pluralize given children other than a Match: " + nonMatchChildren.map(c => c.type.displayName || c.type.name || c.type));
         }
     }
+};
+
+function translated(componentClass) {
+    componentClass.contextTypes = _.merge({}, componentClass.contextTypes, contextTypes);
+    return componentClass;
 }
 
-
 export default {
-    i18n,
+    translated,
     I18N,
-    setMessages,
-    setLocale,
+    I18NContainer,
     Pluralize,
     Match,
     Format: ['Pluralize', 'Match']

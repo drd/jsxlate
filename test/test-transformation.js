@@ -41,17 +41,17 @@ describe('Message node transformation', function() {
 
             [
                 "i18n('Well golly gee')",
-                "i18n('Well golly gee')"
+                "this.context._i18n('Well golly gee')"
             ],
 
             [
                 "i18n('Well \"golly\" gee')",
-                "i18n('Well \"golly\" gee')"
+                "this.context._i18n('Well \"golly\" gee')"
             ],
 
             [
                 "i18n('Well \\'golly\\' gee')",
-                "i18n('Well \\'golly\\' gee')"
+                "this.context._i18n('Well \\'golly\\' gee')"
             ]
         ]);
 

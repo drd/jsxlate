@@ -2,7 +2,7 @@ const template = require('babel-template');
 import traverse from 'babel-traverse';
 const types = require('babel-types');
 
-import {isElementMarker, stripI18nId} from './ast';
+import {isElementMarker, isFunctionMarker, stripI18nId} from './ast';
 import {extractElementMessageWithoutSideEffects} from './extract';
 import freeVariablesInMessage from './free-variables';
 import {options} from './options';
@@ -17,6 +17,8 @@ export default {
     transformMarker(node) {
         if (isElementMarker(node)) {
             return this.transformElementMarker(node);
+        } else if (isFunctionMarker(node)) {
+            return this.transformFunctionMarker(node);
         } else {
             return node;
         }
@@ -34,6 +36,18 @@ export default {
             FALLBACK: fallback,
         });
         return transformed;
+    },
+
+    transformFunctionMarker(node) {
+        /* TODO: This will only currently work inside React components where this.context
+                 is available. This could definitely be smarter. */
+        return types.callExpression(
+            types.memberExpression(
+                types.memberExpression(types.thisExpression(), types.identifier('context')),
+                types.identifier(`_${options.functionMarker}`)
+            ),
+            node.arguments
+        );
     },
 
     makeFallback(node) {
