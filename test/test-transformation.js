@@ -32,6 +32,19 @@ describe('Message node transformation', function() {
                   ' fallback={function () {\n  return <span>\n  <div>Hello, world. <Component.SubComponent snoochie={boochies} />{this.bar.baz}</div>\n  </span>;\n}} />;'
             ],
 
+            // this test ensures whitespace is handled properly in multi-line extractions
+            [
+                `<I18N>
+  <div>
+    Hello, world.
+    <Component.SubComponent i18n-id="comp.sub" snoochie={boochies} />
+    {this.bar.baz}
+  </div>
+</I18N>`,
+                '<I18N message={"<div>\\n    Hello, world.\\n    <Component.SubComponent:comp.sub />\\n    {this.bar.baz}\\n  </div>"} context={this} args={[Component, boochies]}' +
+                  ' fallback={function () {\n  return <span>\n  <div>\n    Hello, world.\n    <Component.SubComponent snoochie={boochies} />\n    {this.bar.baz}\n  </div>\n  </span>;\n}} />;'
+            ],
+
             // whitespace + escaping quotes
             [
                 '<I18N>Hello, \n"world".</I18N>',
