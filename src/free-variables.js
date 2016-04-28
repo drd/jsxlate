@@ -2,14 +2,17 @@ import {isElement} from './ast';
 import generate from './generation';
 
 
+const add = (set, key) => set[key] = true;
+const del = (set, key) => delete set[key];
+
 export default function freeVariablesInMessage(node) {
     if (!isElement(node)) {
         return [];
     }
-    const variables = new Set();
+    const variables = {};
     freeVariablesInChildren(node.children, variables);
-    variables.delete('this');
-    return variables.toJSON();
+    del(variables, 'this');
+    return Object.keys(variables);
 }
 
 function freeVariablesInChildren(children, variables) {
@@ -35,11 +38,15 @@ function freeVariablesInElement(element, variables) {
 function freeVariablesInElementName(name, variables) {
     if (name.type === 'JSXIdentifier') {
         if (name.name.toLowerCase() !== name.name) {
-            variables.add(name.name);
+            add(variables, name.name);
         }
     } else if (name.type === 'JSXMemberExpression') {
         // FIXME
-        variables.add(generate(name).split('.')[0]);
+        add(variables, generate(name).split('.')[0]);
+    } else if (name.type === 'JSXNamespacedName') {
+        if (name.namespace.name.toLowerCase() !== name.namespace.name) {
+            add(variables, name.namespace.name);
+        }
     }
 }
 
@@ -77,11 +84,11 @@ function freeVariablesInObjectExpression(expression, variables) {
 function freeVariablesInExpression(expression, variables) {
     switch(expression.type) {
         case 'Identifier':
-            variables.add(expression.name);
+            add(variables, expression.name);
         break;
 
         case 'MemberExpression':
-            variables.add(generate(expression).split('.')[0]);
+            add(variables, generate(expression).split('.')[0]);
         break;
 
         case 'CallExpression':
