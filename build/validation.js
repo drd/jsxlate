@@ -193,7 +193,7 @@ function attributeIsSanitized(element, attribute) {
 
     var name = (0, _ast.elementNamespaceOrName)(element);
     var whitelistedAttributes = _options.whitelist[name] || _options.whitelist['*'];
-    return !whitelistedAttributes.includes((0, _ast.attributeName)(attribute)) || attribute.value.type !== 'StringLiteral';
+    return !(whitelistedAttributes.indexOf((0, _ast.attributeName)(attribute)) !== -1) || attribute.value.type !== 'StringLiteral';
 }
 
 function validateElementContext(validationContext) {

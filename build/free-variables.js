@@ -13,14 +13,21 @@ var _generation2 = _interopRequireDefault(_generation);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+var add = function add(set, key) {
+    return set[key] = true;
+};
+var del = function del(set, key) {
+    return delete set[key];
+};
+
 function freeVariablesInMessage(node) {
     if (!(0, _ast.isElement)(node)) {
         return [];
     }
-    var variables = new Set();
+    var variables = {};
     freeVariablesInChildren(node.children, variables);
-    variables.delete('this');
-    return variables.toJSON();
+    del(variables, 'this');
+    return Object.keys(variables);
 }
 
 function freeVariablesInChildren(children, variables) {
@@ -46,11 +53,15 @@ function freeVariablesInElement(element, variables) {
 function freeVariablesInElementName(name, variables) {
     if (name.type === 'JSXIdentifier') {
         if (name.name.toLowerCase() !== name.name) {
-            variables.add(name.name);
+            add(variables, name.name);
         }
     } else if (name.type === 'JSXMemberExpression') {
         // FIXME
-        variables.add((0, _generation2.default)(name).split('.')[0]);
+        add(variables, (0, _generation2.default)(name).split('.')[0]);
+    } else if (name.type === 'JSXNamespacedName') {
+        if (name.namespace.name.toLowerCase() !== name.namespace.name) {
+            add(variables, name.namespace.name);
+        }
     }
 }
 
@@ -85,11 +96,11 @@ function freeVariablesInObjectExpression(expression, variables) {
 function freeVariablesInExpression(expression, variables) {
     switch (expression.type) {
         case 'Identifier':
-            variables.add(expression.name);
+            add(variables, expression.name);
             break;
 
         case 'MemberExpression':
-            variables.add((0, _generation2.default)(expression).split('.')[0]);
+            add(variables, (0, _generation2.default)(expression).split('.')[0]);
             break;
 
         case 'CallExpression':

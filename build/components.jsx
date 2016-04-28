@@ -54,7 +54,6 @@ var I18N = function (_React$Component) {
             var renderer = state.messages[this.props.message];
             if (renderer) {
                 var rendered = renderer.apply(this.props.context, this.props.args);
-                console.log("rendered", rendered);
                 // TODO: this check would be unnecessary if collisions between
                 // source and react child strings were impossible.
                 if (Object.prototype.toString.call(rendered) === '[object String]') {
