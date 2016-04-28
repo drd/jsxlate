@@ -1,6 +1,6 @@
 {
   "name": "jsxlate",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Automatic message extraction and translation for JSX files",
   "main": "./build/transform.js",
   "bin": {
