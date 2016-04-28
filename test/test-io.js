@@ -21,7 +21,7 @@ describe('input/output library', function() {
                 const json = io.json.out(outputFixture);
                 const parsed = JSON.parse(json);
                 expect(Object.keys(parsed)).to.eql(Object.keys(outputFixture));
-                expect(Object.values(parsed)).to.eql(Object.keys(outputFixture));
+                expect(Object.keys(parsed).map(k => parsed[k])).to.eql(Object.keys(outputFixture));
             });
         });
 

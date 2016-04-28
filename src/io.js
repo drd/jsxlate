@@ -49,7 +49,8 @@ export default {
         out(messages, {root = process.cwd(), headers = defaultHeaders} = {}) {
             const po = new PO();
             Object.assign(po.headers, headers);
-            Object.entries(messages).forEach(([message, items]) => {
+            Object.keys(messages).forEach(message => {
+                const items = messages[message];
                 const item = new PO.Item();
                 item.msgid = message;
                 item.references = items.map(

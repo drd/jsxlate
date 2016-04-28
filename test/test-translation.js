@@ -35,11 +35,14 @@ describe('translation', function() {
             '<I18N>And now {a.member.expression}</I18N>': 'function(a) { return <span>Ac yn awr {a.member.expression}</span>; }',
             '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': 'function(Component, shnar) { return <span><Component gnar={3 * shnar} /> "checked" out!</span>; }',
             '<I18N><Re /><Ordering /></I18N>': 'function(Re, Ordering) { return <span><Ordering /><Re /></span>; }',
+            '<I18N><Pluralize:items on={this.state.count}><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize:items></I18N>':
+                'function(Pluralize, Match) { return <span><Pluralize on={this.state.count}><Match when="=0">No tiene nada in su carrito</Match><Match when="one">Tiene ún articulo en su carrito</Match><Match when="other">Tiene {this.state.count} articulos en su carrito</Match></Pluralize></span>; }'
         };
 
-        Object.entries(expectedResultsForTranslationBundles).forEach(([original, expected]) => {
+        Object.keys(expectedResultsForTranslationBundles).forEach(original => {
+            const expected = expectedResultsForTranslationBundles[original];
             const bundle = translateMessagesToBundle(original, translations, {inputFormat: 'js'}).bundle;
-            expect(Object.values(bundle)[0]).to.equal(expected);
+            expect(bundle[Object.keys(bundle)[0]]).to.equal(expected);
         });
     });
 

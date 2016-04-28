@@ -87,7 +87,7 @@ export function hasI18nId(jsxElement) {
 }
 
 export function hasI18nIdAttribute(jsxElement) {
-    return elementAttributes(jsxElement).map(attributeName).includes('i18n-id');
+    return elementAttributes(jsxElement).map(attributeName).indexOf('i18n-id') !== -1;
 }
 
 export function filterAttributes(jsxElement, condition) {

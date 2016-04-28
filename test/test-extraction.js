@@ -1,6 +1,5 @@
 const I = require('immutable');
 const {expect, assert} = require('chai');
-require('babel-polyfill');
 
 import {extractMessages as extract, InputError} from '../src/extract';
 

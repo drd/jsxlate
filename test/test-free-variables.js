@@ -23,7 +23,8 @@ describe('freeVariables', function() {
             ['Component', 'poochies', 'foo', 'bar'],
     };
 
-    Object.entries(examples).forEach(([src, expectedVariables]) => {
+    Object.keys(examples).forEach(src => {
+        const expectedVariables = examples[src];
         it(`in ${src}`, function() {
             const expression = parsing.parse(src).program.body[0].expression;
             const variables = freeVariablesInMessage(expression);

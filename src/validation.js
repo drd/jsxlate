@@ -236,7 +236,7 @@ function attributeIsSanitized(element, attribute) {
     const name = elementNamespaceOrName(element);
     const whitelistedAttributes = whitelist[name] || whitelist['*'];
     return (
-        !whitelistedAttributes.includes(attributeName(attribute)) ||
+        !(whitelistedAttributes.indexOf(attributeName(attribute)) !== -1) ||
         attribute.value.type !== 'StringLiteral'
     );
 }
