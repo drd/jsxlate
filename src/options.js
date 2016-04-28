@@ -5,7 +5,6 @@ export const options = {
         a:   ['href'],
         img: ['alt'],
         '*': ['title', 'placeholder', 'alt', 'summary', 'i18n-id',],
-        'Pluralize': ['on'],
         'Match': ['when'],
     },
 };
