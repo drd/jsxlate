@@ -45,6 +45,13 @@ describe('Message node transformation', function() {
                   ' fallback={function () {\n  return <span>\n  <div>\n    Hello, world.\n    <Component.SubComponent snoochie={boochies} />\n    {this.bar.baz}\n  </div>\n  </span>;\n}} />;'
             ],
 
+            // Namespaced Component with sanitized attributes:
+            [
+                '<I18N><Pluralize:items on={this.state.count}><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize:items></I18N>',
+                '<I18N message={"<Pluralize:items><Match when=\\"=0\\">You have no items in your cart</Match><Match when=\\"one\\">You have one item in your cart</Match><Match when=\\"other\\">You have {this.state.count} items in your cart</Match></Pluralize:items>"}' +
+                  ' context={this} args={[Pluralize, Match]} fallback={function () {\n  return <span><Pluralize on={this.state.count}><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize></span>;\n}} />;'
+            ],
+
             // whitespace + escaping quotes
             [
                 '<I18N>Hello, \n"world".</I18N>',

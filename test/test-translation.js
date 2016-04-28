@@ -19,7 +19,9 @@ describe('translation', function() {
             'And now {a.member.expression}': 'Ac yn awr {a.member.expression}',
             '<Re /><Ordering />': '<Ordering /><Re />',
             'Check out: <Component />': '<Component/> "checked" out!',
-            '<span:stat><ReactIntl.FormattedNumber /></span:stat>opportunities': '<span:stat><ReactIntl.FormattedNumber /></span:stat>oportunidades'
+            '<span:stat><ReactIntl.FormattedNumber /></span:stat>opportunities': '<span:stat><ReactIntl.FormattedNumber /></span:stat>oportunidades',
+            '<Pluralize:items><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize:items>':
+                '<Pluralize:items><Match when="=0">No tiene nada in su carrito</Match><Match when="one">Tiene ún articulo en su carrito</Match><Match when="other">Tiene {this.state.count} articulos en su carrito</Match></Pluralize:items>'
         };
 
         var expectedResultsForTranslationBundles = {

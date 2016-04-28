@@ -21,6 +21,8 @@ describe('freeVariables', function() {
             ['Component', 'boochies'],
         '<I18N>Hello, world. <Component.SubComponent snoochie={{boochie: poochies, [foo]: bar}} />{this.bar.baz}</I18N>':
             ['Component', 'poochies', 'foo', 'bar'],
+        '<I18N><Pluralize:items on={this.state.count}><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize:items></I18N>':
+            ['Pluralize', 'Match'],
     };
 
     Object.keys(examples).forEach(src => {
