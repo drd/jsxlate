@@ -43,6 +43,9 @@ function translateMessagesToBundle(src, translationsSrc) {
 
     function attemptToCreateRenderer(node, message) {
         if (translations[message]) {
+            if ((0, _ast.isElementMarker)(node) && bundle[message]) {
+                return;
+            }
             bundle[message] = (0, _translation2.default)(node, translations[message], message);
         } else {
             missing[message] = message;
