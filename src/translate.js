@@ -23,6 +23,9 @@ export default function translateMessagesToBundle(src, translationsSrc, {inputFo
 
     function attemptToCreateRenderer(node, message) {
         if (translations[message]) {
+            if (isElementMarker(node) && bundle[message]) {
+                return;
+            }
             bundle[message] = translatedRendererFor(
                 node,
                 translations[message],

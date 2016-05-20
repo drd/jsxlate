@@ -21,7 +21,8 @@ describe('translation', function() {
             'Check out: <Component />': '<Component/> "checked" out!',
             '<span:stat><ReactIntl.FormattedNumber /></span:stat>opportunities': '<span:stat><ReactIntl.FormattedNumber /></span:stat>oportunidades',
             '<Pluralize:items><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize:items>':
-                '<Pluralize:items><Match when="=0">No tiene nada in su carrito</Match><Match when="one">Tiene ún articulo en su carrito</Match><Match when="other">Tiene {this.state.count} articulos en su carrito</Match></Pluralize:items>'
+                '<Pluralize:items><Match when="=0">No tiene nada in su carrito</Match><Match when="one">Tiene ún articulo en su carrito</Match><Match when="other">Tiene {this.state.count} articulos en su carrito</Match></Pluralize:items>',
+            'Hey': 'Hey',
         };
 
         var expectedResultsForTranslationBundles = {
@@ -38,7 +39,8 @@ describe('translation', function() {
             '<I18N>Check out: <Component gnar={3 * shnar}/></I18N>': 'function(Component, shnar) { return <span><Component gnar={3 * shnar} /> "checked" out!</span>; }',
             '<I18N><Re /><Ordering /></I18N>': 'function(Re, Ordering) { return <span><Ordering /><Re /></span>; }',
             '<I18N><Pluralize:items on={this.state.count}><Match when="=0">You have no items in your cart</Match><Match when="one">You have one item in your cart</Match><Match when="other">You have {this.state.count} items in your cart</Match></Pluralize:items></I18N>':
-                'function(Pluralize, Match) { return <span><Pluralize on={this.state.count}><Match when="=0">No tiene nada in su carrito</Match><Match when="one">Tiene ún articulo en su carrito</Match><Match when="other">Tiene {this.state.count} articulos en su carrito</Match></Pluralize></span>; }'
+                'function(Pluralize, Match) { return <span><Pluralize on={this.state.count}><Match when="=0">No tiene nada in su carrito</Match><Match when="one">Tiene ún articulo en su carrito</Match><Match when="other">Tiene {this.state.count} articulos en su carrito</Match></Pluralize></span>; }',
+            'i18n("Hey");<I18N>Hey</I18N>': 'function() { return "Hey"; }',
         };
 
         Object.keys(expectedResultsForTranslationBundles).forEach(original => {
